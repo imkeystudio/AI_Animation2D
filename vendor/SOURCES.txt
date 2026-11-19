@@ -1,0 +1,16 @@
+﻿vendor\tasks-vision\vision_bundle.mjs	156062	B65ACB59B370CD6561AFD9D04C29ED7A87E7ED6386922AC1B263AF1F1AD06B7D	https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.2.2/vision_bundle.mjs
+vendor\tasks-vision\wasm\vision_wasm_internal.js	334128	F2B9C17131EA79716EC6BF07B117A087B2749A6F8A1E2F1F2E77A9382092DB5B	https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.2.2/wasm/vision_wasm_internal.js
+vendor\tasks-vision\wasm\vision_wasm_internal.wasm	14603354	F5BD25147AC89D506074293CE2675969B10E827180DB95A0D9689C2ED80764AB	https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.2.2/wasm/vision_wasm_internal.wasm
+vendor\models\pose_landmarker_heavy.task	30664242	64437AF838A65D18E5BA7A0D39B465540069BC8AAE8308DE3E318AAD31FCBC7B	https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_heavy/float16/latest/pose_landmarker_heavy.task
+vendor\models\pose_landmarker_full.task	9398198	4EAA5EB7A98365221087693FCC286334CF0858E2EB6E15B506AA4A7ECDCEC4AD	https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/latest/pose_landmarker_full.task
+
+spine-canvas/spine-canvas.js  @esotericsoftware/spine-canvas 4.3.13, dist/iife/spine-canvas.js
+  from https://cdn.jsdelivr.net/npm/@esotericsoftware/spine-canvas@4.3.13/dist/iife/spine-canvas.js (downloaded 2026-11-17 with the owner's OK)
+  538051 bytes, sha256 ED6D7E9484E1FAB5AB3B42C5BDEC7BF4AA41A85D3E18C51AC638BDFBCD6A8421
+
+
+fflate/fflate.js  fflate 0.8.2 (MIT, Arjun Barrett), umd/index.js
+  from https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js (downloaded 2026-11-18, small vendored lib allowed by the owner for the Export dialog)
+  32665 bytes, sha256 C3B34F2E9F5E74D4D7D64E01CAC7A0C01954C6C406414D42185C7B53D6875DDF
+  Inlined into run.html by build.py. Used for zlib / deflate: PNG and APNG compression levels, PSD ZIP channels, zip downloads.
+  All image / video encoders of the Export dialog (GIF, APNG, animated WEBP, PSD, AVI, MOV, WEBM container) are the app's own code (aia_exp_enc.js).
