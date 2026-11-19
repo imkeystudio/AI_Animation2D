@@ -3718,7 +3718,7 @@ function render() {
   if (st.flash.length) dirty.view = true;
   { const ms = selMesh(); if (ms) drawMeshOverlay(ms); }
   // transform gizmo hint: circle for rotate
-  if (tgt && (st.tool === "rotate" || st.tool === "scale")) {
+  if (tgt && !window.GZ_ON && (st.tool === "rotate" || st.tool === "scale")) {
     const c = targetCenterScreen(tgt);
     if (c) { ctx.beginPath(); ctx.arc(c[0], c[1], st.tool === "rotate" ? 26 : 18, 0, Math.PI * 2); ctx.strokeStyle = isAnim() ? "rgba(238,90,72,.55)" : "rgba(57,181,166,.55)"; ctx.lineWidth = 1.5; ctx.stroke(); }
   }
@@ -17745,7 +17745,7 @@ if (typeof window !== "undefined" && typeof st !== "undefined" && typeof cv !== 
   let lastK = ""; setInterval(() => { const ms = selMesh(); if (!on()) WT.binding = false; const k = [JSON.stringify(st.sel), st.mode, st.meshMode, ms ? wtNb(ms.m) : -1, selVerts().join(","), undoS.length, WT.binding].join("|"); if (k !== lastK) { lastK = k; wtPanelRefresh(); } }, 300);
 })();
 
-</script><script>window.AIA_VERSION = {"version": "1.19.3", "built": "2026-11-19 19:22", "changelog": [{"version": "1.19.3", "date": "2026-11-19", "items": ["Tint black: the viewport draws the dark colour, and tint black keys (Color view, Dark tab in Animate) show in the dopesheet and go to JSON and binary"]}, {"version": "1.19.2", "date": "2026-11-19", "items": ["Mix preview blends slot colours, mesh deforms and constraint mixes too, like Spine"]}, {"version": "1.19.1", "date": "2026-11-19", "items": ["Audio tracks and mix times are saved with the project (.aia.json and autosave) and come back when it is opened", "JSON export writes the audio folder when events use sounds"]}, {"version": "1.19.0", "date": "2026-11-19", "items": ["Save saves .spine in the opened file's version (PC: <name>_ai.spine next to it; website: a download); edits .spine cannot hold yet are saved as JSON with a notice", "Main menu on the logo: New / Open / Recent / Save / Save As / Package Project, New Skeleton, Import Project / Data / PSD, Export, Texture Packer, Texture Unpacker, Settings", "Spine version of the opened file next to the logo", "Exports are named skeleton.json / .skel / .atlas / .png, like Spine", "The envelope opens What's new; the version text is information only"]}, {"version": "1.18.1", "date": "2026-11-19", "items": ["Graph colours match Spine"]}, {"version": "1.18.0", "date": "2026-11-19", "items": ["Curves, Ghosting, Playback, Timeline and Audio views (Alt+V, Alt+H, Alt+P, Alt+L, Alt+U)", "View shortcuts: a view behind another tab comes to the front; pressed again it closes"]}, {"version": "1.17.2", "date": "2026-11-19", "items": ["Cleaner look: one neutral dark theme with one accent blue, Spine-like tree (search in the toolbar, compact rows, visibility column, short attachment names, constraint folders), tidy panel headers and toolbars"]}, {"version": "1.17.1", "date": "2026-11-19", "items": ["Legs fixed: constraints run in the project's own order (as Spine does), and the two-bone IK matches Spine's runtime exactly", "Graph colours like Spine (rotate sky blue, X green, Y blue), square keys, frame dots, Spine's Graph toolbar with Shift, Offset, copy / paste, Swap and Average (all)"]}, {"version": "1.17.0", "date": "2026-11-19", "items": ["Views menu laid out like Spine's, with icons and Alt shortcuts; open views are greyed and checked", "New views: Color (slot, dark tint, bone, skin, attachment colours and colour keys), Skins, Outline, Metrics, Problems; Animations view with folders and export flags", "Mesh Tools and Weights views", "Save as .spine says which mesh or attachment edit it cannot write yet"]}, {"version": "1.16.1", "date": "2026-11-19", "items": ["Preview opens fitted to the whole animation"]}, {"version": "1.16.0", "date": "2026-11-19", "items": ["Save as .spine in the same Spine version (Project > Save as .spine, Ctrl+Shift+S, or Export > Spine)", "Export of a project opened from .spine keeps its own Spine version, bone order, mesh weights, curves and the parts the editor does not show", "Preview zoom and pan fixed (wheel, drag, + / -, fit)"]}, {"version": "1.15.1", "date": "2026-11-19", "items": ["Removed project-specific names"]}, {"version": "1.15.0", "date": "2026-11-19", "items": ["Version number in the top-right corner; click it to see what changed", "A dot on the version shows there is news you have not read yet"]}, {"version": "1.14.0", "date": "2026-11-19", "items": ["Auto-rig has a second rig template (Template B, controller biped) with leg and shoulder controllers", "Rig template choice in the auto-rig wizard: Auto, A or B (Auto shows what it picked)"]}, {"version": "1.13.0", "date": "2026-11-19", "items": ["Selected bones are drawn in cyan like Spine", "Graph: Repeat shows the curves before and after the animation; X / Y splits channels", "Skins can have a colour and live in folders (name with a slash)", "Bones and slots can be selected together with Ctrl+click", "Dopesheet toolbar stays in one row and never scrolls sideways"]}, {"version": "1.12.0", "date": "2026-11-19", "items": ["Export: Polygons packing for images used only by meshes", "Export: audio track for AVI, MOV and WEBM videos (file or event sounds)", "Export check box on attachments, constraints, animations, skins and events"]}, {"version": "1.11.1", "date": "2026-11-19", "items": ["Fixed the folder import that hung on some rigs (overlapping draw-order keys)", "A failed import now shows a message instead of hanging"]}, {"version": "1.11.0", "date": "2026-11-19", "items": ["Opening .spine files reads weighted mesh deform keys, clipping, events and draw-order folders", "Inherit keys, export flags and more constraint settings are read from .spine files"]}, {"version": "1.10.0", "date": "2026-11-18", "items": ["Open .spine project files directly, without Spine installed", "Find works across your Spine projects without Spine"]}, {"version": "1.9.0", "date": "2026-11-18", "items": ["Import uses the original images from the images folder (sharper than the packed atlas)", "Sharper viewport on high-resolution screens"]}, {"version": "1.8.0", "date": "2026-11-18", "items": ["New Export dialog like Spine 4.3: JSON, Binary, HTML, images, video and texture packer", "Save and load export settings, preview before exporting"]}, {"version": "1.7.0", "date": "2026-11-18", "items": ["Dopesheet like Spine 4.3: zoom, pan, rows and keys", "Dopesheet: X / Y, colour, inherit and sequence keys, row reorder and Sync"]}, {"version": "1.6.0", "date": "2026-11-18", "items": ["Bones in the viewport are drawn like Spine 4.3", "Skin bones and skin constraints like Spine 4.3"]}, {"version": "1.5.0", "date": "2026-11-18", "items": ["Number fields: drag left or right to change the value (no spinner arrows)"]}, {"version": "1.4.0", "date": "2026-11-18", "items": ["Select several bones, slots and images at once like Spine", "Dopesheet key editing: move, duplicate (Ctrl+Shift+drag), Alt and Ctrl+Alt drag", "Dopesheet toolbar in one row with Shift, Offset and Adjust", "Graph view: curve editor with Bezier handles, presets and handle modes", "Skins like Spine"]}, {"version": "1.3.1", "date": "2026-11-17", "items": ["Fixed the bone rotate, move and scale tools", "Big rigs play and edit faster"]}, {"version": "1.3.0", "date": "2026-11-17", "items": ["Compensate buttons like Spine (move a parent without moving its children or images)"]}, {"version": "1.2.1", "date": "2026-11-17", "items": ["Tool palette buttons respond at once again", "Fixed a slowdown after the hotkeys update"]}, {"version": "1.2.0", "date": "2026-11-17", "items": ["Spine hotkeys for tools, modes, frames, keys and playback", "Interface closer to Spine"]}, {"version": "1.1.0", "date": "2026-11-17", "items": ["Auto-rig places bones from a template learned from a sample rig"]}, {"version": "1.0.0", "date": "2026-11-17", "items": ["First web version of AI_animation, with an English interface", "Runs in the browser on PC and phone; work is saved in your browser"]}]};</script><script>
+</script><script>window.AIA_VERSION = {"version": "1.20.0", "built": "2026-11-19 19:56", "changelog": [{"version": "1.20.0", "date": "2026-11-19", "items": ["Animation views rebuilt to match Spine (Curves, Ghosting, Playback, Timeline, Audio)", "Spine-style transform handles: translate / scale arrows, rotate ring, shear lines, in World / Local / Parent; drag an axis to move or scale along it", "Bone properties like Spine (inherit, length, select, name, icon, colour; New, Parent, Split, Skin) and a breadcrumb of the selected bone"]}, {"version": "1.19.3", "date": "2026-11-19", "items": ["Tint black: the viewport draws the dark colour, and tint black keys (Color view, Dark tab in Animate) show in the dopesheet and go to JSON and binary"]}, {"version": "1.19.2", "date": "2026-11-19", "items": ["Mix preview blends slot colours, mesh deforms and constraint mixes too, like Spine"]}, {"version": "1.19.1", "date": "2026-11-19", "items": ["Audio tracks and mix times are saved with the project (.aia.json and autosave) and come back when it is opened", "JSON export writes the audio folder when events use sounds"]}, {"version": "1.19.0", "date": "2026-11-19", "items": ["Save saves .spine in the opened file's version (PC: <name>_ai.spine next to it; website: a download); edits .spine cannot hold yet are saved as JSON with a notice", "Main menu on the logo: New / Open / Recent / Save / Save As / Package Project, New Skeleton, Import Project / Data / PSD, Export, Texture Packer, Texture Unpacker, Settings", "Spine version of the opened file next to the logo", "Exports are named skeleton.json / .skel / .atlas / .png, like Spine", "The envelope opens What's new; the version text is information only"]}, {"version": "1.18.1", "date": "2026-11-19", "items": ["Graph colours match Spine"]}, {"version": "1.18.0", "date": "2026-11-19", "items": ["Curves, Ghosting, Playback, Timeline and Audio views (Alt+V, Alt+H, Alt+P, Alt+L, Alt+U)", "View shortcuts: a view behind another tab comes to the front; pressed again it closes"]}, {"version": "1.17.2", "date": "2026-11-19", "items": ["Cleaner look: one neutral dark theme with one accent blue, Spine-like tree (search in the toolbar, compact rows, visibility column, short attachment names, constraint folders), tidy panel headers and toolbars"]}, {"version": "1.17.1", "date": "2026-11-19", "items": ["Legs fixed: constraints run in the project's own order (as Spine does), and the two-bone IK matches Spine's runtime exactly", "Graph colours like Spine (rotate sky blue, X green, Y blue), square keys, frame dots, Spine's Graph toolbar with Shift, Offset, copy / paste, Swap and Average (all)"]}, {"version": "1.17.0", "date": "2026-11-19", "items": ["Views menu laid out like Spine's, with icons and Alt shortcuts; open views are greyed and checked", "New views: Color (slot, dark tint, bone, skin, attachment colours and colour keys), Skins, Outline, Metrics, Problems; Animations view with folders and export flags", "Mesh Tools and Weights views", "Save as .spine says which mesh or attachment edit it cannot write yet"]}, {"version": "1.16.1", "date": "2026-11-19", "items": ["Preview opens fitted to the whole animation"]}, {"version": "1.16.0", "date": "2026-11-19", "items": ["Save as .spine in the same Spine version (Project > Save as .spine, Ctrl+Shift+S, or Export > Spine)", "Export of a project opened from .spine keeps its own Spine version, bone order, mesh weights, curves and the parts the editor does not show", "Preview zoom and pan fixed (wheel, drag, + / -, fit)"]}, {"version": "1.15.1", "date": "2026-11-19", "items": ["Removed project-specific names"]}, {"version": "1.15.0", "date": "2026-11-19", "items": ["Version number in the top-right corner; click it to see what changed", "A dot on the version shows there is news you have not read yet"]}, {"version": "1.14.0", "date": "2026-11-19", "items": ["Auto-rig has a second rig template (Template B, controller biped) with leg and shoulder controllers", "Rig template choice in the auto-rig wizard: Auto, A or B (Auto shows what it picked)"]}, {"version": "1.13.0", "date": "2026-11-19", "items": ["Selected bones are drawn in cyan like Spine", "Graph: Repeat shows the curves before and after the animation; X / Y splits channels", "Skins can have a colour and live in folders (name with a slash)", "Bones and slots can be selected together with Ctrl+click", "Dopesheet toolbar stays in one row and never scrolls sideways"]}, {"version": "1.12.0", "date": "2026-11-19", "items": ["Export: Polygons packing for images used only by meshes", "Export: audio track for AVI, MOV and WEBM videos (file or event sounds)", "Export check box on attachments, constraints, animations, skins and events"]}, {"version": "1.11.1", "date": "2026-11-19", "items": ["Fixed the folder import that hung on some rigs (overlapping draw-order keys)", "A failed import now shows a message instead of hanging"]}, {"version": "1.11.0", "date": "2026-11-19", "items": ["Opening .spine files reads weighted mesh deform keys, clipping, events and draw-order folders", "Inherit keys, export flags and more constraint settings are read from .spine files"]}, {"version": "1.10.0", "date": "2026-11-18", "items": ["Open .spine project files directly, without Spine installed", "Find works across your Spine projects without Spine"]}, {"version": "1.9.0", "date": "2026-11-18", "items": ["Import uses the original images from the images folder (sharper than the packed atlas)", "Sharper viewport on high-resolution screens"]}, {"version": "1.8.0", "date": "2026-11-18", "items": ["New Export dialog like Spine 4.3: JSON, Binary, HTML, images, video and texture packer", "Save and load export settings, preview before exporting"]}, {"version": "1.7.0", "date": "2026-11-18", "items": ["Dopesheet like Spine 4.3: zoom, pan, rows and keys", "Dopesheet: X / Y, colour, inherit and sequence keys, row reorder and Sync"]}, {"version": "1.6.0", "date": "2026-11-18", "items": ["Bones in the viewport are drawn like Spine 4.3", "Skin bones and skin constraints like Spine 4.3"]}, {"version": "1.5.0", "date": "2026-11-18", "items": ["Number fields: drag left or right to change the value (no spinner arrows)"]}, {"version": "1.4.0", "date": "2026-11-18", "items": ["Select several bones, slots and images at once like Spine", "Dopesheet key editing: move, duplicate (Ctrl+Shift+drag), Alt and Ctrl+Alt drag", "Dopesheet toolbar in one row with Shift, Offset and Adjust", "Graph view: curve editor with Bezier handles, presets and handle modes", "Skins like Spine"]}, {"version": "1.3.1", "date": "2026-11-17", "items": ["Fixed the bone rotate, move and scale tools", "Big rigs play and edit faster"]}, {"version": "1.3.0", "date": "2026-11-17", "items": ["Compensate buttons like Spine (move a parent without moving its children or images)"]}, {"version": "1.2.1", "date": "2026-11-17", "items": ["Tool palette buttons respond at once again", "Fixed a slowdown after the hotkeys update"]}, {"version": "1.2.0", "date": "2026-11-17", "items": ["Spine hotkeys for tools, modes, frames, keys and playback", "Interface closer to Spine"]}, {"version": "1.1.0", "date": "2026-11-17", "items": ["Auto-rig places bones from a template learned from a sample rig"]}, {"version": "1.0.0", "date": "2026-11-17", "items": ["First web version of AI_animation, with an English interface", "Runs in the browser on PC and phone; work is saved in your browser"]}]};</script><script>
 /* Version label (top-right of the header) and the "What's new" dialog.
    build.py puts window.AIA_VERSION = {version, built, changelog} in front of this file; CHANGELOG.json is the source.
    Unbuilt page (ai_animation.html from a server): falls back to fetching CHANGELOG.json. */
@@ -17838,21 +17838,23 @@ body.sk #verBtn { color: #aaa; } body.sk #verBtn:hover { color: #e8e8e8; backgro
 })();
 
 </script><script>
-/* AI_animation: animation views laid out like the Spine user guide's Curves, Ghosting, Playback, Timeline and Audio views.
-   Each view is a dockable panel (aia_dock2.js): AVW.open(id) / AVW.toggle(id) / AVW.close(id), id = curves | ghost | playback | timeline | audio.
-   Hotkeys (Spine 4.3 defaults where Spine has one): Curves Alt+V, Ghosting Alt+H, Playback Alt+P, Timeline Alt+L, Audio Alt+U.
-   - Curves: presets and a bezier editor for every selected key (dopesheet / timeline selection), frame spacing dots, copy / paste / mirror.
-   - Ghosting: onion skin before / after, count, spacing or keyed frames, opacity, falloff, tint colours, images / bones, selected only.
-     Replaces the base onion skin (the I key and the ghost button still switch it on and off).
-   - Playback: transport, speed, timeline FPS, frames / seconds, interpolated (off = whole frames), stepped (all keys stepped, view only),
-     loop and repeat range, default mix + per-pair mixes and a mix preview between two animations, live render fps.
-   - Timeline: one compact lane with the keys of the selected items (all keys when nothing is selected) and an events lane:
-     ruler: scrub; keys: click / Shift+click to select, drag to move them by whole frames; empty lane: drag = box select (Shift adds),
-     click = go to that frame; Delete removes the selected keys; wheel zoom, Shift+wheel / right drag pan, double-click fits.
-   - Audio: load audio files, waveform lanes on the animation's time axis, offset (drag the waveform or type), volume, mute, scrub,
-     audio events (add at the playhead, shown and heard in playback); the tracks feed the video export (Audio: "Audio file" with no
-     file chosen) and are found by name for "Event audio".
-   Own code and look; no third-party assets. Loaded last (after aia_version.js). */
+/* AI_animation: the Curves, Ghosting, Playback, Timeline and Audio views, laid out and working like the reference editor's views
+   (owner's screenshots, 19 Nov). Each view is a panel: hosted by the Views module through window.AIA_VIEWS_EXT, or docked by itself
+   (aia_dock2.js). AVW.open(id) / AVW.toggle(id) / AVW.close(id), id = curves | ghost | playback | timeline | audio.
+   Hotkeys: Curves Alt+V, Ghosting Alt+H, Playback Alt+P, Timeline Alt+L, Audio Alt+U.
+   - Curves: Stepped / Linear / Bezier, Match (one curve for every channel) / Separate (a curve per channel), a large bezier editor
+     (green curve, dashed handles; the other selected keys in grey) and a preset list with Add / Replace / Delete.
+   - Ghosting: Frames (before / after / current, colours, Images or Silhouette, fade, before / after count, frame step), Keys (the same
+     on keyed frames, key step), Motion Vectors (bone paths before / after, threshold), Anchor (pick a bone: ghosts are moved so it
+     stays put), On top, Loop, Bones, lock the ghosts in place, X / Y offset per ghost. The I key / ghost button switch it on and off.
+   - Playback: Timeline FPS and Speed sliders, 10 / 25 / 50 / 100 / 200 %, Stepped (whole frames) / Interpolated; a folded Mix section
+     (default mix, pair mix, preview of a mix from another animation).
+   - Timeline: transport (first frame, previous key, play backward, play, next key, last frame, loop), zoom slider, ruler with the
+     current frame in cyan, the selected items' keys as diamonds, scrollbar. Click / Shift+click / box select keys, drag moves them.
+   - Audio: transport, track list (the project's event sounds and loaded files; drop files, double-click or right-click to load),
+     volume and mute, output device, zoom; waveforms on the time axis at each audio event key (event sounds) or at the track offset
+     (drag), animation end line. Tracks play in sync, feed video exports and are found by name for "Event audio".
+   Own code and look; no third-party assets. */
 (function () {
   "use strict";
   const AVW = window.AVW = { rev: 0, panels: {}, views: [["av:curves", "Curves", "Alt+V"], ["av:ghost", "Ghosting", "Alt+H"], ["av:playback", "Playback", "Alt+P"], ["av:timeline", "Timeline", "Alt+L"], ["av:audio", "Audio", "Alt+U"]] };
@@ -17863,44 +17865,100 @@ body.sk #verBtn { color: #aaa; } body.sk #verBtn:hover { color: #e8e8e8; backgro
   const curvable = row => (/^[bimthl]\|/.test(row) && !row.endsWith("|inherit")) || (/^p\|/.test(row) && !row.endsWith("|reset")) || /^s\|.*\|(rgba|rgb|alpha)$/.test(row);
   const selList = () => (st.selKeys && st.selKeys.length ? st.selKeys : st.selKey ? [st.selKey] : []);
   const findKey = (row, t) => { const a = animOf(); return a ? (getTrack(a, row, false) || []).find(q => Math.abs(q.time - t) < 1e-4) || null : null; };
-  const vis = el => { const b = el && (el.av || el); return !!b && b.isConnected && b.offsetWidth > 0 && b.offsetHeight > 0; }; // the content box: shown in our own panel or hosted by the Views module
+  const vis = el => { const b = el && (el.av || el); return !!b && b.isConnected && b.offsetWidth > 0 && b.offsetHeight > 0; };
   const dk3 = () => document.body.classList.contains("dk3");
-  const editing = () => document.activeElement && /^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement.tagName);
-  // count every edit (cache keys for ghosts / lanes)
   if (typeof changed === "function") { const bc = changed; changed = function (...a) { AVW.rev++; return bc.apply(this, a); }; }
   if (typeof undo === "function") { const bu = undo; undo = function (...a) { AVW.rev++; return bu.apply(this, a); }; }
   if (typeof redo === "function") { const br = redo; redo = function (...a) { AVW.rev++; return br.apply(this, a); }; }
   const editSig = () => [st.animId, typeof undoS !== "undefined" ? undoS.length : 0, AVW.rev].join(":");
+  const hexRGB = h => { const n = parseInt(String(h).slice(1, 7), 16) || 0; return [n >> 16 & 255, n >> 8 & 255, n & 255]; };
+  const rgba = (c, a) => { const [r, g, b] = hexRGB(c); return `rgba(${r},${g},${b},${a})`; };
 
-  /* ---------------- look ---------------- */
-  const css = `.av-pane{display:flex;flex-direction:column;background:#3c3c3c;color:#ddd} body>.av-pane:not(.av-float){display:none!important}
-  .av{display:flex;flex-direction:column;flex:1;min-height:0;min-width:0;overflow:hidden;color:#ddd;font:12px/1.35 system-ui,"Segoe UI",sans-serif;user-select:none}
-  .av-bar{display:flex;flex-wrap:wrap;gap:4px;align-items:center;padding:4px 6px;border-bottom:1px solid #2a2a2a;background:#383838;flex:none}
-  .av-b{background:#4a4a4a;border:1px solid #2b2b2b;color:#ddd;border-radius:2px;padding:0 7px;height:22px;min-width:22px;cursor:pointer;font:inherit;display:inline-flex;align-items:center;justify-content:center;gap:4px}
-  .av-b:hover{background:#565656;color:#fff} .av-b.on{background:#2f6fb0;color:#fff;border-color:#235a90} .av-b:disabled{opacity:.4;cursor:default}
-  .av-b svg{width:16px;height:16px;flex:none} .av-n{width:54px;background:#2a2a2a;border:1px solid #222;color:#eee;height:21px;padding:0 4px;border-radius:2px;font:inherit}
-  .av-n:focus,.av-s:focus{outline:1px solid #2f7fd6} .av-s{background:#2a2a2a;border:1px solid #222;color:#eee;height:22px;border-radius:2px;font:inherit;max-width:150px}
-  .av-row{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;padding:2px 8px;min-height:25px} .av-row>.av-l{width:84px;color:#aaa;flex:none} .av-row input[type=range]{flex:1;min-width:60px;accent-color:#2f7fd6}
-  .av-row input[type=color]{width:30px;height:20px;padding:0;border:1px solid #222;background:#2a2a2a} .av-row input[type=checkbox]{accent-color:#2f7fd6}
-  .av-body{flex:1;min-height:0;overflow:auto} .av-grow{flex:1;min-height:60px;position:relative} .av-grow>canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
-  .av-m{color:#9a9a9a} .av-h{padding:6px 8px 2px;color:#8fb7e0;font-weight:600;font-size:11px;letter-spacing:.04em;text-transform:uppercase}
-  .av-sep{width:1px;height:18px;background:#2a2a2a;margin:0 2px} .av-chk{display:inline-flex;align-items:center;gap:4px;cursor:pointer}
-  .av-pre{display:grid;grid-template-columns:repeat(auto-fill,minmax(30px,1fr));gap:3px;padding:4px 6px;border-bottom:1px solid #2a2a2a;flex:none}
-  .av-pre .av-b{height:28px;padding:0} .av-pre .av-b svg{width:22px;height:22px}
-  .av-trk{display:flex;align-items:center;gap:5px;padding:2px 6px;border-bottom:1px solid #333} .av-trk .nm{flex:1;min-width:40px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .av-float{position:fixed;right:18px;top:64px;width:420px;height:340px;z-index:55;box-shadow:0 14px 40px rgba(0,0,0,.6);border:1px solid #222;resize:both;overflow:hidden}
+  /* ---------------- look: grey panels, rounded group boxes, value-box sliders, blue toggles ---------------- */
+  const css = `.av-pane{display:flex;flex-direction:column;background:#3d3d3d;color:#ddd} body>.av-pane:not(.av-float){display:none!important}
+  .av{display:flex;flex-direction:column;flex:1;min-height:0;min-width:0;overflow:hidden;background:#3d3d3d;color:#dcdcdc;font:12.5px/1.3 "Segoe UI",system-ui,sans-serif;user-select:none}
+  .sg-box{background:#333;border:1px solid #2b2b2b;border-radius:5px;margin:5px 6px;padding:6px 8px}
+  .sg-grp{display:inline-flex;gap:2px;background:#2e2e2e;border-radius:4px;padding:3px;align-items:center}
+  .sg-btn{height:24px;min-width:26px;border-radius:3px;border:1px solid #242424;background:linear-gradient(#5d5d5d,#4b4b4b);color:#e2e2e2;padding:0 9px;font:inherit;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:5px;white-space:nowrap}
+  .sg-btn:hover{background:linear-gradient(#686868,#555)} .sg-btn.on{background:linear-gradient(#3394dc,#2578bb);border-color:#1b5d91;color:#fff} .sg-btn:disabled{opacity:.45;cursor:default}
+  .sg-btn.ic{padding:0 4px} .sg-btn svg{width:16px;height:16px;flex:none}
+  .sg-row{display:flex;align-items:center;gap:6px;margin:4px 0;min-height:24px} .sg-row>.l{width:clamp(64px,36%,110px);text-align:right;color:#dcdcdc;flex:none;white-space:nowrap}
+  .sg-sl{position:relative;flex:1;min-width:80px;height:22px;background:#1d1d1d;border-radius:3px;cursor:ew-resize;overflow:hidden}
+  .sg-sl .f{position:absolute;top:0;bottom:0;background:#5d6b6d} .sg-sl .v{position:absolute;left:0;top:0;bottom:0;width:54px;background:#4f4f4f;color:#eee;text-align:right;padding-right:6px;line-height:22px;box-sizing:border-box;cursor:ew-resize}
+  .sg-sl .k{position:absolute;top:1px;bottom:1px;width:5px;margin-left:-2px;background:#c9dde2;border-radius:2px} .sg-sl input{position:absolute;left:0;top:0;bottom:0;width:54px;box-sizing:border-box;border:0;background:#222;color:#fff;text-align:right;font:inherit;padding-right:5px;outline:1px solid #2f7fd6}
+  .sg-ck{display:inline-flex;align-items:center;gap:5px;cursor:pointer;white-space:nowrap} .sg-ck input{position:absolute;opacity:0;pointer-events:none}
+  .sg-ck i{width:13px;height:13px;border-radius:2px;background:#1f1f1f;border:1px solid #5a5a5a;display:inline-flex;align-items:center;justify-content:center;font-style:normal;font-size:11px;line-height:1;color:#fff}
+  .sg-ck input:checked+i::after{content:"✔"} .sg-ck input:focus-visible+i{outline:1px solid #2f7fd6}
+  .sg-dd{min-width:0;flex:0 1 auto;height:24px;border-radius:3px;border:1px solid #242424;background:#555;color:#e6e6e6;font:inherit;padding:0 6px;cursor:pointer}
+  .sg-sw{flex:none;width:clamp(34px,22%,70px);height:22px;border-radius:3px;border:1px solid #1e1e1e;padding:0;cursor:pointer;position:relative;overflow:hidden;background:repeating-conic-gradient(#bbb 0 25%,#fff 0 50%) 0 0/8px 8px}
+  .sg-sw b{position:absolute;inset:0;right:50%} .sg-sw u{position:absolute;inset:0;left:50%}
+  .sg-sec{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;margin:0 0 6px} .sg-sec .tw{cursor:pointer;color:#bbb;width:12px;font-size:10px} .sg-sec .t{color:#9fe0ee;font-weight:600;min-width:58px;cursor:pointer}
+  .sg-pop{position:fixed;z-index:200;background:#3a3a3a;border:1px solid #1f1f1f;border-radius:5px;padding:8px;box-shadow:0 10px 30px rgba(0,0,0,.55);display:flex;flex-direction:column;gap:6px;width:200px}
+  .sg-menu{position:fixed;z-index:200;background:#3a3a3a;border:1px solid #1f1f1f;border-radius:4px;padding:3px 0;box-shadow:0 10px 30px rgba(0,0,0,.55);min-width:180px} .sg-menu div{padding:5px 14px;cursor:pointer} .sg-menu div:hover{background:#2f7fd6;color:#fff}
+  .av-tr{display:flex;flex-direction:column;gap:5px;padding:6px;flex:none} .av-zoom{display:flex;align-items:center;gap:3px} .av-zoom input{flex:1;accent-color:#e6e6e6;height:12px} .av-zoom .sg-btn{height:16px;min-width:16px;padding:0;font-size:12px}
+  .av-lane{flex:1;min-width:0;display:flex;flex-direction:column;padding:4px 6px 4px 0} .av-lane .cvw{flex:1;position:relative;min-height:30px} .av-lane canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+  .av-sb{height:12px;background:#2a2a2a;border-radius:6px;position:relative;margin-top:3px;flex:none} .av-sb i{position:absolute;top:1px;bottom:1px;background:#6a6a6a;border-radius:5px;cursor:pointer;min-width:20px}
+  .av-list{flex:1;min-height:40px;background:#5c5c5c;border-radius:4px;overflow:auto;padding:4px} .av-list .it{display:flex;align-items:center;gap:7px;padding:3px 6px;border-radius:2px;cursor:pointer;white-space:nowrap}
+  .av-list .it.on{background:#4a6f95} .av-list .sq{width:13px;height:13px;flex:none;border:1px solid #2a2a2a} .av-list .sq.off{opacity:.25} .av-list .hint{color:#c8c8c8;padding:6px;font-size:11.5px;white-space:normal}
+  .av-cvbox{flex:1;min-height:0;display:flex;gap:6px;padding:0 6px 6px} .av-cvbox .ed{flex:1;position:relative;min-width:60px;border-radius:4px;overflow:hidden;background:#1d1d1d} .av-cvbox .ed canvas{position:absolute;inset:0;width:100%;height:100%}
+  .av-preset{width:clamp(58px,28%,112px);flex:none;display:flex;flex-direction:column;gap:4px;background:#333;border-radius:5px;padding:4px} .av-preset .lst{flex:1;background:#5a5a5a;border-radius:4px;overflow:auto;padding:4px;display:grid;grid-template-columns:repeat(auto-fill,minmax(40px,1fr));gap:4px;align-content:start}
+  .av-preset .lst button{height:40px;background:#3b3b3b;border:1px solid #2a2a2a;border-radius:3px;color:#9be59b;cursor:pointer;padding:2px} .av-preset .lst button.on{border-color:#3394dc;background:#2d4357} .av-preset .lst svg{width:100%;height:100%}
+  .av-preset .bt{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:3px} .av-preset{position:relative;z-index:1}
+  .av-float{position:fixed;right:18px;top:64px;width:420px;height:360px;z-index:55;box-shadow:0 14px 40px rgba(0,0,0,.6);border:1px solid #222;resize:both;overflow:hidden}
   .av-ft{display:none;height:24px;align-items:center;padding:0 4px 0 8px;background:#353535;border-bottom:1px solid #262626;cursor:move;flex:none} .av-float .av-ft{display:flex} .av-ft b{flex:1;font-weight:500}`;
   const style = document.createElement("style"); style.textContent = css; document.head.appendChild(style);
-  const h = (html) => { const t = document.createElement("template"); t.innerHTML = html.trim(); return t.content.firstChild; };
-  const curveSvg = (c, w = 22) => { const P = v => (20 - v * 16).toFixed(1), X = v => (3 + v * 16).toFixed(1);
-    const d = c === "stepped" ? `M3 20H19V4` : !c ? `M3 20L19 4` : `M3 20C${X(c[0])} ${P(c[1])} ${X(c[2])} ${P(c[3])} 19 4`;
-    return `<svg viewBox="0 -2 22 26" width="${w}" height="${w}" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 20H19M3 20V4" stroke-opacity=".25"/><path d="${d}"/></svg>`; };
+  const h = html => { const t = document.createElement("template"); t.innerHTML = html.trim(); return t.content.firstChild; };
+  const I = p => `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+  const ICN = {
+    stepped: I(`<path d="M2.5 13.5h5.5V3h5.5"/><rect x="1.5" y="12.5" width="2" height="2" fill="currentColor" stroke="none"/><rect x="12.5" y="2" width="2" height="2" fill="currentColor" stroke="none"/>`),
+    linear: I(`<path d="M2.5 13.5L13.5 2.5"/><rect x="1.5" y="12.5" width="2" height="2" fill="currentColor" stroke="none"/><rect x="12.5" y="1.5" width="2" height="2" fill="currentColor" stroke="none"/>`),
+    bezier: I(`<path d="M2.5 13.5C9 13.5 7 2.5 13.5 2.5"/><rect x="1.5" y="12.5" width="2" height="2" fill="currentColor" stroke="none"/><rect x="12.5" y="1.5" width="2" height="2" fill="currentColor" stroke="none"/>`),
+    match: `<svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.5" fill="#f2b632" stroke="#7a5200"/><path d="M5 6.5h6M5 9.5h6" stroke="#5a3d00" stroke-width="1.5"/></svg>`,
+    separate: I(`<circle cx="3" cy="11" r="1.4" fill="currentColor" stroke="none"/><circle cx="8" cy="5" r="1.4" fill="currentColor" stroke="none"/><circle cx="13" cy="9" r="1.4" fill="currentColor" stroke="none"/>`),
+    add: I(`<path d="M3 13C8 13 7 4 12 4" stroke="#9be59b"/><path d="M11 10v4M9 12h4" stroke="#fff"/>`), repl: I(`<path d="M3 12C7 12 6 4 11 4" stroke="#9be59b"/><path d="M10.5 9.5a2.5 2.5 0 1 0 2.5 2.5M13 9.5v2h-2"/>`), del: I(`<path d="M3 12C7 12 6 4 11 4" stroke="#9be59b"/><circle cx="12" cy="12" r="2.5"/><path d="M10.6 13.4l2.8-2.8"/>`),
+    first: I(`<path d="M3 3v10"/><path d="M13 3L8 8l5 5zM8.5 3L3.5 8l5 5z" fill="currentColor" stroke="none"/>`), pkey: I(`<path d="M4 3v10"/><path d="M12 3L6 8l6 5z" fill="currentColor" stroke="none"/>`),
+    back: I(`<path d="M11 3L4 8l7 5z" fill="currentColor" stroke="none"/>`), play: I(`<path d="M5 3l7 5-7 5z" fill="currentColor" stroke="none"/>`), pause: I(`<path d="M5 3v10M11 3v10" stroke-width="2.6"/>`),
+    nkey: I(`<path d="M12 3v10"/><path d="M4 3l6 5-6 5z" fill="currentColor" stroke="none"/>`), last: I(`<path d="M13 3v10"/><path d="M3 3l5 5-5 5zM7.5 3l5 5-5 5z" fill="currentColor" stroke="none"/>`),
+    loop: I(`<path d="M4 6.5V5h8l-1.6-1.6M12 9.5V11H4l1.6 1.6"/>`), fit: I(`<rect x="2" y="4" width="12" height="8" rx="1"/><path d="M5 8h6M5 8l1.5-1.5M5 8l1.5 1.5M11 8l-1.5-1.5M11 8l-1.5 1.5"/>`),
+    pick: I(`<path d="M3 3l4.5 10 1.6-4.4L13.5 7z" fill="#5fd0ff" stroke="#5fd0ff"/>`), lock: I(`<rect x="3.5" y="7" width="9" height="6.5" rx="1"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/>`), reset: I(`<path d="M3.5 8a4.5 4.5 0 1 0 1.4-3.3M3.5 2.8v2.4h2.4"/>`),
+    speaker: I(`<path d="M2.5 6h2.5l3.5-3v10L5 10H2.5z" fill="currentColor"/><path d="M11 6l3 4M14 6l-3 4"/>`), speakerOn: I(`<path d="M2.5 6h2.5l3.5-3v10L5 10H2.5z" fill="currentColor"/><path d="M11 5.5a3.5 3.5 0 0 1 0 5M12.8 3.8a6 6 0 0 1 0 8.4"/>`),
+  };
+  const curveSvg = c => { const X = v => (4 + v * 32).toFixed(1), Y = v => (34 - v * 28).toFixed(1);
+    const d = c === "stepped" ? `M4 34H36V6` : !c ? `M4 34L36 6` : `M4 34C${X(c[0])} ${Y(c[1])} ${X(c[2])} ${Y(c[3])} 36 6`; return `<svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2"><path d="${d}"/></svg>`; };
+
+  /* slider: value box + track + handle (drag the track or the box; double-click the box to type) */
+  function slider(host, o) { // o: { min, max, step, get(), set(v, final), fmt?(v), box? }
+    host.classList.add("sg-sl"); host.innerHTML = `<div class="f"></div><div class="v"></div><div class="k"></div>`; const f = host.firstChild, v = f.nextSibling, k = v.nextSibling, BOX = o.box || 54; v.style.width = BOX + "px";
+    const fmt = o.fmt || (x => String(+(+x).toFixed(o.step < 1 ? 2 : 0)));
+    const snapV = x => { x = clamp(x, o.min, o.max); return o.step ? Math.round(x / o.step) * o.step : x; };
+    const draw = () => { const w = host.clientWidth || 160, val = o.get(), p = (clamp(val, o.min, o.max) - o.min) / ((o.max - o.min) || 1), x = BOX + p * (w - BOX - 4) + 2; f.style.left = BOX + "px"; f.style.width = Math.max(0, x - BOX) + "px"; k.style.left = x + "px"; if (!host.querySelector("input")) v.textContent = fmt(val); };
+    host.addEventListener("pointerdown", e => { if (e.button !== 0 || e.target.tagName === "INPUT") return; e.preventDefault(); host.setPointerCapture(e.pointerId); const onBox = e.target === v, x0 = e.clientX, v0 = o.get(), r = host.getBoundingClientRect(); let moved = false;
+      const at = ev => { if (onBox) { const dx = ev.clientX - x0; if (Math.abs(dx) > 2) moved = true; return snapV(v0 + dx * (o.max - o.min) / Math.max(120, r.width)); } moved = true; return snapV(o.min + clamp((ev.clientX - r.left - BOX - 2) / (r.width - BOX - 4), 0, 1) * (o.max - o.min)); };
+      if (!onBox) { o.set(at(e), false); draw(); }
+      const mv = ev => { const nv = at(ev); if (moved) { o.set(nv, false); draw(); } }, up = ev => { host.removeEventListener("pointermove", mv); host.removeEventListener("pointerup", up); if (moved) o.set(o.get(), true); draw(); };
+      host.addEventListener("pointermove", mv); host.addEventListener("pointerup", up); });
+    host.addEventListener("dblclick", e => { if (e.clientX - host.getBoundingClientRect().left > BOX || host.querySelector("input")) return; const i = document.createElement("input"); i.value = fmt(o.get()); i.style.width = BOX + "px"; host.appendChild(i); i.focus(); i.select();
+      let fin = false; const done = ok => { if (fin || !i.isConnected) return; fin = true; const n = parseFloat(i.value); i.remove(); if (ok && isFinite(n)) o.set(snapV(n), true); draw(); };
+      i.onkeydown = e => { e.stopPropagation(); if (e.key === "Enter") done(true); if (e.key === "Escape") done(false); }; i.onblur = () => done(true); });
+    host.sgDraw = draw; draw(); new ResizeObserver(draw).observe(host); return host;
+  }
+  const ck = (id, label, tip = "") => `<label class="sg-ck" title="${tip}"><input type="checkbox" data-k="${id}"><i></i>${label}</label>`;
+  function colorPop(anchor, get, set) { // colour + alpha
+    document.querySelectorAll(".sg-pop").forEach(p => p.remove()); const c = get(), p = h(`<div class="sg-pop"><input type="color" style="width:100%;height:28px;border:0;background:none"><div class="sg-row" style="margin:0"><span style="width:44px">Alpha</span><div class="a"></div></div></div>`);
+    document.body.appendChild(p); const r = anchor.getBoundingClientRect(); p.style.left = Math.min(innerWidth - 210, r.left) + "px"; p.style.top = Math.min(innerHeight - 90, r.bottom + 4) + "px";
+    const ci = p.querySelector("input"); ci.value = c.c; ci.oninput = () => set({ c: ci.value, a: get().a });
+    slider(p.querySelector(".a"), { min: 0, max: 100, step: 1, box: 40, get: () => Math.round(get().a * 100), set: v => set({ c: get().c, a: v / 100 }) });
+    setTimeout(() => { const off = ev => { if (!p.contains(ev.target)) { p.remove(); removeEventListener("pointerdown", off, true); } }; addEventListener("pointerdown", off, true); });
+  }
+  function menu(x, y, items) { document.querySelectorAll(".sg-menu").forEach(m => m.remove()); const m = h(`<div class="sg-menu">${items.map((it, i) => `<div data-i="${i}">${esc(it[0])}</div>`).join("")}</div>`); document.body.appendChild(m);
+    m.style.left = Math.min(innerWidth - 190, x) + "px"; m.style.top = Math.min(innerHeight - 30 * items.length, y) + "px"; m.onclick = e => { const d = e.target.closest("[data-i]"); if (!d) return; m.remove(); items[+d.dataset.i][1](); };
+    setTimeout(() => { const off = ev => { if (!m.contains(ev.target)) { m.remove(); removeEventListener("pointerdown", off, true); } }; addEventListener("pointerdown", off, true); }); }
 
   /* ---------------- panels ---------------- */
   const PID = { curves: "avCurves", ghost: "avGhost", playback: "avPlay", timeline: "avTime", audio: "avAudio" };
   const TITLE = { curves: "Curves", ghost: "Ghosting", playback: "Playback", timeline: "Timeline", audio: "Audio" };
   function mkPanel(id, inner) {
-    const el = h(`<section class="pane av-pane" id="${PID[id]}"><div class="av-ft"><b>${TITLE[id]}</b><button class="av-b" data-avclose title="Close">✕</button></div><div class="av">${inner}</div></section>`);
+    const el = h(`<section class="pane av-pane" id="${PID[id]}"><div class="av-ft"><b>${TITLE[id]}</b><button class="sg-btn" data-avclose title="Close">✕</button></div><div class="av av-${id}">${inner}</div></section>`);
     document.body.appendChild(el); if (typeof dpReg === "function") dpReg(PID[id], TITLE[id], el);
     el.querySelector("[data-avclose]").onclick = () => AVW.close(id);
     const ft = el.querySelector(".av-ft"); ft.addEventListener("pointerdown", e => { if (e.target.closest("button")) return; const r = el.getBoundingClientRect(), x0 = e.clientX - r.left, y0 = e.clientY - r.top;
@@ -17911,17 +17969,17 @@ body.sk #verBtn { color: #aaa; } body.sk #verBtn:hover { color: #e8e8e8; backgro
     el.querySelector = s => av.querySelector(s); el.querySelectorAll = s => av.querySelectorAll(s); // the content may live in a host panel
     return el;
   }
-  AVW.isOpen = id => { const el = AVW.panels[id]; if (!el) return false; if (dk3() && typeof dlIsOpen === "function") return dlIsOpen(PID[id]); return el.classList.contains("av-float"); };
+  AVW.isOpen = id => { const el = AVW.panels[id]; if (!el) return false; if (AVW.hosted[id]) return vis(el); if (dk3() && typeof dlIsOpen === "function") return dlIsOpen(PID[id]); return el.classList.contains("av-float"); };
   AVW.open = function (id) {
     if (typeof window.AIA_VIEWS_OPEN === "function") return window.AIA_VIEWS_OPEN(id);
-    const el = AVW.panels[id]; if (!el) return; if (el.av.parentNode !== el) el.appendChild(el.av); // take the content back from a host panel
+    const el = AVW.panels[id]; if (!el) return; if (el.av.parentNode !== el) { el.appendChild(el.av); AVW.hosted[id] = false; }
     if (dk3() && typeof dlOpen === "function") {
       el.classList.remove("av-float");
-      if (!dlIsOpen(PID[id]) && (id === "timeline" || id === "audio")) { // wide lanes: a tab next to the other lane view, else under the dopesheet
+      if (!dlIsOpen(PID[id]) && (id === "timeline" || id === "audio")) {
         const mate = dlFind(L().root, id === "timeline" ? PID.audio : PID.timeline); if (mate) { mate.g.p.push(PID[id]); mate.g.a = PID[id]; dlSave(); dlRender(); return; }
         const t = dlFind(L().root, "dope") || dlFind(L().root, "graph") || dlFind(L().root, "view");
-        if (t && t.parent && t.parent.t === "col") { const P = t.parent; P.c.push({ t: "tabs", p: [PID[id]], a: PID[id] }); P.s = P.s.map(v => v * 0.8).concat(0.2); dlSave(); dlRender(); return; } // a new row at the bottom of that column
-        if (t) { const g = t.g; dlInsert(g, PID[id], "bottom"); g.s = [0.5, 0.5]; dlSave(); dlRender(); return; }
+        if (t && t.parent && t.parent.t === "col") { const P = t.parent; P.c.push({ t: "tabs", p: [PID[id]], a: PID[id] }); P.s = P.s.map(v => v * 0.82).concat(0.18); dlSave(); dlRender(); return; }
+        if (t) { const g = t.g; dlInsert(g, PID[id], "bottom"); g.s = [0.6, 0.4]; dlSave(); dlRender(); return; }
       }
       dlOpen(PID[id]); return;
     }
@@ -17930,215 +17988,249 @@ body.sk #verBtn { color: #aaa; } body.sk #verBtn:hover { color: #e8e8e8; backgro
   AVW.close = function (id) { const el = AVW.panels[id]; if (!el) return; if (dk3() && typeof dlIsOpen === "function" && dlIsOpen(PID[id])) { dlRemove(PID[id]); dlSave(); dlRender(); return; } el.classList.remove("av-float"); };
   AVW.toggle = id => typeof window.AIA_VIEWS_TOGGLE === "function" ? window.AIA_VIEWS_TOGGLE(id) : AVW.isOpen(id) ? AVW.close(id) : AVW.open(id);
   AVW.refresh = (id, force) => { const v = VIEWS[id]; if (v && v.update) v.update(!!force); };
+  AVW.hosted = {};
   const VIEWS = {};
 
   /* =================================================================== CURVES */
-  const PRESETS = [["Linear", null], ["Stepped", "stepped"], ["Bezier (ease in and out)", [0.25, 0, 0.75, 1]], ["Ease in", [0.42, 0, 1, 1]], ["Ease out", [0, 0, 0.58, 1]],
-    ["Sine in and out", [0.37, 0, 0.63, 1]], ["Quad in", [0.11, 0, 0.5, 0]], ["Quad out", [0.5, 1, 0.89, 1]], ["Cubic in and out", [0.65, 0, 0.35, 1]], ["Expo in and out", [0.87, 0, 0.13, 1]],
-    ["Back in (anticipation)", [0.36, 0, 0.66, -0.56]], ["Back out (overshoot)", [0.34, 1.56, 0.64, 1]], ["Back in and out", [0.68, -0.6, 0.32, 1.6]], ["Slow middle", [0, 0.7, 1, 0.3]]];
-  AVW.PRESETS = PRESETS;
-  const CV = { clip: null };
-  const curveOf = k => { const c = curveCh(k.curve, 0); return c === "stepped" ? "stepped" : Array.isArray(c) ? c : null; };
+  const DEF_PRESETS = [[0.25, 0, 0.75, 1], [0.42, 0, 1, 1], [0, 0, 0.58, 1], [0.65, 0, 0.35, 1], [0.36, 0, 0.66, -0.56], [0.34, 1.56, 0.64, 1]];
+  const CVS = AVW.curvesState = LS("aia-curves", { mode: "match", presets: DEF_PRESETS });
+  const saveCV = () => LSset("aia-curves", { mode: CVS.mode, presets: CVS.presets });
+  const nch = row => { try { return Math.max(1, (fieldsOf(row) || []).length); } catch (e) { return 1; } };
+  const chCurve = (k, i) => { const c = curveCh(k.curve, i); return c === "stepped" ? "stepped" : Array.isArray(c) ? c : null; };
+  const curveOf = k => chCurve(k, 0);
   const sameCurve = (a, b) => a === b || (Array.isArray(a) && Array.isArray(b) && a.every((v, i) => Math.abs(v - b[i]) < 1e-6));
   function cvKeys() { const out = []; for (const s of selList()) { if (!curvable(s.row)) continue; const k = findKey(s.row, s.time); if (k) out.push({ s, k }); } return out; }
   function cvPrimary(list) { const p = st.selKey && list.find(x => x.s.row === st.selKey.row && Math.abs(x.s.time - st.selKey.time) < 1e-4); return p || list[0] || null; }
-  function cvApply(curve, undoNow = true) { const list = cvKeys(); if (!list.length) { toast("Select keys in the dopesheet or the Timeline view first"); return 0; } if (undoNow) pushUndo();
-    for (const { k } of list) { if (curve === null) delete k.curve; else k.curve = curve === "stepped" ? "stepped" : curve.slice(); } AVW.rev++; dirty.view = dirty.tl = true; return list.length; }
-  AVW.setCurve = (c) => { const n = cvApply(c); if (n) { changed(); toast(`Curve set on ${n} key${n > 1 ? "s" : ""}`); } return n; };
+  function setKeyCurve(k, row, curve, ch) { // ch: channel index (Separate) or null (all channels)
+    const v = curve === null ? null : curve === "stepped" ? "stepped" : curve.slice();
+    if (ch == null) { if (v === null) delete k.curve; else k.curve = v; return; }
+    const n = nch(row); if (n < 2) { if (v === null) delete k.curve; else k.curve = v; return; }
+    const per = []; for (let i = 0; i < n; i++) { const c = chCurve(k, i); per.push(c === null ? null : Array.isArray(c) ? c.slice() : c); } per[ch] = v;
+    if (per.every(c => sameCurve(c, per[0]))) { if (per[0] === null) delete k.curve; else k.curve = per[0]; } else k.curve = per.map(c => c === "stepped" ? [0, 0, 1, 0] : c); // per-channel stepped is stored as a flat bezier
+  }
+  function cvApply(curve, ch = null, undoNow = true) { const list = cvKeys(); if (!list.length) { toast("Select keys in the dopesheet or the Timeline view first"); return 0; } if (undoNow) pushUndo();
+    for (const { s, k } of list) setKeyCurve(k, s.row, curve, ch); AVW.rev++; dirty.view = dirty.tl = true; return list.length; }
+  AVW.setCurve = (c, ch = null) => { const n = cvApply(c, ch); if (n) { changed(); VIEWS.curves && VIEWS.curves.update(true); } return n; };
   (function curvesView() {
-    const el = mkPanel("curves", `<div class="av-pre" id="avcPre">${PRESETS.map(([n, c], i) => `<button class="av-b" data-pre="${i}" title="${n}">${curveSvg(c)}</button>`).join("")}</div>
-      <div class="av-bar"><span id="avcInfo" class="av-m" style="flex:1;min-width:120px">Select keys</span>
-        <button class="av-b" id="avcCopy" title="Copy the curve of the selected key">Copy</button><button class="av-b" id="avcPaste" title="Paste the copied curve onto every selected key">Paste</button>
-        <button class="av-b" id="avcMirror" title="Mirror: ease in becomes ease out">Mirror</button></div>
-      <div class="av-grow" id="avcWrap"><canvas id="avcCv" aria-label="Bezier curve editor"></canvas></div>
-      <div class="av-bar"><span class="av-m">Handles</span>${["x1", "y1", "x2", "y2"].map((n, i) => `<label class="av-chk">${n}<input class="av-n" id="avc${i}" type="number" step="0.01"></label>`).join("")}</div>`);
-    const cv = el.querySelector("#avcCv"), g = cv.getContext("2d"); let sig = "", drag = -1, geo = null;
-    el.querySelector("#avcPre").onclick = e => { const b = e.target.closest("[data-pre]"); if (!b) return; const p = PRESETS[+b.dataset.pre]; AVW.setCurve(p[1]); VIEWS.curves.update(true); };
-    el.querySelector("#avcCopy").onclick = () => { const p = cvPrimary(cvKeys()); if (!p) { toast("Select a key first"); return; } const c = curveOf(p.k); CV.clip = c === null ? "linear" : Array.isArray(c) ? c.slice() : c; toast("Curve copied"); VIEWS.curves.update(true); };
-    el.querySelector("#avcPaste").onclick = () => { if (!CV.clip) { toast("Copy a curve first"); return; } AVW.setCurve(CV.clip === "linear" ? null : CV.clip); VIEWS.curves.update(true); };
-    el.querySelector("#avcMirror").onclick = () => { const p = cvPrimary(cvKeys()); if (!p) { toast("Select keys first"); return; } const c = curveOf(p.k); if (!Array.isArray(c)) { toast("Mirror works on bezier curves"); return; } AVW.setCurve([+(1 - c[2]).toFixed(4), +(1 - c[3]).toFixed(4), +(1 - c[0]).toFixed(4), +(1 - c[1]).toFixed(4)]); VIEWS.curves.update(true); };
-    for (let i = 0; i < 4; i++) el.querySelector("#avc" + i).addEventListener("change", e => { const p = cvPrimary(cvKeys()); if (!p) return; let c = curveOf(p.k); c = Array.isArray(c) ? c.slice() : [1 / 3, 1 / 3, 2 / 3, 2 / 3]; let v = +e.target.value; if (!isFinite(v)) return; if (i % 2 === 0) v = clamp(v, 0, 1); c[i] = v; AVW.setCurve(c); VIEWS.curves.update(true); });
-    const toPx = (x, y) => [geo.x0 + x * geo.s, geo.y0 - y * geo.s], fromPx = (px, py) => [(px - geo.x0) / geo.s, (geo.y0 - py) / geo.s];
+    const el = mkPanel("curves", `<div style="padding:6px;display:flex;gap:6px;flex:none;flex-wrap:wrap">
+        <div class="sg-grp"><button class="sg-btn ic" data-ct="stepped" title="Stepped">${ICN.stepped}</button><button class="sg-btn ic" data-ct="linear" title="Linear">${ICN.linear}</button><button class="sg-btn ic" data-ct="bezier" title="Bezier">${ICN.bezier}</button></div>
+        <div class="sg-grp"><button class="sg-btn" data-cm="match" title="Match: one curve for every channel of a key">${ICN.match}Match</button><button class="sg-btn" data-cm="separate" title="Separate: a curve per channel (X / Y, R / G / B / A…)">${ICN.separate}Separate</button></div></div>
+      <div class="av-cvbox"><div class="ed"><canvas id="avcCv" aria-label="Curve editor"></canvas></div>
+        <div class="av-preset"><div class="lst" id="avcPre"></div><div class="bt"><button class="sg-btn ic" id="avcAdd" title="Add the selected key's curve as a preset">${ICN.add}</button><button class="sg-btn ic" id="avcRep" title="Replace the selected preset with the selected key's curve">${ICN.repl}</button><button class="sg-btn ic" id="avcDel" title="Delete the selected preset">${ICN.del}</button></div></div></div>`);
+    const cv = el.querySelector("#avcCv"), g = cv.getContext("2d"); let sig = "", drag = null, geo = null, chSel = 0, preSel = -1, preSig = "";
+    el.querySelectorAll("[data-ct]").forEach(b => b.onclick = () => { const t = b.dataset.ct, p = cvPrimary(cvKeys()); const cur = p && chCurve(p.k, CVS.mode === "separate" ? chSel : 0);
+      AVW.setCurve(t === "stepped" ? "stepped" : t === "linear" ? null : Array.isArray(cur) ? cur : [0.25, 0, 0.75, 1], CVS.mode === "separate" ? chSel : null); });
+    el.querySelectorAll("[data-cm]").forEach(b => b.onclick = () => { const m = b.dataset.cm; if (m === CVS.mode) return; CVS.mode = m; saveCV();
+      if (m === "match") { const list = cvKeys(); if (list.some(x => isPerChannel(x.k.curve))) { pushUndo(); for (const { s, k } of list) setKeyCurve(k, s.row, curveOf(k), null); AVW.rev++; changed(); } } VIEWS.curves.update(true); });
+    const pre = el.querySelector("#avcPre");
+    pre.onclick = e => { const b = e.target.closest("[data-p]"); if (!b) return; preSel = +b.dataset.p; AVW.setCurve(CVS.presets[preSel], CVS.mode === "separate" ? chSel : null); VIEWS.curves.update(true); };
+    el.querySelector("#avcAdd").onclick = () => { const p = cvPrimary(cvKeys()); const c = p && chCurve(p.k, CVS.mode === "separate" ? chSel : 0); if (!Array.isArray(c)) { toast("Select a key with a bezier curve"); return; } CVS.presets.push(c.map(v => +v.toFixed(4))); preSel = CVS.presets.length - 1; saveCV(); VIEWS.curves.update(true); };
+    el.querySelector("#avcRep").onclick = () => { const p = cvPrimary(cvKeys()); const c = p && chCurve(p.k, CVS.mode === "separate" ? chSel : 0); if (preSel < 0 || !Array.isArray(c)) { toast("Select a preset and a bezier key"); return; } CVS.presets[preSel] = c.map(v => +v.toFixed(4)); saveCV(); VIEWS.curves.update(true); };
+    el.querySelector("#avcDel").onclick = () => { if (preSel < 0) { toast("Select a preset first"); return; } CVS.presets.splice(preSel, 1); preSel = -1; saveCV(); VIEWS.curves.update(true); };
+    const toPx = (x, y) => [geo.x0 + x * geo.sx, geo.y0 - y * geo.sy], fromPx = (px, py) => [(px - geo.x0) / geo.sx, (geo.y0 - py) / geo.sy];
+    const path = (c, a, b) => { g.beginPath(); g.moveTo(...toPx(0, 0)); if (c === "stepped") { g.lineTo(...toPx(1, 0)); g.lineTo(...toPx(1, 1)); } else if (!c) g.lineTo(...toPx(1, 1)); else g.bezierCurveTo(...toPx(c[0], c[1]), ...toPx(c[2], c[3]), ...toPx(1, 1)); };
+    const handles = (c, col, w) => { if (!Array.isArray(c)) return; g.strokeStyle = col; g.lineWidth = w; g.setLineDash([5, 4]); g.beginPath(); g.moveTo(...toPx(0, 0)); g.lineTo(...toPx(c[0], c[1])); g.moveTo(...toPx(1, 1)); g.lineTo(...toPx(c[2], c[3])); g.stroke(); g.setLineDash([]);
+      g.fillStyle = col; for (const j of [0, 2]) { const [x, y] = toPx(c[j], c[j + 1]); g.beginPath(); g.arc(x, y, 3.2, 0, 7); g.fill(); } };
     function draw(list, p) {
       const r = cv.getBoundingClientRect(), d = Math.min(devicePixelRatio || 1, 2), W = Math.max(10, Math.round(r.width * d)), H = Math.max(10, Math.round(r.height * d));
       if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
-      g.setTransform(d, 0, 0, d, 0, 0); const w = r.width, hh = r.height; g.fillStyle = "#2b2b2b"; g.fillRect(0, 0, w, hh);
-      const s = Math.max(20, Math.min(w - 40, (hh - 30) / 1.6)); geo = { s, x0: (w - s) / 2, y0: hh / 2 + s / 2 };
-      // grid: unit square plus the overshoot area
-      g.fillStyle = "#333"; g.fillRect(geo.x0, geo.y0 - s, s, s); g.strokeStyle = "#3d3d3d"; g.lineWidth = 1; g.beginPath();
-      for (let i = 0; i <= 4; i++) { const [x] = toPx(i / 4, 0), [, y] = toPx(0, i / 4); g.moveTo(x + .5, geo.y0 - s); g.lineTo(x + .5, geo.y0); g.moveTo(geo.x0, y + .5); g.lineTo(geo.x0 + s, y + .5); } g.stroke();
-      g.strokeStyle = "#555"; g.setLineDash([3, 3]); g.beginPath(); g.moveTo(...toPx(0, 0)); g.lineTo(...toPx(1, 1)); g.stroke(); g.setLineDash([]);
-      g.fillStyle = "#888"; g.font = "11px system-ui,sans-serif"; g.fillText("time →", geo.x0 + s - 40, geo.y0 + 14); g.save(); g.translate(geo.x0 - 8, geo.y0 - s + 46); g.rotate(-Math.PI / 2); g.fillText("value →", 0, 0); g.restore();
-      if (!p) { g.fillStyle = "#aaa"; g.textAlign = "center"; g.fillText("No keys selected", w / 2, 16); g.textAlign = "start"; return; }
-      // other selected keys' curves, faint
-      g.lineWidth = 1; g.strokeStyle = "rgba(160,160,160,.35)";
-      for (const q of list) { if (q === p) continue; const c = curveOf(q.k); g.beginPath(); g.moveTo(...toPx(0, 0)); if (c === "stepped") { g.lineTo(...toPx(1, 0)); g.lineTo(...toPx(1, 1)); } else if (!c) g.lineTo(...toPx(1, 1)); else g.bezierCurveTo(...toPx(c[0], c[1]), ...toPx(c[2], c[3]), ...toPx(1, 1)); g.stroke(); }
-      const c = curveOf(p.k); g.lineWidth = 2.5; g.strokeStyle = "#5fc3ff"; g.beginPath(); g.moveTo(...toPx(0, 0));
-      if (c === "stepped") { g.lineTo(...toPx(1, 0)); g.lineTo(...toPx(1, 1)); } else if (!c) g.lineTo(...toPx(1, 1)); else g.bezierCurveTo(...toPx(c[0], c[1]), ...toPx(c[2], c[3]), ...toPx(1, 1)); g.stroke();
-      // frame spacing: where each whole frame lands (what the runtime plays)
-      const keys = getTrack(animOf(), p.s.row, false) || [], i = keys.indexOf(p.k), nx = keys[i + 1], nf = nx ? Math.round((nx.time - p.k.time) * fps()) : 0;
-      if (nf > 1) { g.fillStyle = "#ffd36b"; for (let f = 1; f < nf; f++) { const u = f / nf, y = c === "stepped" ? 0 : !c ? u : bezierRuntime(c, u); const [x, yy] = toPx(u, y); g.beginPath(); g.arc(x, yy, 2.6, 0, 7); g.fill(); } }
-      if (Array.isArray(c)) { g.strokeStyle = "#bbb"; g.lineWidth = 1; g.beginPath(); g.moveTo(...toPx(0, 0)); g.lineTo(...toPx(c[0], c[1])); g.moveTo(...toPx(1, 1)); g.lineTo(...toPx(c[2], c[3])); g.stroke();
-        for (const j of [0, 2]) { const [x, y] = toPx(c[j], c[j + 1]); g.beginPath(); g.arc(x, y, drag === j ? 7 : 6, 0, 7); g.fillStyle = drag === j ? "#fff" : "#e6e6e6"; g.fill(); g.strokeStyle = "#1d1d1d"; g.stroke(); } }
-      for (const [x, y] of [toPx(0, 0), toPx(1, 1)]) { g.fillStyle = "#5fc3ff"; g.fillRect(x - 3, y - 3, 6, 6); }
-      if (!nx) { g.fillStyle = "#c9a14a"; g.fillText("Last key: no effect until a key follows", 6, hh - 6); }
+      g.setTransform(d, 0, 0, d, 0, 0); const w = r.width, hh = r.height; g.fillStyle = "#1f1f1f"; g.fillRect(0, 0, w, hh);
+      const pad = 14, below = Math.max(36, hh * 0.17); geo = { x0: pad, y0: hh - below, sx: w - pad * 2, sy: hh - below - pad };
+      g.fillStyle = "#2a2a2a"; g.fillRect(geo.x0, geo.y0 - geo.sy, geo.sx, geo.sy);
+      g.strokeStyle = "#353535"; g.lineWidth = 1; g.beginPath();
+      for (let i = -1; i <= 11; i++) { const x = Math.round(toPx(i / 10, 0)[0]) + .5; g.moveTo(x, 0); g.lineTo(x, hh); }
+      for (let i = -4; i <= 12; i++) { const y = Math.round(toPx(0, i / 10)[1]) + .5; g.moveTo(0, y); g.lineTo(w, y); } g.stroke();
+      if (!p) return;
+      const sep = CVS.mode === "separate", n = sep ? nch(p.s.row) : 1;
+      for (const q of list) for (let c = 0; c < (sep ? nch(q.s.row) : 1); c++) { if (q === p && (!sep || c === chSel)) continue; const cc = chCurve(q.k, c); g.strokeStyle = "#8c8c8c"; g.lineWidth = 1; path(cc); g.stroke(); handles(cc, "#8c8c8c", 1); }
+      const c = chCurve(p.k, sep ? Math.min(chSel, n - 1) : 0); g.strokeStyle = "#16e016"; g.lineWidth = 2.2; path(c); g.stroke(); handles(c, "#16e016", 1.6);
+      g.fillStyle = "#16e016"; for (const [x, y] of [toPx(0, 0), toPx(1, 1)]) g.fillRect(x - 3, y - 3, 6, 6);
+      if (sep && n > 1) { g.font = "11px Segoe UI,sans-serif"; const names = (fieldsOf(p.s.row) || []); names.forEach((nm, i) => { g.fillStyle = i === chSel ? "#16e016" : "#9a9a9a"; g.fillText(nm, 8 + i * 34, 14); }); }
     }
+    const near = (px, py, c) => { if (!Array.isArray(c)) return null; let best = null, bd = 14; for (const j of [0, 2]) { const [x, y] = toPx(c[j], c[j + 1]), d = Math.hypot(px - x, py - y); if (d < bd) { bd = d; best = j; } } return best; };
     cv.addEventListener("pointerdown", e => {
-      const list = cvKeys(), p = cvPrimary(list); if (!p || !geo || e.button !== 0) return; const r = cv.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top;
-      let c = curveOf(p.k); if (!Array.isArray(c)) c = [1 / 3, 1 / 3, 2 / 3, 2 / 3];
-      const d0 = Math.hypot(px - toPx(c[0], c[1])[0], py - toPx(c[0], c[1])[1]), d2 = Math.hypot(px - toPx(c[2], c[3])[0], py - toPx(c[2], c[3])[1]);
-      drag = d0 <= d2 ? 0 : 2; pushUndo(); cvApply(c, false); cv.setPointerCapture(e.pointerId); move(e);
+      const list = cvKeys(), p = cvPrimary(list); if (!p || !geo || e.button !== 0) return; const r = cv.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top, sep = CVS.mode === "separate";
+      if (sep) { const n = nch(p.s.row); if (py < 20 && n > 1) { const i = Math.floor((px - 8) / 34); if (i >= 0 && i < n) { chSel = i; VIEWS.curves.update(true); return; } } // channel names
+        if (near(px, py, chCurve(p.k, chSel)) == null) for (let i = 0; i < n; i++) if (i !== chSel && near(px, py, chCurve(p.k, i)) != null) { chSel = i; break; } }
+      const ch = sep ? chSel : 0; let c = chCurve(p.k, ch); if (!Array.isArray(c)) c = [1 / 3, 1 / 3, 2 / 3, 2 / 3];
+      let j = near(px, py, c); if (j == null) { const d0 = Math.hypot(px - toPx(c[0], c[1])[0], py - toPx(c[0], c[1])[1]), d2 = Math.hypot(px - toPx(c[2], c[3])[0], py - toPx(c[2], c[3])[1]); j = d0 <= d2 ? 0 : 2; }
+      drag = { j, ch: sep ? ch : null }; pushUndo(); cvApply(c, drag.ch, false); cv.setPointerCapture(e.pointerId); move(e);
     });
-    const move = e => { if (drag < 0) return; const list = cvKeys(), p = cvPrimary(list); if (!p) return; const r = cv.getBoundingClientRect(); let [x, y] = fromPx(e.clientX - r.left, e.clientY - r.top);
-      x = clamp(x, 0, 1); y = clamp(y, -1, 2); if (e.shiftKey) { y = Math.round(y * 20) / 20; x = Math.round(x * 20) / 20; } const c = curveOf(p.k).slice(); c[drag] = +x.toFixed(4); c[drag + 1] = +y.toFixed(4); cvApply(c, false); VIEWS.curves.update(true); };
+    const move = e => { if (!drag) return; const list = cvKeys(), p = cvPrimary(list); if (!p) return; const r = cv.getBoundingClientRect(); let [x, y] = fromPx(e.clientX - r.left, e.clientY - r.top);
+      x = clamp(x, 0, 1); y = clamp(y, -1.5, 2.5); if (e.shiftKey) { x = Math.round(x * 20) / 20; y = Math.round(y * 20) / 20; } const c = chCurve(p.k, drag.ch == null ? 0 : drag.ch).slice(); c[drag.j] = +x.toFixed(4); c[drag.j + 1] = +y.toFixed(4); cvApply(c, drag.ch, false); VIEWS.curves.update(true); };
     cv.addEventListener("pointermove", move);
-    const up = () => { if (drag < 0) return; drag = -1; changed(); VIEWS.curves.update(true); }; cv.addEventListener("pointerup", up); cv.addEventListener("pointercancel", up);
-    cv.addEventListener("dblclick", () => { AVW.setCurve(null); VIEWS.curves.update(true); });
+    const up = () => { if (!drag) return; drag = null; changed(); VIEWS.curves.update(true); }; cv.addEventListener("pointerup", up); cv.addEventListener("pointercancel", up);
     VIEWS.curves = { el, update(force) {
       if (!vis(el)) return; const list = cvKeys(), p = cvPrimary(list), r = cv.getBoundingClientRect();
-      const s = [editSig(), JSON.stringify(selList()), r.width, r.height, drag, CV.clip ? 1 : 0].join("|"); if (!force && s === sig) return; sig = s;
-      const n = selList().length, nc = list.length, c = p && curveOf(p.k), mixed = p && list.some(q => !sameCurve(curveOf(q.k), c));
-      el.querySelector("#avcInfo").textContent = !n ? "Select keys in the dopesheet or the Timeline view" : !nc ? "The selected keys have no curve (attachment, draw order, event…)" : `${nc} key${nc > 1 ? "s" : ""} · ${c === "stepped" ? "stepped" : !c ? "linear" : "bezier"}${mixed ? " · mixed curves" : ""}`;
-      el.querySelectorAll("[data-pre]").forEach(b => b.classList.toggle("on", !!p && sameCurve(PRESETS[+b.dataset.pre][1], c)));
-      for (let i = 0; i < 4; i++) { const f = el.querySelector("#avc" + i); if (document.activeElement === f) continue; f.disabled = !p; f.value = Array.isArray(c) ? (+c[i].toFixed(3)) : ""; }
-      for (const id of ["#avcCopy", "#avcMirror"]) el.querySelector(id).disabled = !p; el.querySelector("#avcPaste").disabled = !(p && CV.clip);
+      const s = [editSig(), JSON.stringify(selList()), r.width, r.height, CVS.mode, chSel, preSel, CVS.presets.length].join("|"); if (!force && s === sig) return; sig = s;
+      const c = p && chCurve(p.k, CVS.mode === "separate" ? chSel : 0), type = !p ? "" : c === "stepped" ? "stepped" : !c ? "linear" : "bezier";
+      el.querySelectorAll("[data-ct]").forEach(b => { b.classList.toggle("on", b.dataset.ct === type); b.disabled = !p; });
+      el.querySelectorAll("[data-cm]").forEach(b => b.classList.toggle("on", b.dataset.cm === CVS.mode));
+      const ps = JSON.stringify(CVS.presets) + preSel; if (ps !== preSig) { preSig = ps; pre.innerHTML = CVS.presets.map((q, i) => `<button data-p="${i}" class="${i === preSel ? "on" : ""}" title="[${q.join(", ")}]">${curveSvg(q)}</button>`).join(""); }
       draw(list, p);
     } };
   })();
 
   /* =================================================================== GHOSTING */
-  const AVG = AVW.ghost = LS("aia-ghost", { before: 2, after: 2, step: 3, keyed: false, opacity: 0.5, falloff: true, tint: true, tintAmt: 0.55, colBefore: "#ff6060", colAfter: "#4fd36f", images: true, bones: false, selOnly: false });
-  const saveG = () => LSset("aia-ghost", Object.assign({}, AVG, { pass: undefined, busy: undefined }));
+  const GDEF = { on: true,
+    frames: { open: true, before: true, after: true, current: false, colB: { c: "#ff2020", a: 0.55 }, colA: { c: "#2040ff", a: 0.55 }, mode: "images", fade: "none", nb: 6, na: 6, step: 3 },
+    keys: { open: true, before: false, after: false, colB: { c: "#ffffff", a: 0.5 }, colA: { c: "#ffffff", a: 0.5 }, mode: "images", fade: "none", nb: 6, na: 6, step: 1 },
+    mv: { open: true, before: false, after: false, colB: { c: "#ff3030", a: 0.9 }, colA: { c: "#2050ff", a: 1 }, nb: 3, na: 3, thr: 0 },
+    anchor: true, anchorBone: null, onTop: false, loop: true, bones: false, lock: false, lockT: 0, offX: 0, offY: 0 };
+  const AVG = AVW.ghost = (() => { const s = LS("aia-ghost2", {}), o = JSON.parse(JSON.stringify(GDEF)); for (const k in s) { if (o[k] && typeof o[k] === "object" && !Array.isArray(o[k]) && s[k] && typeof s[k] === "object") Object.assign(o[k], s[k]); else if (k in o) o[k] = s[k]; } return o; })();
+  const saveG = () => LSset("aia-ghost2", AVG);
   const GC = { c: new Map(), key: "" };
   function ghostWorld(anim, t) {
     const k = editSig() + "|" + (st.skinId || "") + "|" + anim.id; if (GC.key !== k) { GC.key = k; GC.c.clear(); }
     const tk = t.toFixed(5); let w = GC.c.get(tk); if (w) return w;
-    w = worldFrom(doc, b => bonePose(doc, b, anim, t), anim, t, null, st.skinId); if (GC.c.size > 96) GC.c.delete(GC.c.keys().next().value); GC.c.set(tk, w); return w;
+    w = worldFrom(doc, b => bonePose(doc, b, anim, t), anim, t, null, st.skinId); if (GC.c.size > 120) GC.c.delete(GC.c.keys().next().value); GC.c.set(tk, w); return w;
   }
   function selSets() { const ms = typeof mixedSel === "function" ? mixedSel() : { bones: st.sel && st.sel.type === "bone" ? [st.sel.id] : [], items: [] };
     const bones = new Set(ms.bones), slots = new Set((ms.items || []).map(i => i.slot)); if (st.sel && st.sel.slot) slots.add(st.sel.slot); return { bones, slots }; }
+  const baseFrameNo = () => Math.round((AVG.lock ? AVG.lockT : st.time) * fps());
+  /* the ghost list: { t, side, i, n, sec: "frames" | "keys" | "cur", col, mode, fade, k (signed distance for the offsets) } */
   AVW.ghostTimes = function () {
-    const anim = animOf(); if (!anim) return []; const f = fps(), dur = animDuration(anim), cur = st.time, out = [];
-    if (AVG.keyed) {
-      let times; if (AVG.selOnly) { times = []; for (const r of selRows(anim)) for (const k of getTrack(anim, r, false) || []) times.push(k.time); } else times = allKeyTimes(anim);
-      const fr = [...new Set(times.map(t => Math.round(t * f)))].sort((a, b) => a - b), cf = Math.round(cur * f);
-      const bef = fr.filter(x => x < cf).reverse().slice(0, AVG.before), aft = fr.filter(x => x > cf).slice(0, AVG.after);
-      bef.forEach((x, i) => out.push({ t: x / f, side: -1, i: i + 1, n: AVG.before })); aft.forEach((x, i) => out.push({ t: x / f, side: 1, i: i + 1, n: AVG.after }));
-    } else {
-      const step = Math.max(1, AVG.step | 0), cf = Math.round(cur * f), df = Math.round(dur * f); // ghosts sit on whole frames
-      for (let i = 1; i <= AVG.before; i++) { const x = cf - i * step; if (x >= 0) out.push({ t: x / f, side: -1, i, n: AVG.before }); }
-      for (let i = 1; i <= AVG.after; i++) { const x = cf + i * step; if (x <= df) out.push({ t: x / f, side: 1, i, n: AVG.after }); }
+    const anim = animOf(); if (!anim) return []; const f = fps(), df = Math.round(animDuration(anim) * f), bf = baseFrameNo(), out = [];
+    const wrap = x => AVG.loop && df > 0 ? ((x % df) + df) % df : x, ok = x => x >= 0 && x <= df;
+    const F = AVG.frames;
+    if (F.before) for (let i = 1; i <= F.nb; i++) { const x = wrap(bf - i * Math.max(1, F.step)); if (ok(x)) out.push({ t: x / f, side: -1, i, n: F.nb, sec: "frames", col: F.colB, mode: F.mode, fade: F.fade, k: -i }); }
+    if (F.after) for (let i = 1; i <= F.na; i++) { const x = wrap(bf + i * Math.max(1, F.step)); if (ok(x)) out.push({ t: x / f, side: 1, i, n: F.na, sec: "frames", col: F.colA, mode: F.mode, fade: F.fade, k: i }); }
+    if (F.current) out.push({ t: bf / f, side: 0, i: 0, n: 1, sec: "cur", col: F.colA, mode: F.mode, fade: "none", k: 0 });
+    const K = AVG.keys;
+    if (K.before || K.after) {
+      const fr = [...new Set(allKeyTimes(anim).map(t => Math.round(t * f)))].sort((a, b) => a - b), step = Math.max(1, K.step);
+      if (K.before) fr.filter(x => x < bf).reverse().filter((x, i) => (i + 1) % step === 0).slice(0, K.nb).forEach((x, i) => out.push({ t: x / f, side: -1, i: i + 1, n: K.nb, sec: "keys", col: K.colB, mode: K.mode, fade: K.fade, k: -(i + 1) }));
+      if (K.after) fr.filter(x => x > bf).filter((x, i) => (i + 1) % step === 0).slice(0, K.na).forEach((x, i) => out.push({ t: x / f, side: 1, i: i + 1, n: K.na, sec: "keys", col: K.colA, mode: K.mode, fade: K.fade, k: i + 1 }));
     }
-    return out.sort((a, b) => b.i - a.i); // farthest first
+    return out.sort((a, b) => b.i - a.i);
   };
-  const ghostOn = () => !!(st.ghost && isAnim() && animOf() && (AVG.images || AVG.bones) && (AVG.before > 0 || AVG.after > 0));
-  const OFF = { bg: document.createElement("canvas") };
+  const ghostOn = () => !!(st.ghost && isAnim() && animOf());
+  const OFF = { bg: document.createElement("canvas"), tmp: document.createElement("canvas") };
   const size = c => { if (c.width !== cv.width || c.height !== cv.height) { c.width = cv.width; c.height = cv.height; } return c.getContext("2d"); };
   let baseDA = drawAttachments;
   function drawGhostBones(Wg) {
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.lineWidth = 2; ctx.strokeStyle = "#e8e8e8"; ctx.fillStyle = "#e8e8e8"; const { bones } = selSets();
-    for (const b of doc.bones) { if (AVG.selOnly && bones.size && !bones.has(b.id)) continue; const w = Wg[b.id]; if (!w) continue; const [x0, y0] = toScreen(w.x, w.y), [x1, y1] = toScreen(w.x + w.a * b.length, w.y + w.c * b.length);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.lineWidth = 2; ctx.strokeStyle = "#e8e8e8"; ctx.fillStyle = "#e8e8e8";
+    for (const b of doc.bones) { const w = Wg[b.id]; if (!w) continue; const [x0, y0] = toScreen(w.x, w.y), [x1, y1] = toScreen(w.x + w.a * b.length, w.y + w.c * b.length);
       ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); ctx.beginPath(); ctx.arc(x0, y0, 2.5, 0, 7); ctx.fill(); }
   }
-  function slotsToHide() { if (!AVG.selOnly || typeof SK2 === "undefined") return []; const { bones, slots } = selSets(); if (!bones.size && !slots.size) return [];
-    const under = new Set(bones); let grew = true; while (grew) { grew = false; for (const b of doc.bones) if (b.parent && under.has(b.parent) && !under.has(b.id)) { under.add(b.id); grew = true; } }
-    return doc.slots.filter(s => !slots.has(s.id) && !under.has(s.bone) && !SK2.hidden.has(s.id)).map(s => s.id); }
   AVW.ghostStats = { ms: 0, n: 0 };
-  /* Ghost frames are drawn once each (untinted) into bitmaps kept while the view, the edits and the settings stay the same; a redraw blits
-     them and tints each side in one pass. The cache spans the whole ghost window (before × spacing … after × spacing), so playback needs
-     one new ghost per animation frame, drawn ahead in a display frame that has none to draw. While playing at most one ghost is drawn per
-     display frame (a missing one shows a frame later); paused or scrubbing, all are drawn at once. Big viewports cache at a lower scale. */
-  const GB = { key: "", map: new Map(), pool: [], tmp: document.createElement("canvas") };
-  const gbCap = () => Math.min(40, AVG.keyed ? AVG.before + AVG.after + 4 : (AVG.before + AVG.after) * Math.max(1, AVG.step | 0) + 3);
-  function ghostRaw(anim, t, hide, sc = 1) { // sc: drawing scale (0.5 while playing: a quarter of the pixels to fill)
+  /* Ghost frames are drawn once each (untinted) into bitmaps kept while the view, the edits and the settings stay the same. A redraw
+     blits them and colours each group in one pass. While playing at most one ghost is drawn per display frame (drawn ahead when a
+     display frame has nothing new) at half scale; paused or scrubbing, all are drawn at full scale. */
+  const GB = { key: "", map: new Map(), pool: [] };
+  const gbCap = () => Math.min(48, (AVG.frames.nb + AVG.frames.na) * Math.max(1, AVG.frames.step) + AVG.keys.nb + AVG.keys.na + 6);
+  function ghostRaw(anim, t, sc = 1) {
     const k = t.toFixed(5); let e = GB.map.get(k); if (e && e.sc >= sc) { GB.map.delete(k); GB.map.set(k, e); return e; } if (e) { GB.map.delete(k); GB.pool.push(e.c); }
-    const Wd = cv.width, Hd = cv.height, s = Math.min(sc, Math.sqrt(1.6e6 / (Wd * Hd))), w = Math.max(1, Math.round(Wd * s)), h = Math.max(1, Math.round(Hd * s));
+    const Wd = cv.width, Hd = cv.height, s = Math.min(sc, Math.sqrt(1.6e6 / (Wd * Hd))), w = Math.max(1, Math.round(Wd * s)), hh = Math.max(1, Math.round(Hd * s));
     while (GB.map.size >= gbCap()) { const [ok, oe] = GB.map.entries().next().value; GB.map.delete(ok); GB.pool.push(oe.c); }
-    const c = GB.pool.pop() || document.createElement("canvas"); if (c.width !== w || c.height !== h) { c.width = w; c.height = h; } const g = c.getContext("2d");
+    const c = GB.pool.pop() || document.createElement("canvas"); if (c.width !== w || c.height !== hh) { c.width = w; c.height = hh; } const g = c.getContext("2d");
     if (!GB.bgSaved) { const bg = size(OFF.bg); bg.globalCompositeOperation = "copy"; bg.drawImage(cv, 0, 0); bg.globalCompositeOperation = "source-over"; GB.bgSaved = true; }
-    for (const id of hide) SK2.hidden.add(id);
     const d0 = dpr; // the base draws with the global dpr: scaling it draws the whole view, scaled by s, into the top-left corner
-    try { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.clearRect(0, 0, Wd, Hd); dpr = d0 * s; const Wg = ghostWorld(anim, t); if (AVG.images) baseDA(Wg, 1, { anim, t }); if (AVG.bones) drawGhostBones(Wg); }
-    finally { dpr = d0; for (const id of hide) SK2.hidden.delete(id); }
-    ctx.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = "copy"; g.globalAlpha = 1; g.drawImage(cv, 0, 0, w, h, 0, 0, w, h); g.globalCompositeOperation = "source-over";
+    try { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.clearRect(0, 0, Wd, Hd); dpr = d0 * s; const Wg = ghostWorld(anim, t); baseDA(Wg, 1, { anim, t }); if (AVG.bones) drawGhostBones(Wg); }
+    finally { dpr = d0; }
+    ctx.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = "copy"; g.globalAlpha = 1; g.drawImage(cv, 0, 0, w, hh, 0, 0, w, hh); g.globalCompositeOperation = "source-over";
     e = { c, sc }; GB.map.set(k, e); GB.drawn++; return e;
+  }
+  function ghostShift(anim, q) { // anchor + offsets, in device pixels
+    let dx = 0, dy = 0;
+    if (AVG.anchor && AVG.anchorBone && W[AVG.anchorBone]) { const g = ghostWorld(anim, q.t)[AVG.anchorBone]; if (g) { const [ax, ay] = toScreen(W[AVG.anchorBone].x, W[AVG.anchorBone].y), [gx, gy] = toScreen(g.x, g.y); dx += (ax - gx) * dpr; dy += (ay - gy) * dpr; } }
+    dx += AVG.offX * q.k * st.view.z * dpr; dy -= AVG.offY * q.k * st.view.z * dpr; return [dx, dy];
   }
   function drawGhosts() {
     const t0 = performance.now(), anim = animOf(), list = AVW.ghostTimes(); if (!list.length) return;
-    const hide = slotsToHide(), V = st.view, Wd = cv.width, Hd = cv.height;
-    const key = [editSig(), st.skinId || "", anim.id, V.x, V.y, V.z, Wd, Hd, AVG.images, AVG.bones, AVG.selOnly ? hide.join(",") : "", typeof SK2 !== "undefined" ? [...SK2.hidden].join(",") : "", st.vis.images.show, AVP.stepped].join("|");
+    const V = st.view, Wd = cv.width, Hd = cv.height;
+    const key = [editSig(), st.skinId || "", anim.id, V.x, V.y, V.z, Wd, Hd, AVG.bones, typeof SK2 !== "undefined" ? [...SK2.hidden].join(",") : ""].join("|");
     if (key !== GB.key) { GB.key = key; for (const e of GB.map.values()) GB.pool.push(e.c); GB.map.clear(); }
-    GB.bgSaved = false; GB.drawn = 0; const playing = st.playing, budget = playing ? 1 : 1e9; ctx.save();
+    GB.bgSaved = false; GB.drawn = 0; const playing = st.playing, sc = playing ? 0.5 : 1, room = () => !playing || !GB.drawn || performance.now() - t0 < 4; ctx.save(); // playing: new ghosts only while this frame has time left
     try {
-      const sc = playing ? 0.5 : 1;
-      const have = list.map(q => { const e = GB.map.get(q.t.toFixed(5)); if (e && e.sc >= sc) return e; if (GB.drawn < budget) return ghostRaw(anim, q.t, hide, sc); return e || null; });
-      // draw ahead: the newest ghost of the next animation frame
-      if (playing && !GB.drawn && !AVG.keyed && AVG.after > 0 && (st.speed || 1) > 0) { const f = fps(), nf = Math.round(st.time * f) + 1 + AVG.after * Math.max(1, AVG.step | 0); if (nf <= Math.round(animDuration(anim) * f) && !GB.map.has((nf / f).toFixed(5))) ghostRaw(anim, nf / f, hide, sc); }
-      if (playing && !GB.drawn && !AVG.keyed && AVG.before > 0 && (st.speed || 1) > 0) { const f = fps(), nf = Math.round(st.time * f) + 1 - Math.max(1, AVG.step | 0); if (nf >= 0 && !GB.map.has((nf / f).toFixed(5))) ghostRaw(anim, nf / f, hide, sc); }
+      const have = list.map(q => { const k = q.t.toFixed(5), e = GB.map.get(k); if (e && e.sc >= sc) { GB.map.delete(k); GB.map.set(k, e); return e; } if (room()) return ghostRaw(anim, q.t, sc); return e || null; });
+      if (playing && room() && !AVG.lock && (st.speed || 1) > 0) { // draw ahead: the newest ghosts of the next animation frame
+        const f = fps(), F = AVG.frames, nb = Math.round(st.time * f) + 1, df = Math.round(animDuration(anim) * f), wrap = x => AVG.loop && df > 0 ? ((x % df) + df) % df : x;
+        for (const x of [F.after ? wrap(nb + F.na * Math.max(1, F.step)) : -1, F.before ? wrap(nb - Math.max(1, F.step)) : -1]) if (x >= 0 && x <= df && !GB.map.has((x / f).toFixed(5)) && room()) ghostRaw(anim, x / f, sc);
+      }
       ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1;
-      if (GB.bgSaved) { ctx.clearRect(0, 0, Wd, Hd); ctx.drawImage(OFF.bg, 0, 0); } // the viewport was used to draw new ghosts: put the background back
-      const tg = GB.tmp; if (tg.width !== Wd || tg.height !== Hd) { tg.width = Wd; tg.height = Hd; } const g = tg.getContext("2d");
-      for (const side of [-1, 1]) {
-        const idx = list.map((q, i) => i).filter(i => list[i].side === side && have[i]); if (!idx.length) continue;
-        const op = i => clamp(AVG.opacity * (AVG.falloff ? 1 - (list[i].i - 1) / Math.max(1, list[i].n) : 1), 0, 1);
-        if (!AVG.tint) { for (const i of idx) { ctx.globalAlpha = op(i); ctx.drawImage(have[i].c, 0, 0, Wd, Hd); } ctx.globalAlpha = 1; continue; }
-        g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = "source-over"; g.globalAlpha = 1; g.clearRect(0, 0, Wd, Hd);
-        for (const i of idx) { g.globalAlpha = op(i); g.drawImage(have[i].c, 0, 0, Wd, Hd); }
-        g.globalCompositeOperation = "source-atop"; g.globalAlpha = AVG.tintAmt; g.fillStyle = side < 0 ? AVG.colBefore : AVG.colAfter; g.fillRect(0, 0, Wd, Hd); g.globalCompositeOperation = "source-over"; g.globalAlpha = 1;
-        ctx.globalAlpha = 1; ctx.drawImage(tg, 0, 0);
+      if (GB.bgSaved) { ctx.clearRect(0, 0, Wd, Hd); ctx.drawImage(OFF.bg, 0, 0); }
+      const tg = size(OFF.tmp), groups = new Map();
+      list.forEach((q, i) => { if (!have[i]) return; const gk = q.sec + q.side; if (!groups.has(gk)) groups.set(gk, []); groups.get(gk).push(i); });
+      for (const idx of groups.values()) {
+        const q0 = list[idx[0]]; tg.setTransform(1, 0, 0, 1, 0, 0); tg.globalCompositeOperation = "source-over"; tg.globalAlpha = 1; tg.clearRect(0, 0, Wd, Hd);
+        for (const i of idx) { const q = list[i], [dx, dy] = ghostShift(anim, q); tg.globalAlpha = q.fade === "fade" ? clamp(1 - (q.i - 1) / Math.max(1, q.n), 0.08, 1) : 1; tg.drawImage(have[i].c, dx, dy, Wd, Hd); }
+        tg.globalCompositeOperation = "source-atop"; tg.globalAlpha = q0.mode === "silhouette" ? 1 : 0.6; tg.fillStyle = q0.col.c; tg.fillRect(0, 0, Wd, Hd); tg.globalCompositeOperation = "source-over"; tg.globalAlpha = 1;
+        ctx.globalAlpha = clamp(q0.col.a, 0, 1); ctx.drawImage(OFF.tmp, 0, 0);
       }
       AVW.ghostStats.missing = have.filter(x => !x).length;
     } finally { ctx.restore(); }
     const ms = performance.now() - t0; AVW.ghostStats.ms = AVW.ghostStats.ms * 0.9 + ms * 0.1; AVW.ghostStats.n = list.length; AVW.ghostStats.drawn = GB.drawn; AVW.ghostStats.cached = GB.map.size;
   }
+  /* motion vectors: the path of each bone (the selected ones, else all) over the frames before and after */
+  function drawMotion() {
+    const M = AVG.mv, anim = animOf(); if (!(M.before || M.after) || !anim) return; const f = fps(), df = Math.round(animDuration(anim) * f), bf = baseFrameNo();
+    const { bones } = selSets(), list = bones.size ? doc.bones.filter(b => bones.has(b.id)) : doc.bones; let n = 0;
+    ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.lineWidth = 1.5;
+    for (const [side, on, cnt, col] of [[-1, M.before, M.nb, M.colB], [1, M.after, M.na, M.colA]]) {
+      if (!on || cnt <= 0) continue; const frames = []; for (let i = 0; i <= cnt; i++) { let x = bf + side * i; if (AVG.loop && df > 0) x = ((x % df) + df) % df; if (x >= 0 && x <= df) frames.push(x); }
+      const Ws = frames.map(x => ghostWorld(anim, x / f)); ctx.strokeStyle = rgba(col.c, col.a); ctx.fillStyle = rgba(col.c, col.a);
+      for (const b of list) { const pts = []; for (const Wg of Ws) { const w = Wg[b.id]; if (w) pts.push(toScreen(w.x + w.a * b.length, w.y + w.c * b.length)); } if (pts.length < 2) continue;
+        let len = 0; for (let i = 1; i < pts.length; i++) len += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); if (len <= M.thr) continue;
+        ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.stroke(); for (const p of pts.slice(1)) { ctx.beginPath(); ctx.arc(p[0], p[1], 1.8, 0, 7); ctx.fill(); } n++; }
+    }
+    ctx.restore(); AVW.ghostStats.vectors = n;
+  }
   let gPass = false;
-  function hookDraw() {
+  (function hookDraw() {
     baseDA = drawAttachments;
-    drawAttachments = function (Wm, alpha, ta) { if (gPass && alpha === 1 && !ta) { gPass = false; try { drawGhosts(); } catch (e) { console.warn("ghosting", e); } } return baseDA.call(this, Wm, alpha, ta); };
+    drawAttachments = function (Wm, alpha, ta) {
+      if (!gPass || alpha !== 1 || ta) return baseDA.call(this, Wm, alpha, ta); gPass = false;
+      if (!AVG.onTop) { try { drawGhosts(); } catch (e) { console.warn("ghosting", e); } const r = baseDA.call(this, Wm, alpha, ta); try { drawMotion(); } catch (e) {} return r; }
+      const r = baseDA.call(this, Wm, alpha, ta); try { drawGhosts(); drawMotion(); } catch (e) { console.warn("ghosting", e); } return r;
+    };
     const baseRender = render;
     render = function (...a) { const g = st.ghost, mine = ghostOn(); if (mine) { gPass = true; st.ghost = false; } try { return baseRender.apply(this, a); } finally { if (mine) st.ghost = g; gPass = false; } };
-  }
-  hookDraw();
+  })();
   const gBtn = () => document.getElementById("ghostBtn");
   AVW.setGhosting = on => { st.ghost = !!on; const b = gBtn(); if (b) b.classList.toggle("on", st.ghost); dirty.view = true; VIEWS.ghost && VIEWS.ghost.update(true); };
   (function ghostView() {
-    const N = (id, lab, min, max, step, tip) => `<div class="av-row" title="${tip}"><span class="av-l">${lab}</span><input class="av-n" data-g="${id}" type="number" min="${min}" max="${max}" step="${step}"></div>`;
-    const C = (id, lab, tip) => `<label class="av-chk" title="${tip}"><input type="checkbox" data-g="${id}">${lab}</label>`;
-    const el = mkPanel("ghost", `<div class="av-bar"><button class="av-b" id="avgOn" title="Ghosting on / off (I)">Ghosting</button><span class="av-sep"></span>${C("images", "Images", "Ghost the images")}${C("bones", "Bones", "Ghost the bones")}${C("selOnly", "Selected only", "Ghost only the selected bones (with their children) and slots")}</div>
-      <div class="av-body">
-        <div class="av-h">Frames</div>${N("before", "Before", 0, 12, 1, "Ghosts before the current frame")}${N("after", "After", 0, 12, 1, "Ghosts after the current frame")}
-        <div class="av-row" title="Ghost every N frames, or at the keyed frames"><span class="av-l">Spacing</span><input class="av-n" data-g="step" type="number" min="1" max="60" step="1"><span class="av-m">frames</span>${C("keyed", "At keys", "Ghosts sit on keyed frames instead of every N frames")}</div>
-        <div class="av-h">Look</div>
-        <div class="av-row" title="Opacity of the nearest ghost"><span class="av-l">Opacity</span><input type="range" data-g="opacity" min="0.05" max="1" step="0.05"><span class="av-m" data-gv="opacity"></span></div>
-        <div class="av-row"><span class="av-l"></span>${C("falloff", "Fade farther ghosts", "Each ghost farther from the current frame is fainter")}</div>
-        <div class="av-row" title="Tint ghosts: before and after colours"><span class="av-l">${C("tint", "Tint", "Colour the ghosts")}</span><input type="color" data-g="colBefore" title="Before"><input type="color" data-g="colAfter" title="After"><input type="range" data-g="tintAmt" min="0.05" max="1" step="0.05" title="Tint strength"></div>
-        <div class="av-row av-m" id="avgInfo"></div>
-      </div>`);
-    el.querySelector("#avgOn").onclick = () => AVW.setGhosting(!st.ghost);
-    el.av.addEventListener("input", e => { const k = e.target.dataset.g; if (!k) return; const t = e.target;
-      AVG[k] = t.type === "checkbox" ? t.checked : t.type === "color" ? t.value : clamp(+t.value || 0, +t.min || 0, +t.max || 99); if (k === "before" || k === "after" || k === "step") AVG[k] = Math.round(AVG[k]);
-      saveG(); dirty.view = true; VIEWS.ghost.update(true); });
+    const SL = (path, label) => `<div class="sg-row"><span class="l">${label}:</span><div data-sl="${path}"></div></div>`;
+    const sec = (id, title, extra) => `<div class="sg-box" data-sec="${id}"><div class="sg-sec"><span class="tw" data-tw="${id}">▼</span><span class="t" data-tw="${id}">${title}</span>${ck(id + ".before", "Before")}${ck(id + ".after", "After")}${extra || ""}</div><div class="bd">`;
+    const sw = (path, tip) => `<button class="sg-sw" data-sw="${path}" title="${tip}"><b></b><u></u></button>`;
+    const dd = (path, opts, tip) => `<select class="sg-dd" data-dd="${path}" title="${tip}">${opts.map(([v, l]) => `<option value="${v}">${l}</option>`).join("")}</select>`;
+    const look = id => `<div class="sg-row" style="padding-left:6px;flex-wrap:wrap">${sw(id + ".colB", "Before colour (alpha = opacity)")}${sw(id + ".colA", "After colour (alpha = opacity)")}${dd(id + ".mode", [["images", "Images"], ["silhouette", "Silhouette"]], "Images: tinted images. Silhouette: filled with the colour")}${dd(id + ".fade", [["none", "None"], ["fade", "Fade"]], "Fade: farther ghosts are fainter")}</div>`;
+    const el = mkPanel("ghost", `<div style="overflow:auto;flex:1;min-height:0">
+      ${sec("frames", "Frames", ck("frames.current", "Current", "Also ghost the current frame (with Lock: the frame you locked)"))}${look("frames")}${SL("frames.nb", "Before frames")}${SL("frames.na", "After frames")}${SL("frames.step", "Frame step")}</div></div>
+      ${sec("keys", "Keys")}${look("keys")}${SL("keys.nb", "Before frames")}${SL("keys.na", "After frames")}${SL("keys.step", "Key frame step")}</div></div>
+      ${sec("mv", "Motion Vectors")}<div class="sg-row" style="padding-left:6px;flex-wrap:wrap">${sw("mv.colB", "Before colour")}${sw("mv.colA", "After colour")}</div>${SL("mv.nb", "Before frames")}${SL("mv.na", "After frames")}${SL("mv.thr", "Threshold")}</div></div>
+      <div class="sg-box"><div class="sg-row" style="gap:14px;flex-wrap:wrap">${ck("anchor", "Anchor", "Keep the anchor bone of every ghost where it is now (pick it with the arrow)")}${ck("onTop", "On top", "Draw the ghosts over the current pose")}${ck("loop", "Loop", "Ghosts wrap around the start and end of the animation")}${ck("bones", "Bones", "Ghost the bones too")}
+        <span class="sg-grp" style="margin-left:auto"><button class="sg-btn ic" id="avgPick" title="Anchor: use the selected bone">${ICN.pick}</button><button class="sg-btn ic" id="avgLock" title="Lock the ghosts at this frame">${ICN.lock}</button><button class="sg-btn ic" id="avgReset" title="Reset the offsets and the anchor">${ICN.reset}</button></span></div>
+        ${SL("offX", "X offset")}${SL("offY", "Y offset")}</div></div>`);
+    const get = p => p.split(".").reduce((o, k) => o[k], AVG), set = (p, v) => { const ks = p.split("."), last = ks.pop(); ks.reduce((o, k) => o[k], AVG)[last] = v; saveG(); dirty.view = true; };
+    const RANGE = { nb: [0, 30, 1], na: [0, 30, 1], step: [1, 30, 1], thr: [0, 200, 1], offX: [-200, 200, 1], offY: [-200, 200, 1] };
+    el.querySelectorAll("[data-sl]").forEach(d => { const p = d.dataset.sl, r = RANGE[p.split(".").pop()]; slider(d, { min: r[0], max: r[1], step: r[2], get: () => get(p), set: v => { set(p, v); VIEWS.ghost.update(true); } }); });
+    el.av.addEventListener("change", e => { const p = e.target.dataset.k || e.target.dataset.dd; if (!p) return; set(p, e.target.type === "checkbox" ? e.target.checked : e.target.value); VIEWS.ghost.update(true); });
+    el.av.addEventListener("click", e => { const t = e.target.closest("[data-tw]"); if (t) { const s = AVG[t.dataset.tw]; s.open = !s.open; saveG(); VIEWS.ghost.update(true); return; }
+      const s = e.target.closest("[data-sw]"); if (s) { const p = s.dataset.sw; colorPop(s, () => get(p), v => { set(p, v); VIEWS.ghost.update(true); }); } });
+    el.querySelector("#avgPick").onclick = () => { const b = selBoneId && selBoneId(); if (!b) { toast("Select the anchor bone first"); return; } AVG.anchorBone = b; AVG.anchor = true; saveG(); dirty.view = true; toast("Ghost anchor: " + boneById(b).name); VIEWS.ghost.update(true); };
+    el.querySelector("#avgLock").onclick = () => { AVG.lock = !AVG.lock; AVG.lockT = st.time; saveG(); dirty.view = true; VIEWS.ghost.update(true); };
+    el.querySelector("#avgReset").onclick = () => { AVG.offX = AVG.offY = 0; AVG.anchorBone = null; AVG.lock = false; saveG(); dirty.view = true; VIEWS.ghost.update(true); };
     let sig = "";
-    VIEWS.ghost = { el, update(force) { if (!vis(el)) return; const s = JSON.stringify(AVG) + st.ghost + isAnim() + Math.round(AVW.ghostStats.ms * 10); if (!force && s === sig) return; sig = s;
-      el.querySelector("#avgOn").classList.toggle("on", !!st.ghost);
-      el.querySelectorAll("[data-g]").forEach(i => { if (document.activeElement === i && i.type === "number") return; const v = AVG[i.dataset.g]; if (i.type === "checkbox") i.checked = !!v; else i.value = v; });
-      el.querySelector("[data-gv=opacity]").textContent = Math.round(AVG.opacity * 100) + "%";
-      el.querySelector("#avgInfo").textContent = !st.ghost ? "Ghosting is off (I)." : !isAnim() ? "Ghosts show in Animate mode." : `${AVW.ghostStats.n} ghosts, ${AVW.ghostStats.ms.toFixed(1)} ms per redraw`;
+    VIEWS.ghost = { el, update(force) { if (!vis(el)) return; const s = JSON.stringify(AVG) + st.ghost; if (!force && s === sig) return; sig = s;
+      el.querySelectorAll("[data-k]").forEach(i => { i.checked = !!get(i.dataset.k); });
+      el.querySelectorAll("[data-dd]").forEach(i => { if (document.activeElement !== i) i.value = get(i.dataset.dd); });
+      el.querySelectorAll("[data-sw]").forEach(b => { const c = get(b.dataset.sw); b.querySelector("b").style.background = rgba(c.c, c.a); b.querySelector("u").style.background = c.c; });
+      el.querySelectorAll("[data-sl]").forEach(d => d.sgDraw && d.sgDraw());
+      el.querySelectorAll("[data-sec]").forEach(b => { const o = AVG[b.dataset.sec].open; b.querySelector(".bd").style.display = o ? "" : "none"; b.querySelector(".tw").textContent = o ? "▼" : "▶"; });
+      el.querySelector("#avgPick").classList.toggle("on", !!AVG.anchorBone); el.querySelector("#avgPick").title = "Anchor: use the selected bone" + (AVG.anchorBone && boneById(AVG.anchorBone) ? ` (now: ${boneById(AVG.anchorBone).name})` : "");
+      el.querySelector("#avgLock").classList.toggle("on", !!AVG.lock);
     } };
-    // keep the toolbar button and the view in step
     const b = gBtn(); if (b) b.addEventListener("click", () => setTimeout(() => VIEWS.ghost.update(true), 0));
   })();
 
   /* =================================================================== PLAYBACK */
-  const AVP = AVW.play = LS("aia-playback", { units: "frames", interp: true, stepped: false, defMix: 0.2 });
+  const AVP = AVW.play = LS("aia-playback", { units: "frames", interp: true, defMix: 0.2 });
   AVP.clock = null; AVP.run = null; AVP.blend = null; AVP.fps = 0;
-  const saveP = () => LSset("aia-playback", { units: AVP.units, interp: AVP.interp, stepped: AVP.stepped, defMix: AVP.defMix });
+  const saveP = () => LSset("aia-playback", { units: AVP.units, interp: AVP.interp, defMix: AVP.defMix, mixOpen: !!AVP.mixOpen });
   const MIX = AVW.mixes = LS("aia-mix", { pairs: {} });
   const mixKey = (a, b) => (a ? a.name : "") + "→" + (b ? b.name : "");
   AVW.mixFor = (from, to) => { const v = MIX.pairs[mixKey(from, to)]; return typeof v === "number" ? v : AVP.defMix; };
-  // stepped: every key holds until the next (view only; exports of data are not affected)
-  const baseEase = easeP; easeP = function (c, p) { if (AVP.stepped && !AVW.exporting) return 0; return baseEase(c, p); };
-  // mix preview: blend the bone pose of the "from" animation into the current one
   const lerpA = (a, b, t) => { let d = ((b - a) % 360 + 540) % 360 - 180; return a + d * t; };
   const basePoseOf = poseOf;
   poseOf = function (b) { const p = basePoseOf(b), m = AVP.blend; if (!m || !isAnim() || !m.from) return p; const q = bonePose(doc, b, m.from, m.tf), a = m.alpha;
@@ -18152,7 +18244,7 @@ body.sk #verBtn { color: #aaa; } body.sk #verBtn:hover { color: #e8e8e8; backgro
     AVP.run = { from, to, mix: Math.max(0, md), phase: "from", tf: 0, tt: 0 }; setAnim(from.id); st.time = 0; st.playing = true; st.temp = {}; setPlayIcon(); markAll(); return true;
   };
   AVW.stopMix = function () { const r = AVP.run; if (!r) return; AVP.run = null; AVP.blend = null; setAnim(r.to.id); dirty.view = dirty.tl = true; };
-  function advance(dt) { // own clock: whole frames, or a mix preview
+  function advance(dt) { // own clock: whole frames (Stepped), or a mix preview
     const sp = st.speed || 1, f = fps(); dt *= sp;
     if (AVP.run) {
       const r = AVP.run, fd = animDuration(r.from), td = animDuration(r.to), prevT = st.time;
@@ -18181,61 +18273,47 @@ body.sk #verBtn { color: #aaa; } body.sk #verBtn:hover { color: #e8e8e8; backgro
     try { return baseFrame(now); } finally { if (sp !== null) st.speed = sp; try { post(); } catch (e) { console.warn("views", e); } }
   };
   AVW.fmtT = (t, units = AVP.units) => units === "seconds" ? t.toFixed(2) + "s" : String(Math.round(t * fps()));
+  AVW.setSpeed = v => { v = clamp(+v || 1, 0.01, 10); st.speed = v; const s = document.getElementById("speedSel"); if (s && [...s.options].some(o => +o.value === v)) s.value = String(v); };
   (function playView() {
-    const el = mkPanel("playback", `<div class="av-bar" id="avpTr">
-        <button class="av-b" data-p="first" title="First frame (Home)">⏮</button><button class="av-b" data-p="prev" title="Previous frame (F)">◀︎|</button>
-        <button class="av-b" data-p="play" id="avpPlay" title="Play / pause (D)" style="min-width:34px">▶</button><button class="av-b" data-p="next" title="Next frame (R)">|▶︎</button><button class="av-b" data-p="last" title="Last frame (End)">⏭</button>
-        <span class="av-sep"></span><button class="av-b" data-p="loop" id="avpLoop" title="Repeat (Ctrl+R): play again from the start">⟲ Repeat</button>
-        <span id="avpRead" class="av-m" style="margin-left:auto;font-variant-numeric:tabular-nums"></span></div>
-      <div class="av-body">
-        <div class="av-row" title="Playback speed"><span class="av-l">Speed</span><input type="range" id="avpSpd" min="0.05" max="3" step="0.05"><input class="av-n" id="avpSpdN" type="number" min="0.05" max="10" step="0.05"><span class="av-m">×</span></div>
-        <div class="av-row"><span class="av-l"></span>${[0.25, 0.5, 1, 2].map(v => `<button class="av-b" data-spd="${v}">${v}×</button>`).join("")}</div>
-        <div class="av-row" title="Frames per second of the timeline (keys keep their times in seconds)"><span class="av-l">Timeline FPS</span><input class="av-n" id="avpFps" type="number" min="1" max="240" step="1"><span class="av-m">Show</span><select class="av-s" id="avpUnits"><option value="frames">Frames</option><option value="seconds">Seconds</option></select></div>
-        <div class="av-row"><span class="av-l">Interpolation</span><label class="av-chk" title="On: smooth motion between frames. Off: the pose changes on whole frames only"><input type="checkbox" id="avpInterp">Interpolated</label><label class="av-chk" title="Show every key as stepped (blocking pass). View only: keys and exports keep their curves"><input type="checkbox" id="avpStep">Stepped</label></div>
-        <div class="av-row" title="Repeat only this range while playing ([ and ] in the dopesheet)"><span class="av-l">Loop range</span><input class="av-n" id="avpLA" type="number" min="0" step="1" placeholder="start"><input class="av-n" id="avpLB" type="number" min="0" step="1" placeholder="end"><button class="av-b" id="avpLC" title="Clear the loop range">✕</button></div>
-        <div class="av-h">Mix</div>
-        <div class="av-row" title="Crossfade time when one animation follows another"><span class="av-l">Default mix</span><input class="av-n" id="avpDef" type="number" min="0" max="10" step="0.05"><span class="av-m">s</span></div>
-        <div class="av-row"><span class="av-l">From</span><select class="av-s" id="avpFrom"></select><span class="av-m">→ current</span></div>
-        <div class="av-row" title="Mix time for this pair (empty = default)"><span class="av-l">Pair mix</span><input class="av-n" id="avpPair" type="number" min="0" max="10" step="0.05" placeholder="default"><span class="av-m">s</span><button class="av-b" id="avpMix" title="Play the From animation, then mix into the current one">▶ Preview mix</button></div>
-        <div id="avpPairs" style="padding:0 8px 6px"></div>
-      </div>`);
+    const el = mkPanel("playback", `<div class="sg-box"><div class="sg-row"><span class="l" style="width:92px">Timeline FPS:</span><div id="avpFps"></div></div>
+        <div class="sg-row"><span class="l" style="width:92px">Speed:</span><div id="avpSpd"></div></div>
+        <div class="sg-row" style="justify-content:center;gap:4px">${[10, 25, 50, 100, 200].map(v => `<button class="sg-btn" data-spd="${v}">${v}%</button>`).join("")}</div>
+        <div class="sg-row" style="justify-content:center;gap:4px"><button class="sg-btn" id="avpStepped" title="The pose changes on whole frames only">${I(`<path d="M2 13h4V9h4V5h4" stroke="#5fd0ff"/>`)}Stepped</button><button class="sg-btn" id="avpInterp" title="Smooth motion between frames">${I(`<path d="M2 13.5L14 2.5V13.5z" fill="#5fd0ff" fill-opacity=".35" stroke="#5fd0ff"/>`)}Interpolated</button></div></div>
+      <div class="sg-box"><div class="sg-sec" style="margin:0"><span class="tw" id="avpMixTw">▶</span><span class="t" id="avpMixT" style="cursor:pointer">Mix</span></div>
+        <div id="avpMixBd" style="display:none;margin-top:6px">
+          <div class="sg-row"><span class="l" style="width:92px">Default mix:</span><div id="avpDef"></div></div>
+          <div class="sg-row"><span class="l" style="width:92px">From:</span><select class="sg-dd" id="avpFrom" style="flex:1"></select></div>
+          <div class="sg-row"><span class="l" style="width:92px">Pair mix:</span><div id="avpPair"></div></div>
+          <div class="sg-row" style="justify-content:flex-end"><button class="sg-btn" id="avpPairClr" title="Use the default mix for this pair">Default</button><button class="sg-btn" id="avpMix" title="Play the From animation, then mix into the current one">${ICN.play}Preview mix</button></div></div></div>`);
     const q = s => el.querySelector(s);
-    q("#avpTr").onclick = e => { const b = e.target.closest("[data-p]"); if (!b) return; const a = animOf(), d = animDuration(a), k = b.dataset.p;
-      if (k === "play") { if (AVP.run) { togglePlay(false); return; } togglePlay(); } else if (k === "first") setTime(0); else if (k === "last") setTime(d); else if (k === "prev") stepFrame(-1); else if (k === "next") stepFrame(1);
-      else if (k === "loop") { const lb = document.getElementById("loopBtn"); if (lb) lb.click(); else st.loop = !st.loop; } VIEWS.playback.update(true); };
-    const setSpd = v => { v = clamp(+v || 1, 0.05, 10); st.speed = v; const s = document.getElementById("speedSel"); if (s && [...s.options].some(o => +o.value === v)) s.value = String(v); VIEWS.playback.update(true); };
-    q("#avpSpd").oninput = e => setSpd(e.target.value); q("#avpSpdN").onchange = e => setSpd(e.target.value);
-    el.querySelectorAll("[data-spd]").forEach(b => b.onclick = () => setSpd(b.dataset.spd));
-    q("#avpFps").onchange = e => { const v = Math.round(+e.target.value); if (!(v >= 1 && v <= 240)) { VIEWS.playback.update(true); return; } if (v !== doc.fps) { pushUndo(); doc.fps = v; changed(); toast(`Timeline FPS ${v}`); } };
-    q("#avpUnits").onchange = e => { AVP.units = e.target.value; saveP(); AVW.rev++; };
-    q("#avpInterp").onchange = e => { AVP.interp = e.target.checked; AVP.clock = null; saveP(); dirty.view = true; };
-    q("#avpStep").onchange = e => { AVP.stepped = e.target.checked; saveP(); dirty.view = dirty.tl = true; AVW.rev++; };
-    const lr = () => { const a = q("#avpLA").value, b = q("#avpLB").value; st.loopA = a === "" ? null : Math.max(0, Math.round(+a)); st.loopB = b === "" ? null : Math.max(0, Math.round(+b)); dirty.tl = true; };
-    q("#avpLA").onchange = lr; q("#avpLB").onchange = lr; q("#avpLC").onclick = () => { st.loopA = st.loopB = null; dirty.tl = true; VIEWS.playback.update(true); };
-    q("#avpDef").onchange = e => { AVP.defMix = clamp(+e.target.value || 0, 0, 10); saveP(); VIEWS.playback.update(true); };
+    slider(q("#avpFps"), { min: 1, max: 60, step: 1, get: () => doc.fps, set: (v, final) => { if (!final) { AVP.fpsDraft = v; q("#avpFps").querySelector(".v").textContent = v; return; } const n = Math.round(AVP.fpsDraft || v); AVP.fpsDraft = null; if (n !== doc.fps) { pushUndo(); doc.fps = n; changed(); } } });
+    // keep the drawn value while dragging the FPS slider (the document changes once, on release)
+    const fpsHost = q("#avpFps"), fpsGet = () => AVP.fpsDraft || doc.fps; fpsHost.sgDraw = (d => () => { const sv = doc.fps; if (AVP.fpsDraft) doc.fps = AVP.fpsDraft; try { d(); } finally { doc.fps = sv; } })(fpsHost.sgDraw);
+    slider(q("#avpSpd"), { min: 0, max: 200, step: 1, get: () => Math.round((st.speed || 1) * 100), set: v => { AVW.setSpeed(Math.max(1, v) / 100); VIEWS.playback.update(true); } });
+    el.querySelectorAll("[data-spd]").forEach(b => b.onclick = () => { AVW.setSpeed(+b.dataset.spd / 100); VIEWS.playback.update(true); });
+    q("#avpStepped").onclick = () => { AVP.interp = false; AVP.clock = null; saveP(); dirty.view = true; VIEWS.playback.update(true); };
+    q("#avpInterp").onclick = () => { AVP.interp = true; AVP.clock = null; saveP(); dirty.view = true; VIEWS.playback.update(true); };
+    const mixTog = () => { AVP.mixOpen = !AVP.mixOpen; saveP(); VIEWS.playback.update(true); }; q("#avpMixTw").onclick = mixTog; q("#avpMixT").onclick = mixTog;
+    slider(q("#avpDef"), { min: 0, max: 2, step: 0.01, get: () => AVP.defMix, set: v => { AVP.defMix = v; saveP(); } });
+    const fromA = () => doc.anims.find(a => a.id === q("#avpFrom").value);
+    slider(q("#avpPair"), { min: 0, max: 2, step: 0.01, get: () => { const f = fromA(), a = animOf(); return f && a ? AVW.mixFor(f, a) : AVP.defMix; }, set: v => { const f = fromA(), a = animOf(); if (!f || !a) return; MIX.pairs[mixKey(f, a)] = v; LSset("aia-mix", MIX); } });
     q("#avpFrom").onchange = () => VIEWS.playback.update(true);
-    q("#avpPair").onchange = e => { const from = doc.anims.find(a => a.id === q("#avpFrom").value), to = animOf(); if (!from || !to) return; const k = mixKey(from, to); if (e.target.value === "") delete MIX.pairs[k]; else MIX.pairs[k] = clamp(+e.target.value || 0, 0, 10); LSset("aia-mix", MIX); VIEWS.playback.update(true); };
+    q("#avpPairClr").onclick = () => { const f = fromA(), a = animOf(); if (f && a) { delete MIX.pairs[mixKey(f, a)]; LSset("aia-mix", MIX); } VIEWS.playback.update(true); };
     q("#avpMix").onclick = () => { if (!isAnim()) { toast("Mix preview plays in Animate mode"); return; } AVW.previewMix(q("#avpFrom").value, st.animId); };
-    q("#avpPairs").onclick = e => { const d = e.target.closest("[data-del]"); if (!d) return; delete MIX.pairs[d.dataset.del]; LSset("aia-mix", MIX); VIEWS.playback.update(true); };
     let sig = "", animSig = "";
     VIEWS.playback = { el, update(force) {
-      if (!vis(el)) return; const a = animOf(), d = animDuration(a), f = fps();
-      q("#avpRead").textContent = `${AVP.run ? (AVP.run.phase === "from" ? "from " + AVP.run.from.name : AVP.run.phase === "mix" ? "mixing " + Math.round((AVP.blend ? AVP.blend.alpha : 1) * 100) + "%" : AVP.run.to.name) + " · " : ""}${AVW.fmtT(st.time)} / ${AVW.fmtT(d)}  ·  ${Math.round(AVP.fps)} fps`;
-      const s = [st.playing, st.loop, st.speed, doc.fps, AVP.units, AVP.interp, AVP.stepped, st.loopA, st.loopB, AVP.defMix, st.animId, doc.anims.length, JSON.stringify(MIX.pairs), q("#avpFrom").value].join("|"); if (!force && s === sig) return; sig = s;
-      q("#avpPlay").textContent = st.playing ? "❚❚" : "▶"; q("#avpPlay").classList.toggle("on", !!st.playing); q("#avpLoop").classList.toggle("on", !!st.loop);
-      const put = (id, v) => { const i = q(id); if (document.activeElement !== i) i.value = v; };
-      put("#avpSpd", st.speed || 1); put("#avpSpdN", st.speed || 1); put("#avpFps", doc.fps); put("#avpUnits", AVP.units); put("#avpDef", AVP.defMix);
-      q("#avpInterp").checked = !!AVP.interp; q("#avpStep").checked = !!AVP.stepped; put("#avpLA", st.loopA == null ? "" : st.loopA); put("#avpLB", st.loopB == null ? "" : st.loopB);
-      el.querySelectorAll("[data-spd]").forEach(b => b.classList.toggle("on", Math.abs(+b.dataset.spd - (st.speed || 1)) < 1e-6));
-      const as = doc.anims.map(x => x.id + x.name).join("|") + st.animId; const fs = q("#avpFrom");
-      if (as !== animSig) { animSig = as; const keep = fs.value; fs.innerHTML = `<option value="">(pick)</option>` + doc.anims.filter(x => x !== a).map(x => `<option value="${x.id}">${esc(x.name)}</option>`).join(""); if ([...fs.options].some(o => o.value === keep)) fs.value = keep; }
-      const from = doc.anims.find(x => x.id === fs.value), pk = from && a ? MIX.pairs[mixKey(from, a)] : undefined; put("#avpPair", typeof pk === "number" ? pk : ""); q("#avpPair").disabled = !from;
-      q("#avpMix").disabled = !from || !a;
-      const pairs = Object.entries(MIX.pairs); q("#avpPairs").innerHTML = pairs.length ? pairs.map(([k, v]) => `<div class="av-row" style="padding:1px 0"><span style="flex:1">${esc(k)}</span><span class="av-m">${v}s</span><button class="av-b" data-del="${esc(k)}" title="Remove">✕</button></div>`).join("") : `<div class="av-m" style="padding:2px 0">No pair mixes: every pair uses the default mix.</div>`;
+      if (!vis(el)) return; const a = animOf();
+      const s = [st.speed, doc.fps, AVP.interp, AVP.defMix, st.animId, doc.anims.length, JSON.stringify(MIX.pairs), q("#avpFrom").value, AVP.mixOpen, AVP.fpsDraft].join("|"); if (!force && s === sig) return; sig = s;
+      el.querySelectorAll("[data-spd]").forEach(b => b.classList.toggle("on", Math.abs(+b.dataset.spd / 100 - (st.speed || 1)) < 1e-6));
+      q("#avpStepped").classList.toggle("on", !AVP.interp); q("#avpInterp").classList.toggle("on", !!AVP.interp);
+      q("#avpMixBd").style.display = AVP.mixOpen ? "" : "none"; q("#avpMixTw").textContent = AVP.mixOpen ? "▼" : "▶";
+      const as = doc.anims.map(x => x.id + x.name).join("|") + st.animId, fs = q("#avpFrom");
+      if (as !== animSig) { animSig = as; const keep = fs.value; fs.innerHTML = `<option value="">(pick an animation)</option>` + doc.anims.filter(x => x !== a).map(x => `<option value="${x.id}">${esc(x.name)}</option>`).join(""); if ([...fs.options].some(o => o.value === keep)) fs.value = keep; }
+      q("#avpMix").disabled = !fromA() || !a; el.querySelectorAll(".sg-sl").forEach(d => d.sgDraw && d.sgDraw());
     } };
   })();
 
-  /* =================================================================== shared time lane (Timeline + Audio) */
+  /* =================================================================== shared: rows, transport, time lane */
   function allRows(anim) { const r = []; if (!anim) return r;
     for (const id in anim.bones) for (const ch in anim.bones[id]) r.push(`b|${id}|${ch}`);
     for (const id in anim.slots) for (const ch in anim.slots[id]) r.push(`s|${id}|${ch}`);
@@ -18250,66 +18328,92 @@ body.sk #verBtn { color: #aaa; } body.sk #verBtn:hover { color: #e8e8e8; backgro
     return [...new Set(r)];
   }
   AVW.selRows = selRows; AVW.allRows = allRows;
-  const TYPE_COL = { rotate: "#7fd36b", translate: "#5aa7ff", translatex: "#5aa7ff", translatey: "#5aa7ff", scale: "#ff6b6b", scalex: "#ff6b6b", scaley: "#ff6b6b", shear: "#f2d15a", shearx: "#f2d15a", sheary: "#f2d15a", attachment: "#b9b9b9", deform: "#4fd1e5", rgba: "#e58ff2", rgb: "#e58ff2", alpha: "#e58ff2" };
+  const hasSel = () => { const s = selSets(); return s.bones.size || s.slots.size || (st.sel && (st.sel.type === "ik" || st.sel.type === "tc")); };
+  const TRANSPORT = `<div class="sg-grp" style="gap:3px;flex-wrap:nowrap"><span style="display:inline-flex;gap:1px"><button class="sg-btn ic" data-tp="first" title="First frame">${ICN.first}</button><button class="sg-btn ic" data-tp="pkey" title="Previous key (S)">${ICN.pkey}</button></span>
+    <span style="display:inline-flex;gap:1px"><button class="sg-btn ic" data-tp="back" title="Play backward (A)">${ICN.back}</button><button class="sg-btn ic" data-tp="play" title="Play forward (D)">${ICN.play}</button></span>
+    <span style="display:inline-flex;gap:1px"><button class="sg-btn ic" data-tp="nkey" title="Next key (W)">${ICN.nkey}</button><button class="sg-btn ic" data-tp="last" title="Last frame">${ICN.last}</button></span><button class="sg-btn ic" data-tp="loop" title="Repeat (Ctrl+R)">${ICN.loop}</button></div>`;
+  function wireTransport(root) {
+    root.addEventListener("click", e => { const b = e.target.closest("[data-tp]"); if (!b) return; const k = b.dataset.tp, d = animDuration(animOf());
+      if (k === "first") setTime(0); else if (k === "last") setTime(d); else if (k === "pkey") jumpKey(-1); else if (k === "nkey") jumpKey(1);
+      else if (k === "play") { if (typeof HK !== "undefined" && HK.rev && typeof hkPlayBack === "function") hkPlayBack(); togglePlay(); }
+      else if (k === "back") { togglePlay(false); if (typeof hkPlayBack === "function") hkPlayBack(); }
+      else if (k === "loop") { const lb = document.getElementById("loopBtn"); if (lb) lb.click(); else st.loop = !st.loop; } dirty.tl = true; });
+  }
+  const syncTransport = root => { root.querySelectorAll("[data-tp=play]").forEach(b => { b.innerHTML = st.playing ? ICN.pause : ICN.play; b.classList.toggle("on", !!st.playing); });
+    root.querySelectorAll("[data-tp=back]").forEach(b => b.classList.toggle("on", !!(typeof HK !== "undefined" && HK.rev))); root.querySelectorAll("[data-tp=loop]").forEach(b => b.classList.toggle("on", !!st.loop)); };
+  const ZOOM = `<div class="av-zoom"><button class="sg-btn" data-z="-" title="Zoom out">−</button><input type="range" data-z="s" min="0" max="1000" title="Zoom"><button class="sg-btn" data-z="+" title="Zoom in">+</button><button class="sg-btn ic" data-z="fit" title="Fit the animation" style="width:22px">${ICN.fit}</button></div>`;
   function makeLane(cv, opt) { // time axis: x = 12 + frame * fw - sl
     const L = { cv, g: cv.getContext("2d"), fw: 0, sl: 0, fitFor: null, opt };
-    L.fit = () => { const a = animOf(), w = cv.clientWidth || 300, nf = Math.max(1, Math.round(animDuration(a) * fps()), opt.minFrames ? opt.minFrames() : 0); L.fw = clamp((w - 30) / nf, 0.05, 90); L.sl = 0; L.fitFor = a ? a.id : null; };
+    L.total = () => { const a = animOf(); return Math.max(1, Math.round(animDuration(a) * fps()), opt.minFrames ? opt.minFrames() : 0); };
+    L.fit = () => { const w = cv.clientWidth || 300; L.fw = clamp((w - 30) / L.total(), 0.05, 90); L.sl = 0; const a = animOf(); L.fitFor = a ? a.id : null; L.dirty = true; };
     L.x = f => 12 + f * L.fw - L.sl; L.f = x => (x - 12 + L.sl) / L.fw;
-    L.zoom = (k, cx) => { const f = L.f(cx); L.fw = clamp(L.fw * k, 0.05, 90); L.sl = Math.max(0, 12 + f * L.fw - cx); };
-    cv.addEventListener("wheel", e => { e.preventDefault(); if (e.shiftKey) L.sl = Math.max(0, L.sl + (e.deltaY || e.deltaX)); else { const r = cv.getBoundingClientRect(); L.zoom(Math.exp(-e.deltaY * 0.0015), e.clientX - r.left); } L.dirty = true; }, { passive: false });
-    cv.addEventListener("contextmenu", e => e.preventDefault());
-    cv.addEventListener("pointerdown", e => { if (e.button !== 1 && e.button !== 2) return; e.preventDefault(); const x0 = e.clientX, s0 = L.sl; cv.setPointerCapture(e.pointerId);
-      const mv = ev => { L.sl = Math.max(0, s0 - (ev.clientX - x0)); L.dirty = true; }; const up = () => { cv.removeEventListener("pointermove", mv); cv.removeEventListener("pointerup", up); }; cv.addEventListener("pointermove", mv); cv.addEventListener("pointerup", up); });
+    L.clampSl = () => { L.sl = clamp(L.sl, 0, Math.max(0, 12 + L.total() * L.fw + 40 - (L.w || cv.clientWidth || 300))); };
+    L.zoom = (k, cx) => { if (cx == null) cx = L.x(st.time * fps()); const f = L.f(cx); L.fw = clamp(L.fw * k, 0.05, 90); L.sl = Math.max(0, 12 + f * L.fw - cx); L.clampSl(); L.dirty = true; };
+    L.zoomTo = z => { const fw = 0.05 * Math.pow(1800, z); L.zoom(fw / L.fw); };
+    L.zval = () => Math.log(L.fw / 0.05) / Math.log(1800);
+    cv.addEventListener("wheel", e => { e.preventDefault(); if (e.shiftKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) { L.sl += (e.deltaY || e.deltaX); L.clampSl(); } else { const r = cv.getBoundingClientRect(); L.zoom(Math.exp(-e.deltaY * 0.0015), e.clientX - r.left); } L.dirty = true; }, { passive: false });
+    cv.addEventListener("contextmenu", e => { if (!opt.menu) e.preventDefault(); });
+    cv.addEventListener("pointerdown", e => { if (e.button !== 1 && e.button !== 2) return; e.preventDefault(); const x0 = e.clientX, s0 = L.sl; cv.setPointerCapture(e.pointerId); let moved = false;
+      const mv = ev => { if (Math.abs(ev.clientX - x0) > 3) moved = true; L.sl = s0 - (ev.clientX - x0); L.clampSl(); L.dirty = true; }; const up = ev => { cv.removeEventListener("pointermove", mv); cv.removeEventListener("pointerup", up); if (!moved && e.button === 2 && opt.menu) opt.menu(ev); }; cv.addEventListener("pointermove", mv); cv.addEventListener("pointerup", up); });
     L.prep = () => { const r = cv.getBoundingClientRect(), d = Math.min(devicePixelRatio || 1, 2), W = Math.max(10, Math.round(r.width * d)), H = Math.max(10, Math.round(r.height * d)); if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; } L.w = r.width; L.h = r.height; L.d = d; const a = animOf(); if (!L.fw || (a && L.fitFor !== a.id)) L.fit(); };
-    L.ruler = (g, top = 0, hh = 18) => { g.fillStyle = "#333"; g.fillRect(0, top, L.w, hh); const pf = L.fw, MAJ = [1, 2, 5, 10, 15, 30, 60, 120, 300, 600, 1200, 3000]; const maj = MAJ.find(s => s * pf >= 46) || 3000, mn = MAJ.find(s => s < maj && maj % s === 0 && s * pf >= 7) || maj;
-      const f0 = Math.max(0, Math.floor(L.f(0) / mn) * mn), f1 = L.f(L.w); g.strokeStyle = "#5a5a5a"; g.fillStyle = "#aaa"; g.font = "10px system-ui,sans-serif"; g.beginPath();
-      for (let f = f0; f <= f1; f += mn) { const x = Math.round(L.x(f)) + .5, big = f % maj === 0; g.moveTo(x, top + hh - (big ? 8 : 4)); g.lineTo(x, top + hh); if (big) g.fillText(AVP.units === "seconds" ? (f / fps()).toFixed(f % fps() ? 2 : 0) : String(f), x + 2, top + 10); } g.stroke(); };
-    L.common = (g, top) => { const a = animOf(), dur = animDuration(a) * fps(); const xe = L.x(dur); if (xe < L.w) { g.fillStyle = "rgba(0,0,0,.22)"; g.fillRect(Math.max(0, xe), top, L.w - xe, L.h - top); g.fillStyle = "#777"; g.fillRect(Math.round(xe), top, 1, L.h - top); }
-      if (st.loopB != null && st.loopB > (st.loopA || 0)) { g.fillStyle = "rgba(47,127,214,.14)"; g.fillRect(L.x(st.loopA || 0), top, (st.loopB - (st.loopA || 0)) * L.fw, L.h - top); } };
-    L.head = g => { const x = Math.round(L.x(st.time * fps())) + .5; g.fillStyle = "#3ad0e0"; g.fillRect(x - .5, 0, 1.5, L.h); g.beginPath(); g.moveTo(x - 5, 0); g.lineTo(x + 5, 0); g.lineTo(x, 7); g.closePath(); g.fill(); };
+    L.ruler = (g, top, hh) => { const pf = L.fw, MAJ = [1, 2, 5, 10, 15, 30, 60, 120, 300, 600, 1200, 3000]; const maj = MAJ.find(s => s * pf >= 46) || 3000, mn = MAJ.find(s => s < maj && maj % s === 0 && s * pf >= 7) || maj, cur = Math.round(st.time * fps());
+      const f0 = Math.max(0, Math.floor(L.f(0) / mn) * mn), f1 = L.f(L.w); g.font = "11px Segoe UI,sans-serif"; g.strokeStyle = "#6a6a6a"; g.beginPath(); const lab = [];
+      for (let f = f0; f <= f1; f += mn) { const x = Math.round(L.x(f)) + .5, big = f % maj === 0; g.moveTo(x, top + hh - (big ? 9 : 5)); g.lineTo(x, top + hh); if (big) lab.push([f, x]); } g.stroke();
+      const cx = L.x(cur); for (const [f, x] of lab) { if (Math.abs(x - cx) < 16) continue; g.fillStyle = "#a9a9a9"; g.fillText(AVP.units === "seconds" ? (f / fps()).toFixed(f % fps() ? 2 : 0) : String(f), x - 3, top + 11); }
+      return { maj }; };
+    L.head = (g, top, label) => { const cur = Math.round(st.time * fps()), x = Math.round(L.x(st.time * fps())) + .5; if (label) { g.font = "bold 12px Segoe UI,sans-serif"; g.fillStyle = "#3ad7ea"; const s = String(cur); g.fillText(s, x - g.measureText(s).width / 2, top + 11); }
+      g.fillStyle = "#3ad7ea"; g.beginPath(); g.moveTo(x - 5, top + 13); g.lineTo(x + 5, top + 13); g.lineTo(x, top + 19); g.closePath(); g.fill(); g.fillRect(x - .5, top + 18, 1.5, L.h - top - 18); };
     return L;
   }
+  function wireZoom(root, L) {
+    const s = root.querySelector("[data-z=s]");
+    root.addEventListener("click", e => { const b = e.target.closest("[data-z]"); if (!b || b === s) return; const k = b.dataset.z; if (k === "+") L.zoom(1.5); else if (k === "-") L.zoom(1 / 1.5); else if (k === "fit") L.fit(); });
+    s.addEventListener("input", () => L.zoomTo(+s.value / 1000));
+    return () => { if (document.activeElement !== s) s.value = Math.round(L.zval() * 1000); };
+  }
+  function wireScroll(sb, L) {
+    const th = sb.firstChild;
+    th.addEventListener("pointerdown", e => { e.preventDefault(); th.setPointerCapture(e.pointerId); const x0 = e.clientX, s0 = L.sl, k = (12 + L.total() * L.fw + 40) / sb.clientWidth;
+      const mv = ev => { L.sl = s0 + (ev.clientX - x0) * k; L.clampSl(); L.dirty = true; }, up = () => { th.removeEventListener("pointermove", mv); th.removeEventListener("pointerup", up); }; th.addEventListener("pointermove", mv); th.addEventListener("pointerup", up); });
+    return () => { const tot = 12 + L.total() * L.fw + 40, w = L.w || sb.clientWidth, sw = sb.clientWidth; const tw = clamp(w / tot, 0.05, 1) * sw; th.style.width = tw + "px"; th.style.left = (tot > w ? (L.sl / (tot - w)) * (sw - tw) : 0) + "px"; };
+  }
+  const diamond = (g, x, y, r, c) => { g.fillStyle = c; g.beginPath(); g.moveTo(x, y - r); g.lineTo(x + r, y); g.lineTo(x, y + r); g.lineTo(x - r, y); g.closePath(); g.fill(); };
 
   /* =================================================================== TIMELINE */
   (function timelineView() {
-    const el = mkPanel("timeline", `<div class="av-bar"><span id="avtInfo" class="av-m" style="flex:1;min-width:100px"></span>
-        <button class="av-b" id="avtAll" title="Show the keys of everything, not just the selection">All</button><button class="av-b" id="avtFit" title="Fit the animation (double-click the lane)">Fit</button></div>
-      <div class="av-grow" style="min-height:52px"><canvas id="avtCv" tabindex="0" aria-label="Timeline: keys of the selected items"></canvas></div>`);
-    const cv = el.querySelector("#avtCv"), L = makeLane(cv, {}); AVW.timelineLane = L;
-    const T = { all: false, frames: null, sig: "", drag: null, box: null };
-    const RUL = 18, LANE = () => Math.max(18, L.h - RUL - 16);
-    el.querySelector("#avtAll").onclick = () => { T.all = !T.all; L.dirty = true; VIEWS.timeline.update(true); };
-    el.querySelector("#avtFit").onclick = () => { L.fit(); L.dirty = true; }; cv.addEventListener("dblclick", () => { L.fit(); L.dirty = true; });
-    function collect() { const a = animOf(); const rows = T.all || !hasSel() ? allRows(a) : selRows(a), map = new Map();
-      for (const row of rows) for (const k of getTrack(a, row, false) || []) { const f = Math.round(k.time * fps()); let e = map.get(f); if (!e) map.set(f, e = { f, keys: [], types: new Set() }); e.keys.push({ row, time: k.time }); e.types.add(row.split("|")[2] || row.split("|")[0]); }
-      const ev = new Map(); for (const k of (a && a.events) || []) ev.set(Math.round(k.time * fps()), k); return { frames: [...map.values()].sort((x, y) => x.f - y.f), ev }; }
-    const hasSel = () => { const s = selSets(); return s.bones.size || s.slots.size || (st.sel && (st.sel.type === "ik" || st.sel.type === "tc")); };
+    const el = mkPanel("timeline", `<div style="display:flex;flex:1;min-height:0;background:#3a3a3a">
+      <div class="av-tr" style="width:236px">${TRANSPORT}${ZOOM}</div>
+      <div class="av-lane"><div class="cvw"><canvas id="avtCv" tabindex="0" aria-label="Timeline: keys of the selected items"></canvas></div><div class="av-sb" id="avtSb"><i></i></div></div></div>`);
+    const cv = el.querySelector("#avtCv"), L = makeLane(cv, {}); AVW.timelineLane = L; wireTransport(el.av); const zsync = wireZoom(el.av, L), ssync = wireScroll(el.querySelector("#avtSb"), L);
+    const T = { frames: null, drag: null, box: null };
+    const RUL = 20, KY = () => RUL + Math.max(10, (L.h - RUL) / 2);
+    cv.addEventListener("dblclick", () => L.fit());
+    function collect() { const a = animOf(); const rows = !hasSel() ? allRows(a) : selRows(a), map = new Map();
+      for (const row of rows) for (const k of getTrack(a, row, false) || []) { const f = Math.round(k.time * fps()); let e = map.get(f); if (!e) map.set(f, e = { f, keys: [] }); e.keys.push({ row, time: k.time }); }
+      for (const k of (a && a.events) || []) { const f = Math.round(k.time * fps()); let e = map.get(f); if (!e) map.set(f, e = { f, keys: [] }); e.keys.push({ row: "e||events", time: k.time }); }
+      return { frames: [...map.values()].sort((x, y) => x.f - y.f) }; }
     const isSel = k => selList().some(s => s.row === k.row && Math.abs(s.time - k.time) < 1e-4);
-    function hit(x, y) { const top = RUL, lh = LANE(); if (y >= top && y <= top + lh) { let best = null, bd = 7; for (const e of T.frames.frames) { const d = Math.abs(L.x(e.f) - x); if (d <= bd) { bd = d; best = e; } } if (best) return { lane: "keys", e: best }; }
-      if (y > top + lh) { for (const [f, k] of T.frames.ev) if (Math.abs(L.x(f) - x) <= 6) return { lane: "ev", f, k }; } return null; }
+    function hit(x, y) { if (y < RUL) return null; let best = null, bd = 7; for (const e of T.frames.frames) { const d = Math.abs(L.x(e.f) - x); if (d <= bd) { bd = d; best = e; } } return best; }
     cv.addEventListener("pointerdown", e => {
       if (e.button !== 0) return; cv.focus(); const r = cv.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top, a = animOf(); if (!a) return; cv.setPointerCapture(e.pointerId);
-      const H = y > RUL ? hit(x, y) : null;
-      if (H && H.lane === "keys") {
-        const add = e.shiftKey || e.ctrlKey || e.metaKey, already = H.e.keys.every(isSel);
-        if (add) { const cur = selList().slice(); if (already && !e.shiftKey) st.selKeys = cur.filter(s => !H.e.keys.some(k => k.row === s.row && Math.abs(k.time - s.time) < 1e-4)); else st.selKeys = cur.concat(H.e.keys.filter(k => !isSel(k))); }
-        else if (!already) st.selKeys = H.e.keys.slice();
-        else st.selKeys = selList().slice();
+      const H = hit(x, y);
+      if (H) {
+        const add = e.shiftKey || e.ctrlKey || e.metaKey, already = H.keys.every(isSel);
+        if (add) { const cur = selList().slice(); if (already && !e.shiftKey) st.selKeys = cur.filter(s => !H.keys.some(k => k.row === s.row && Math.abs(k.time - s.time) < 1e-4)); else st.selKeys = cur.concat(H.keys.filter(k => !isSel(k))); }
+        else if (!already) st.selKeys = H.keys.slice(); else st.selKeys = selList().slice();
         st.selKey = st.selKeys[st.selKeys.length - 1] || null; dirty.tl = true; L.dirty = true;
         const snap = st.selKeys.map(s => ({ row: s.row, t: s.time, k: findKey(s.row, s.time) })).filter(s => s.k);
-        T.drag = { x0: x, f0: H.e.f, moved: 0, snap, cur: snap.map(s => s.t), undo: false };
-        return;
+        T.drag = { x0: x, moved: 0, snap, cur: snap.map(s => s.t), undo: false }; return;
       }
-      if (H && H.lane === "ev") { st.selKeys = [{ row: "e||events", time: H.k.time }]; st.selKey = st.selKeys[0]; setTime(H.k.time); L.dirty = true; return; }
-      if (y > RUL) { T.box = { x0: x, x1: x, add: e.shiftKey || e.ctrlKey || e.metaKey, moved: false }; return; } // empty lane: drag = box select, click = frame
-      const sc = ev => { const rr = cv.getBoundingClientRect(); setTime(Math.max(0, Math.round(L.f(ev.clientX - rr.left))) / fps()); AVW.scrubbed = true; }; sc(e); T.scrub = sc;
+      if (y > RUL) { T.box = { x0: x, x1: x, add: e.shiftKey || e.ctrlKey || e.metaKey, moved: false }; return; }
+      const sc = ev => { const rr = cv.getBoundingClientRect(); setTime(clamp(Math.round(L.f(ev.clientX - rr.left)), 0, 1e9) / fps()); }; sc(e); T.scrub = sc;
     });
     cv.addEventListener("pointermove", e => {
       const r = cv.getBoundingClientRect(), x = e.clientX - r.left;
       if (T.scrub && e.buttons & 1) { T.scrub(e); return; }
       if (T.box && e.buttons & 1) { T.box.x1 = x; if (Math.abs(x - T.box.x0) > 3) T.box.moved = true; L.dirty = true; return; }
-      const d = T.drag; if (!d || !(e.buttons & 1)) return; const df = Math.round((x - d.x0) / L.fw); if (df === d.moved) return;
-      const minT = Math.min(...d.snap.map(s => s.t)); const dfc = Math.max(df, -Math.round(minT * fps()));
+      const d = T.drag; if (!d || !(e.buttons & 1)) return; const df = Math.round((x - d.x0) / L.fw); if (df === d.moved || !d.snap.length) return;
+      const minT = Math.min(...d.snap.map(s => s.t)), dfc = Math.max(df, -Math.round(minT * fps()));
       if (!d.undo) { pushUndo(); d.undo = true; } const a = animOf();
       d.cur = d.snap.map(s => s.t + dfc / fps()); d.moved = dfc; d.snap.forEach((s, i) => { s.k.time = d.cur[i]; });
       for (const row of new Set(d.snap.map(s => s.row))) { const ks = getTrack(a, row, false); if (ks) ks.sort((p, q) => p.time - q.time); }
@@ -18320,165 +18424,176 @@ body.sk #verBtn { color: #aaa; } body.sk #verBtn:hover { color: #e8e8e8; backgro
         if (!B.moved) { if (!B.add) { st.selKeys = []; st.selKey = null; } setTime(Math.max(0, Math.round(L.f(B.x0))) / fps()); }
         else { const a = Math.min(B.x0, B.x1), b = Math.max(B.x0, B.x1), keys = B.add ? selList().slice() : []; for (const e of T.frames.frames) { const x = L.x(e.f); if (x >= a && x <= b) for (const k of e.keys) if (!keys.some(s => s.row === k.row && Math.abs(s.time - k.time) < 1e-4)) keys.push(k); } st.selKeys = keys; st.selKey = keys[keys.length - 1] || null; } }
       const d = T.drag; T.drag = null; T.scrub = null;
-      if (d && d.undo) { const a = animOf(); // a moved key replaces a key that was already on that frame
-        const moved = new Set(d.snap.map(s => s.k));
+      if (d && d.undo) { const a = animOf(), moved = new Set(d.snap.map(s => s.k));
         for (let i = 0; i < d.snap.length; i++) { const ks = getTrack(a, d.snap[i].row, false); if (!ks) continue; const t = d.cur[i]; for (let j = ks.length - 1; j >= 0; j--) if (!moved.has(ks[j]) && Math.abs(ks[j].time - t) < 1e-4) ks.splice(j, 1); }
-        changed(); toast(`Moved ${d.snap.length} key${d.snap.length > 1 ? "s" : ""} ${d.moved > 0 ? "+" : ""}${d.moved} frame${Math.abs(d.moved) === 1 ? "" : "s"}`); }
+        changed(); }
     };
     cv.addEventListener("pointerup", up); cv.addEventListener("pointercancel", up);
     cv.addEventListener("keydown", e => { if ((e.key === "Delete" || e.key === "Backspace") && selList().length) { e.preventDefault(); e.stopPropagation(); pushUndo(); for (const k of selList()) deleteKeyAt(animOf(), k.row, k.time); st.selKeys = []; st.selKey = null; changed(); } });
     const bgc = document.createElement("canvas"), bgg = bgc.getContext("2d");
     function drawBg() {
-      const g = bgg, a = animOf(); bgc.width = cv.width; bgc.height = cv.height; g.setTransform(L.d, 0, 0, L.d, 0, 0); g.fillStyle = "#2e2e2e"; g.fillRect(0, 0, L.w, L.h);
-      L.ruler(g, 0, RUL); const lh = LANE(); g.fillStyle = "#363636"; g.fillRect(0, RUL, L.w, lh); g.fillStyle = "#313131"; g.fillRect(0, RUL + lh, L.w, L.h - RUL - lh); L.common(g, RUL);
-      if (!a) { g.fillStyle = "#aaa"; g.fillText("No animation", 8, RUL + 14); return; }
-      const fr = T.frames.frames, ym = RUL + lh / 2, kh = Math.min(lh - 6, 14);
-      g.strokeStyle = "rgba(255,255,255,.12)"; g.beginPath(); for (let i = 1; i < fr.length; i++) { g.moveTo(L.x(fr[i - 1].f), ym + .5); g.lineTo(L.x(fr[i].f), ym + .5); } g.stroke();
-      for (const e of fr) { const x = L.x(e.f); if (x < -8 || x > L.w + 8) continue; const sel = e.keys.some(isSel), one = e.types.size === 1 ? [...e.types][0] : null;
-        g.fillStyle = sel ? "#ffd84a" : one ? (TYPE_COL[one] || "#9fd0d6") : "#f0f0f0"; const w = Math.max(3, Math.min(8, L.fw * 0.6)); g.fillRect(Math.round(x - w / 2), Math.round(ym - kh / 2), Math.round(w), Math.round(kh)); if (sel) { g.strokeStyle = "#fff"; g.strokeRect(Math.round(x - w / 2) - .5, Math.round(ym - kh / 2) - .5, Math.round(w) + 1, Math.round(kh) + 1); } }
-      g.font = "10px system-ui,sans-serif"; for (const [f, k] of T.frames.ev) { const x = L.x(f), y = RUL + lh + 8, e = doc.events.find(q => q.id === k.event); const sel = selList().some(s => s.row === "e||events" && Math.abs(s.time - k.time) < 1e-4);
-        g.fillStyle = sel ? "#ffd84a" : e && e.audio ? "#e59b4f" : "#c9c9c9"; g.beginPath(); g.moveTo(x, y - 5); g.lineTo(x + 5, y); g.lineTo(x, y + 5); g.lineTo(x - 5, y); g.closePath(); g.fill(); if (e && L.fw > 4) { g.fillStyle = "#aaa"; g.fillText(e.name, x + 7, y + 3); } }
+      const g = bgg, a = animOf(); bgc.width = cv.width; bgc.height = cv.height; g.setTransform(L.d, 0, 0, L.d, 0, 0); g.fillStyle = "#2b2b2b"; g.fillRect(0, 0, L.w, L.h);
+      L.ruler(g, 0, RUL); const ky = KY(); g.strokeStyle = "#5a5a5a"; g.beginPath(); const tot = L.total(); g.moveTo(Math.max(0, L.x(0)), ky + .5); g.lineTo(Math.min(L.w, L.x(tot)), ky + .5); g.stroke();
+      // small frame ticks on the key line
+      const step = [1, 2, 5, 10, 15, 30, 60].find(s => s * L.fw >= 6) || 60; g.beginPath(); for (let f = Math.max(0, Math.floor(L.f(0) / step) * step); f <= Math.min(tot, L.f(L.w)); f += step) { const x = Math.round(L.x(f)) + .5; g.moveTo(x, ky - 3); g.lineTo(x, ky + 3); } g.strokeStyle = "#7a7a7a"; g.stroke();
+      if (!a) return;
+      for (const e of T.frames.frames) { const x = L.x(e.f); if (x < -8 || x > L.w + 8) continue; diamond(g, x, ky, 5, e.keys.some(isSel) ? "#ffd84a" : "#ff4d1a"); }
     }
     let bgSig = "";
     VIEWS.timeline = { el, lane: L, update(force) {
-      if (!vis(el)) return; L.prep(); const a = animOf();
-      const s = [editSig(), JSON.stringify(st.sel), JSON.stringify(st.multi || []), JSON.stringify(selList()), T.all, L.fw, L.sl, L.w, L.h, st.loopA, st.loopB, AVP.units, doc.fps, T.box ? T.box.x1 : ""].join("|");
-      if (force || L.dirty || s !== bgSig) { bgSig = s; L.dirty = false; T.frames = collect(); drawBg();
-        const n = T.frames.frames.reduce((m, e) => m + e.keys.length, 0); el.querySelector("#avtInfo").textContent = !a ? "No animation" : `${T.all || !hasSel() ? "All items" : "Selected items"} · ${n} keys${selList().length ? " · " + selList().length + " selected" : ""}`;
-        el.querySelector("#avtAll").classList.toggle("on", T.all); }
+      if (!vis(el)) return; L.prep(); syncTransport(el.av); zsync(); ssync();
+      const s = [editSig(), JSON.stringify(st.sel), JSON.stringify(st.multi || []), JSON.stringify(selList()), L.fw, L.sl, L.w, L.h, AVP.units, doc.fps, Math.round(st.time * fps()), T.box ? T.box.x1 : ""].join("|");
+      if (force || L.dirty || s !== bgSig) { bgSig = s; L.dirty = false; T.frames = collect(); drawBg(); }
       const g = L.g; g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(bgc, 0, 0); g.setTransform(L.d, 0, 0, L.d, 0, 0);
-      if (T.box) { g.fillStyle = "rgba(255,216,74,.15)"; g.strokeStyle = "#ffd84a"; const x = Math.min(T.box.x0, T.box.x1), w = Math.abs(T.box.x1 - T.box.x0); g.fillRect(x, RUL, w, LANE()); g.strokeRect(x + .5, RUL + .5, w, LANE()); }
-      L.head(g);
+      if (T.box) { g.fillStyle = "rgba(255,216,74,.15)"; g.strokeStyle = "#ffd84a"; const x = Math.min(T.box.x0, T.box.x1), w = Math.abs(T.box.x1 - T.box.x0); g.fillRect(x, RUL, w, L.h - RUL); g.strokeRect(x + .5, RUL + .5, w, L.h - RUL - 1); }
+      L.head(g, 0, true);
     } };
   })();
 
   /* =================================================================== AUDIO */
-  const AVA = AVW.audio = { tracks: [], master: 1, play: true, scrub: false, events: true, ctx: null, run: null, dec: new Map() };
+  const AVA = AVW.audio = { tracks: [], ev: [], master: 1, muted: false, play: true, scrub: false, events: true, ctx: null, run: null, dec: new Map(), sel: null, device: "" };
+  const allT = () => AVA.tracks.concat(AVA.ev); // loaded tracks (saved with the project by aia_persist) + the project's event sounds (not saved, found again)
+  const TRK_COL = ["#62ff3a", "#3ad7ea", "#ffb13a", "#e05cff", "#ff5a5a", "#ffe23a"];
   const actx = () => { if (!AVA.ctx) { const C = window.AudioContext || window.webkitAudioContext; if (C) AVA.ctx = new C(); } if (AVA.ctx && AVA.ctx.state === "suspended") AVA.ctx.resume().catch(() => {}); return AVA.ctx; };
   function peaksOf(buf) { const rate = 400, n = Math.max(1, Math.ceil(buf.duration * rate)), mn = new Float32Array(n), mx = new Float32Array(n), ch = [];
     for (let c = 0; c < buf.numberOfChannels; c++) ch.push(buf.getChannelData(c)); const per = buf.sampleRate / rate;
     for (let i = 0; i < n; i++) { let lo = 0, hi = 0; const s0 = Math.floor(i * per), s1 = Math.min(buf.length, Math.floor((i + 1) * per)); for (let s = s0; s < s1; s++) { let v = 0; for (const d of ch) v += d[s]; v /= ch.length; if (v < lo) lo = v; if (v > hi) hi = v; } mn[i] = lo; mx[i] = hi; }
     return { rate, mn, mx }; }
-  AVW.addAudio = async function (name, bytes, offset = 0) {
+  const baseName = n => String(n).replace(/\\/g, "/").split("/").pop();
+  AVW.addAudio = async function (name, bytes, offset = 0, opt = {}) {
     const c = actx(); if (!c) throw new Error("This browser has no Web Audio");
-    const buf = await c.decodeAudioData(bytes.slice().buffer); const tr = { id: uid(), name, bytes, buf, peaks: peaksOf(buf), offset, volume: 1, mute: false, export: true };
-    AVA.tracks.push(tr); AVA.dec.set(name.toLowerCase(), buf); AVW.rev++; audioStop(); return tr; };
-  AVW.removeAudio = id => { AVA.tracks = AVA.tracks.filter(t => t.id !== id); audioStop(); AVW.rev++; };
+    const buf = await c.decodeAudioData(bytes.slice().buffer); const tr = { id: uid(), name, bytes, buf, peaks: peaksOf(buf), offset, volume: 1, mute: false, export: opt.export !== false, event: !!opt.event, col: TRK_COL[(AVA.tracks.length + AVA.ev.length) % TRK_COL.length] };
+    (tr.event ? AVA.ev : AVA.tracks).push(tr); AVA.dec.set(baseName(name).toLowerCase(), buf); if (!AVA.sel) AVA.sel = tr.id; AVW.rev++; audioStop(); return tr; };
+  AVW.removeAudio = id => { AVA.tracks = AVA.tracks.filter(t => t.id !== id); AVA.ev = AVA.ev.filter(t => t.id !== id); if (AVA.sel === id) AVA.sel = allT()[0] ? allT()[0].id : null; audioStop(); AVW.rev++; };
+  const trackKeys = (tr, a) => { if (!a) return []; const n = baseName(tr.name).toLowerCase(), out = []; for (const k of a.events || []) { const e = doc.events.find(x => x.id === k.event); if (e && e.audio && baseName(e.audio).toLowerCase() === n) out.push({ k, e }); } return out; };
+  const gain = tr => (AVA.muted ? 0 : AVA.master) * tr.volume;
   function audioStop() { const r = AVA.run; AVA.run = null; if (r) for (const s of r.srcs) { try { s.stop(); } catch (e) {} } }
   function audioStart() { const c = actx(); if (!c) return; audioStop(); const sp = st.speed || 1, now = c.currentTime + 0.01, srcs = [];
-    for (const tr of AVA.tracks) { if (tr.mute || !tr.buf) continue; const into = st.time - tr.offset; if (into >= tr.buf.duration) continue;
-      const src = c.createBufferSource(); src.buffer = tr.buf; src.playbackRate.value = sp; const g = c.createGain(); g.gain.value = tr.volume * AVA.master; src.connect(g); g.connect(c.destination);
+    for (const tr of AVA.tracks) { if (tr.mute || !tr.buf || tr.event) continue; const into = st.time - tr.offset; if (into >= tr.buf.duration) continue;
+      const src = c.createBufferSource(); src.buffer = tr.buf; src.playbackRate.value = sp; const g = c.createGain(); g.gain.value = gain(tr); src.connect(g); g.connect(c.destination);
       if (into >= 0) src.start(now, into); else src.start(now - into / sp, 0); srcs.push(src); }
     AVA.run = { c0: now, t0: st.time, sp, anim: st.animId, sig: trackSig(), srcs }; }
-  const trackSig = () => AVA.tracks.map(t => [t.id, t.offset, t.volume, t.mute].join(",")).join(";") + AVA.master;
+  const trackSig = () => allT().map(t => [t.id, t.offset, t.volume, t.mute].join(",")).join(";") + AVA.master + AVA.muted;
   function audioSync() {
-    const want = AVA.play && st.playing && isAnim() && !AVP.run && AVA.tracks.some(t => !t.mute) && (st.speed || 1) > 0 && !document.hidden;
+    const want = AVA.play && st.playing && isAnim() && !AVP.run && AVA.tracks.some(t => !t.mute && !t.event) && (st.speed || 1) > 0 && !document.hidden;
     if (!want) { if (AVA.run) audioStop(); return; } const c = AVA.ctx; if (!c) return;
     const r = AVA.run; if (!r) { audioStart(); return; } const exp = r.t0 + (c.currentTime - r.c0) * r.sp;
     if (Math.abs(exp - st.time) > (AVP.interp ? 0.1 : 0.1 + 1 / fps()) || r.sp !== (st.speed || 1) || r.anim !== st.animId || r.sig !== trackSig()) audioStart();
   }
-  function scrubSnip() { if (!AVA.scrub || st.playing) return; const c = actx(); if (!c) return; for (const tr of AVA.tracks) { if (tr.mute) continue; const into = st.time - tr.offset; if (into < 0 || into >= tr.buf.duration) continue;
-    const s = c.createBufferSource(), g = c.createGain(); s.buffer = tr.buf; g.gain.value = tr.volume * AVA.master; s.connect(g); g.connect(c.destination); s.start(c.currentTime, into, 0.09); } }
-  // audio events: heard when playback passes their key
-  async function eventBuffer(path) { const key = String(path).replace(/\\/g, "/").split("/").pop().toLowerCase(); if (AVA.dec.has(key)) return AVA.dec.get(key);
-    for (const t of AVA.tracks) if (t.name.toLowerCase() === key || t.name.toLowerCase().replace(/\.[^.]+$/, "") === key.replace(/\.[^.]+$/, "")) return t.buf;
+  function scrubSnip() { if (!AVA.scrub || st.playing) return; const c = actx(); if (!c) return; for (const tr of AVA.tracks) { if (tr.mute || tr.event) continue; const into = st.time - tr.offset; if (into < 0 || into >= tr.buf.duration) continue;
+    const s = c.createBufferSource(), g = c.createGain(); s.buffer = tr.buf; g.gain.value = gain(tr); s.connect(g); g.connect(c.destination); s.start(c.currentTime, into, 0.09); } }
+  async function eventBuffer(path) { const key = baseName(path).toLowerCase(); if (AVA.dec.has(key)) return AVA.dec.get(key);
+    for (const t of allT()) if (baseName(t.name).toLowerCase() === key || baseName(t.name).toLowerCase().replace(/\.[^.]+$/, "") === key.replace(/\.[^.]+$/, "")) return t.buf;
     if (typeof exEventAudioBytes === "function") { try { const b = await exEventAudioBytes(path); if (b) { const buf = await actx().decodeAudioData(b.slice().buffer); AVA.dec.set(key, buf); return buf; } } catch (e) {} } AVA.dec.set(key, null); return null; }
   const baseFire = fireEvents;
   fireEvents = function (t0, t1, wrapped, dur) { const r = baseFire.apply(this, arguments);
     try { if (AVA.play && AVA.events && st.playing && !AVW.exporting) { const a = animOf(); for (const k of (a && a.events) || []) { const hitK = wrapped ? (k.time > t0 && k.time <= dur) || k.time <= t1 : k.time > t0 && k.time <= t1; if (!hitK) continue;
-      const e = doc.events.find(x => x.id === k.event); if (!e || !e.audio) continue; eventBuffer(e.audio).then(buf => { if (!buf) return; const c = actx(), s = c.createBufferSource(), g = c.createGain(), p = c.createStereoPanner ? c.createStereoPanner() : null;
-        s.buffer = buf; s.playbackRate.value = st.speed || 1; g.gain.value = (k.volume ?? e.volume ?? 1) * AVA.master; s.connect(g); if (p) { p.pan.value = clamp(k.balance ?? e.balance ?? 0, -1, 1); g.connect(p); p.connect(c.destination); } else g.connect(c.destination); s.start(); }); } } } catch (e) {}
+      const e = doc.events.find(x => x.id === k.event); if (!e || !e.audio) continue; const tr = allT().find(t => baseName(t.name).toLowerCase() === baseName(e.audio).toLowerCase()); if (tr && tr.mute) continue;
+      eventBuffer(e.audio).then(buf => { if (!buf) return; const c = actx(), s = c.createBufferSource(), g = c.createGain(), p = c.createStereoPanner ? c.createStereoPanner() : null;
+        s.buffer = buf; s.playbackRate.value = st.speed || 1; g.gain.value = (k.volume ?? e.volume ?? 1) * (tr ? gain(tr) : (AVA.muted ? 0 : AVA.master)); s.connect(g); if (p) { p.pan.value = clamp(k.balance ?? e.balance ?? 0, -1, 1); g.connect(p); p.connect(c.destination); } else g.connect(c.destination); s.start(); }); } } } catch (e) {}
     return r; };
   AVW.addAudioEvent = function (tr, time = st.time) {
-    const a = ensureAnim(); const base = tr.name.replace(/\.[^.]+$/, ""); pushUndo(); let e = doc.events.find(x => x.audio && x.audio.split("/").pop() === tr.name);
-    if (!e) { let n = base, i = 2; while (doc.events.some(x => x.name === n)) n = base + "_" + i++; e = { id: uid(), name: n, int: 0, float: 0, string: "", audio: tr.name, volume: 1, balance: 0 }; doc.events.push(e); }
+    const a = ensureAnim(); const base = baseName(tr.name).replace(/\.[^.]+$/, ""); pushUndo(); let e = doc.events.find(x => x.audio && baseName(x.audio) === baseName(tr.name));
+    if (!e) { let n = base, i = 2; while (doc.events.some(x => x.name === n)) n = base + "_" + i++; e = { id: uid(), name: n, int: 0, float: 0, string: "", audio: baseName(tr.name), volume: 1, balance: 0 }; doc.events.push(e); }
     setKey(a, "e||events", time, { event: e.id }); st.selKey = { row: "e||events", time }; changed(); toast(`Audio event “${e.name}” at frame ${frameOf(time)}`); return e; };
+  // the project's own event sounds are listed by themselves (PC version: from the project's audio folder)
+  const evLoaded = new Set();
+  async function loadEventSounds() { for (const e of doc.events || []) { if (!e.audio) continue; const n = baseName(e.audio).toLowerCase(); if (evLoaded.has(n) || allT().some(t => baseName(t.name).toLowerCase() === n)) continue; evLoaded.add(n);
+    if (typeof exEventAudioBytes !== "function") continue; try { const b = await exEventAudioBytes(e.audio); if (b && !allT().some(t => baseName(t.name).toLowerCase() === n)) { await AVW.addAudio(baseName(e.audio), b, 0, { event: true }); VIEWS.audio && VIEWS.audio.update(true); } } catch (err) {} } }
   (function audioView() {
-    const el = mkPanel("audio", `<div class="av-bar"><button class="av-b" id="avaLoad" title="Load audio files (WAV, MP3, OGG, M4A…)">＋ Load audio…</button><input type="file" id="avaFile" accept="audio/*,.wav,.mp3,.ogg,.m4a,.aac,.flac,.opus" multiple hidden>
-        <label class="av-chk" title="Hear the tracks while playing"><input type="checkbox" id="avaPlay">Play</label><label class="av-chk" title="Hear a short bit while scrubbing"><input type="checkbox" id="avaScrub">Scrub</label><label class="av-chk" title="Hear audio events while playing"><input type="checkbox" id="avaEv">Events</label>
-        <span class="av-m">Vol</span><input type="range" id="avaMaster" min="0" max="1.5" step="0.05" style="width:70px;accent-color:#2f7fd6"><button class="av-b" id="avaFit" title="Fit">Fit</button></div>
-      <div id="avaList"></div>
-      <div class="av-grow" style="min-height:50px" title="Drag a waveform to move it in time. Video export (AVI / MOV / WEBM): Audio “Audio file” with no file chosen uses these tracks; “Event audio” finds event sounds here by name."><canvas id="avaCv" aria-label="Audio lanes"></canvas></div>`);
-    const q = s => el.querySelector(s), cv = q("#avaCv"), L = makeLane(cv, { minFrames: () => Math.ceil(Math.max(0, ...AVA.tracks.map(t => (t.offset + t.buf.duration) * fps()))) }); AVW.audioLane = L;
-    q("#avaLoad").onclick = () => q("#avaFile").click();
-    q("#avaFile").onchange = async e => { for (const f of e.target.files) { try { await AVW.addAudio(f.name, new Uint8Array(await f.arrayBuffer()), 0); toast("Audio: " + f.name); } catch (err) { toast("Could not read " + f.name + ": " + (err.message || err)); } } e.target.value = ""; L.fitFor = null; VIEWS.audio.update(true); };
-    q("#avaPlay").onchange = e => { AVA.play = e.target.checked; }; q("#avaScrub").onchange = e => { AVA.scrub = e.target.checked; }; q("#avaEv").onchange = e => { AVA.events = e.target.checked; };
-    q("#avaMaster").oninput = e => { AVA.master = +e.target.value; }; q("#avaFit").onclick = () => { L.fit(); L.dirty = true; }; cv.addEventListener("dblclick", () => { L.fit(); L.dirty = true; });
-    q("#avaList").addEventListener("input", e => { const id = e.target.closest("[data-tr]")?.dataset.tr, tr = AVA.tracks.find(t => t.id === id); if (!tr) return; const k = e.target.dataset.k;
-      if (k === "vol") tr.volume = +e.target.value; else if (k === "off") { const v = +e.target.value; if (isFinite(v)) tr.offset = AVP.units === "seconds" ? v : v / fps(); } else if (k === "mute") tr.mute = !e.target.checked; else if (k === "exp") tr.export = e.target.checked; L.dirty = true; });
-    q("#avaList").addEventListener("click", e => { const id = e.target.closest("[data-tr]")?.dataset.tr, tr = AVA.tracks.find(t => t.id === id); if (!tr) return; const b = e.target.closest("[data-a]"); if (!b) return;
-      if (b.dataset.a === "del") AVW.removeAudio(id); else if (b.dataset.a === "ev") { if (!isAnim()) { toast("Audio events are keyed in Animate mode"); return; } AVW.addAudioEvent(tr); } else if (b.dataset.a === "here") { tr.offset = st.time; AVW.rev++; } VIEWS.audio.update(true); });
-    const RUL = 18, TH = () => AVA.tracks.length ? Math.max(24, Math.min(64, (L.h - RUL - 22) / AVA.tracks.length)) : 0;
+    const el = mkPanel("audio", `<div style="display:flex;flex:1;min-height:0;background:#3a3a3a">
+      <div class="av-tr" style="width:236px;min-height:0">${TRANSPORT}
+        <div class="av-list" id="avaList" title="Drop audio files here, double-click to load, right-click for more"></div>
+        <div style="display:flex;gap:4px;align-items:center"><div id="avaVol" style="flex:1"></div><button class="sg-btn ic" id="avaMute" title="Mute">${ICN.speakerOn}</button></div>
+        <select class="sg-dd" id="avaDev" title="Audio output device"><option value="">Default audio device</option></select>
+        ${ZOOM}<input type="file" id="avaFile" accept="audio/*,.wav,.mp3,.ogg,.m4a,.aac,.flac,.opus" multiple hidden></div>
+      <div class="av-lane"><div class="cvw"><canvas id="avaCv" aria-label="Audio: waveforms on the timeline"></canvas></div><div class="av-sb" id="avaSb"><i></i></div></div></div>`);
+    const q = s => el.querySelector(s), cv = q("#avaCv");
+    const L = makeLane(cv, { minFrames: () => Math.ceil(Math.max(0, ...AVA.tracks.filter(t => !t.event).map(t => (t.offset + t.buf.duration) * fps()))), menu: ev => openMenu(ev.clientX, ev.clientY) }); AVW.audioLane = L;
+    wireTransport(el.av); const zsync = wireZoom(el.av, L), ssync = wireScroll(q("#avaSb"), L);
+    const loadFiles = async files => { for (const f of files) { if (!/^audio\//.test(f.type) && !/\.(wav|mp3|ogg|m4a|aac|flac|opus)$/i.test(f.name)) continue; try { const tr = await AVW.addAudio(f.name, new Uint8Array(await f.arrayBuffer()), 0); AVA.sel = tr.id; toast("Audio: " + f.name); } catch (err) { toast("Could not read " + f.name + ": " + (err.message || err)); } } L.fitFor = null; VIEWS.audio.update(true); };
+    q("#avaFile").onchange = async e => { await loadFiles([...e.target.files]); e.target.value = ""; };
+    const list = q("#avaList");
+    for (const t of [list, cv]) { t.addEventListener("dragover", e => { e.preventDefault(); e.stopPropagation(); }); t.addEventListener("drop", e => { e.preventDefault(); e.stopPropagation(); loadFiles([...(e.dataTransfer.files || [])]); }); }
+    list.addEventListener("dblclick", e => { if (!e.target.closest(".it")) q("#avaFile").click(); });
+    list.addEventListener("click", e => { const it = e.target.closest("[data-tr]"); if (!it) return; const tr = allT().find(t => t.id === it.dataset.tr); if (!tr) return;
+      if (e.target.closest(".sq")) tr.mute = !tr.mute; AVA.sel = tr.id; AVW.rev++; VIEWS.audio.update(true); });
+    const openMenu = (x, y) => { const tr = allT().find(t => t.id === AVA.sel); const items = [["Load audio…", () => q("#avaFile").click()]];
+      if (tr) items.push([`Add audio event “${baseName(tr.name)}” at the playhead`, () => { if (!isAnim()) { toast("Audio events are keyed in Animate mode"); return; } AVW.addAudioEvent(tr); }], ["Start the track at the playhead", () => { tr.offset = st.time; AVW.rev++; }], [tr.export ? "Leave out of video exports" : "Use in video exports", () => { tr.export = !tr.export; AVW.rev++; }], [tr.mute ? "Unmute" : "Mute", () => { tr.mute = !tr.mute; AVW.rev++; }], ["Remove", () => AVW.removeAudio(tr.id)]);
+      items.push([(AVA.scrub ? "✔ " : "") + "Hear audio while scrubbing", () => { AVA.scrub = !AVA.scrub; }], [(AVA.events ? "✔ " : "") + "Hear audio events while playing", () => { AVA.events = !AVA.events; }]);
+      menu(x, y, items); };
+    list.addEventListener("contextmenu", e => { e.preventDefault(); const it = e.target.closest("[data-tr]"); if (it) AVA.sel = it.dataset.tr; openMenu(e.clientX, e.clientY); });
+    slider(q("#avaVol"), { min: 0, max: 100, step: 1, get: () => Math.round(AVA.master * 100), set: v => { AVA.master = v / 100; } });
+    q("#avaMute").onclick = () => { AVA.muted = !AVA.muted; VIEWS.audio.update(true); };
+    const dev = q("#avaDev");
+    dev.addEventListener("focus", async () => { try { const ds = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === "audiooutput" && d.deviceId && d.deviceId !== "default"); const keep = dev.value;
+      dev.innerHTML = `<option value="">Default audio device</option>` + ds.map((d, i) => `<option value="${esc(d.deviceId)}">${esc(d.label || "Output " + (i + 1))}</option>`).join(""); dev.value = keep; } catch (e) {} });
+    dev.onchange = async () => { AVA.device = dev.value; const c = actx(); if (c && c.setSinkId) { try { await c.setSinkId(dev.value); } catch (e) { toast("This output cannot be used: " + (e.message || e)); } } else if (dev.value) toast("This browser plays on the default device only"); };
+    const RUL = 20, KY = 27;
     cv.addEventListener("pointerdown", e => { if (e.button !== 0) return; const r = cv.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top; cv.setPointerCapture(e.pointerId);
-      const i = Math.floor((y - RUL) / TH()), tr = y > RUL && TH() ? AVA.tracks[i] : null;
-      if (tr) { const f = L.f(x) / fps(); if (f >= tr.offset && f <= tr.offset + tr.buf.duration) { const o0 = tr.offset, x0 = x; let moved = false;
+      const tr = allT().find(t => t.id === AVA.sel);
+      if (tr && !tr.event && y > KY + 6) { const f = L.f(x) / fps(); if (f >= tr.offset && f <= tr.offset + tr.buf.duration) { const o0 = tr.offset, x0 = x; let moved = false;
         const mv = ev => { const dx = ev.clientX - cv.getBoundingClientRect().left - x0; if (Math.abs(dx) > 2) moved = true; let o = o0 + dx / L.fw / fps(); if (!ev.altKey) o = Math.round(o * fps()) / fps(); tr.offset = +o.toFixed(5); L.dirty = true; VIEWS.audio.update(true); };
-        const up = ev => { cv.removeEventListener("pointermove", mv); cv.removeEventListener("pointerup", up); if (!moved) { setTime(Math.max(0, Math.round(L.f(x))) / fps()); scrubSnip(); } AVW.rev++; };
+        const up = () => { cv.removeEventListener("pointermove", mv); cv.removeEventListener("pointerup", up); if (!moved) { setTime(Math.max(0, Math.round(L.f(x))) / fps()); scrubSnip(); } AVW.rev++; };
         cv.addEventListener("pointermove", mv); cv.addEventListener("pointerup", up); return; } }
       const sc = ev => { const rr = cv.getBoundingClientRect(); setTime(Math.max(0, Math.round(L.f(ev.clientX - rr.left))) / fps()); scrubSnip(); }; sc(e);
       const mv = ev => { if (ev.buttons & 1) sc(ev); }, up = () => { cv.removeEventListener("pointermove", mv); cv.removeEventListener("pointerup", up); }; cv.addEventListener("pointermove", mv); cv.addEventListener("pointerup", up); });
     const bgc = document.createElement("canvas"), bgg = bgc.getContext("2d"); let bgSig = "", listSig = "";
+    function wave(g, tr, t0, top, bot, sel) { // filled envelope rising from the bottom
+      const P = tr.peaks, xa = L.x(t0 * fps()), xb = L.x((t0 + tr.buf.duration) * fps()), hh = bot - top, amp = hh * Math.min(1.5, tr.volume || 0.0001);
+      const x0 = Math.max(0, Math.floor(xa)), x1 = Math.min(L.w, Math.ceil(xb)); if (x1 <= x0) return; const ys = [];
+      for (let x = x0; x <= x1; x++) { const s0 = ((L.f(x) / fps()) - t0) * P.rate, s1 = ((L.f(x + 1) / fps()) - t0) * P.rate; let m = 0;
+        for (let s = Math.max(0, Math.floor(s0)); s <= Math.min(P.mn.length - 1, Math.floor(s1)); s++) m = Math.max(m, -P.mn[s], P.mx[s]); ys.push(bot - Math.min(hh, m * amp)); }
+      g.beginPath(); g.moveTo(x0, bot); ys.forEach((y, i) => g.lineTo(x0 + i, y)); g.lineTo(x1, bot); g.closePath(); g.fillStyle = rgba(tr.col, tr.mute ? 0.12 : sel ? 0.32 : 0.18); g.fill();
+      g.beginPath(); ys.forEach((y, i) => i ? g.lineTo(x0 + i, y) : g.moveTo(x0, y)); g.strokeStyle = rgba(tr.col, tr.mute ? 0.3 : sel ? 1 : 0.55); g.lineWidth = 1; g.stroke();
+    }
     function drawBg() {
-      const g = bgg, a = animOf(); bgc.width = cv.width; bgc.height = cv.height; g.setTransform(L.d, 0, 0, L.d, 0, 0); g.fillStyle = "#2e2e2e"; g.fillRect(0, 0, L.w, L.h); L.ruler(g, 0, RUL); L.common(g, RUL);
-      const th = TH(); g.font = "10px system-ui,sans-serif";
-      AVA.tracks.forEach((tr, i) => { const y0 = RUL + i * th, ym = y0 + th / 2, P = tr.peaks; g.fillStyle = i % 2 ? "#343434" : "#383838"; g.fillRect(0, y0, L.w, th);
-        const xa = L.x(tr.offset * fps()), xb = L.x((tr.offset + tr.buf.duration) * fps()); g.fillStyle = tr.mute ? "rgba(120,120,120,.18)" : "rgba(79,170,230,.16)"; g.fillRect(xa, y0 + 1, xb - xa, th - 2);
-        g.fillStyle = tr.mute ? "#777" : "#62b8ef"; const amp = (th / 2 - 2) * Math.min(1.5, tr.volume || 0.0001) / 1.5 * 1.5;
-        for (let x = Math.max(0, Math.floor(xa)); x < Math.min(L.w, xb); x++) { const s0 = ((L.f(x) / fps()) - tr.offset) * P.rate, s1 = ((L.f(x + 1) / fps()) - tr.offset) * P.rate; let lo = 0, hi = 0;
-          for (let s = Math.max(0, Math.floor(s0)); s <= Math.min(P.mn.length - 1, Math.floor(s1)); s++) { if (P.mn[s] < lo) lo = P.mn[s]; if (P.mx[s] > hi) hi = P.mx[s]; }
-          const y1 = ym - hi * amp, y2 = ym - lo * amp; g.fillRect(x, y1, 1, Math.max(1, y2 - y1)); }
-        g.fillStyle = "#ddd"; g.fillText(`${tr.name}${tr.offset ? "  @" + AVW.fmtT(tr.offset) : ""}`, Math.max(4, xa + 4), y0 + 11); });
-      // audio events of this animation
-      const ey = RUL + AVA.tracks.length * th + 10;
-      for (const k of (a && a.events) || []) { const e = doc.events.find(x => x.id === k.event); if (!e) continue; const x = L.x(k.time * fps());
-        g.fillStyle = e.audio ? "#e59b4f" : "#8a8a8a"; g.beginPath(); g.moveTo(x, ey - 5); g.lineTo(x + 5, ey); g.lineTo(x, ey + 5); g.lineTo(x - 5, ey); g.closePath(); g.fill();
-        if (e.audio) { const buf = AVA.dec.get(String(e.audio).split("/").pop().toLowerCase()) || (AVA.tracks.find(t => t.name === String(e.audio).split("/").pop()) || {}).buf; if (buf) { g.fillStyle = "rgba(229,155,79,.25)"; g.fillRect(x, ey - 4, buf.duration * fps() * L.fw, 8); } g.fillStyle = "#ccc"; g.fillText(e.name, x + 7, ey + 3); } }
-      if (!AVA.tracks.length) { g.fillStyle = "#999"; g.fillText("Load audio to see its waveform on the timeline. The tracks also go into video exports (Audio: Audio file).", 8, RUL + 16); }
+      const g = bgg, a = animOf(); bgc.width = cv.width; bgc.height = cv.height; g.setTransform(L.d, 0, 0, L.d, 0, 0); g.fillStyle = "#2b2b2b"; g.fillRect(0, 0, L.w, L.h);
+      const { maj } = L.ruler(g, 0, RUL); g.strokeStyle = "#3a3a3a"; g.beginPath(); for (let f = Math.max(0, Math.floor(L.f(0) / maj) * maj); f <= L.f(L.w); f += maj) { const x = Math.round(L.x(f)) + .5; g.moveTo(x, KY + 6); g.lineTo(x, L.h); } g.stroke();
+      // keys of the animation on the key line, with small frame ticks
+      const tot = L.total(), step = [1, 2, 5, 10, 15, 30, 60].find(s => s * L.fw >= 6) || 60; g.strokeStyle = "#7a7a7a"; g.beginPath(); for (let f = Math.max(0, Math.floor(L.f(0) / step) * step); f <= Math.min(tot, L.f(L.w)); f += step) { const x = Math.round(L.x(f)) + .5; g.moveTo(x, KY - 3); g.lineTo(x, KY + 3); } g.stroke();
+      if (a) { const fr = [...new Set(allKeyTimes(a).map(t => Math.round(t * fps())))]; for (const f of fr) { const x = L.x(f); if (x > -6 && x < L.w + 6) diamond(g, x, KY, 4.5, "#ff4d1a"); } }
+      const top = KY + 10, bot = L.h - 2;
+      for (const tr of allT()) { const sel = tr.id === AVA.sel; if (sel) continue; if (tr.event) for (const { k } of trackKeys(tr, a)) wave(g, tr, k.time, top, bot, false); else wave(g, tr, tr.offset, top, bot, false); }
+      const ts = allT().find(t => t.id === AVA.sel); if (ts) { if (ts.event) for (const { k } of trackKeys(ts, a)) wave(g, ts, k.time, top, bot, true); else wave(g, ts, ts.offset, top, bot, true); }
+      if (a) { const xe = Math.round(L.x(animDuration(a) * fps())) + .5; if (xe < L.w) { g.fillStyle = "#e0301a"; g.fillRect(xe - .5, RUL, 1.5, L.h - RUL); } }
+      if (!allT().length) { g.fillStyle = "#9a9a9a"; g.font = "11.5px Segoe UI,sans-serif"; g.fillText("No audio. Drop audio files on the list or here; their sounds play with the animation and go into video exports.", 8, top + 16); }
     }
     VIEWS.audio = { el, lane: L, update(force) {
-      if (!vis(el)) return;
-      const ls = AVA.tracks.map(t => t.id + t.mute + t.export).join("|") + AVP.units + doc.fps;
-      if (force || ls !== listSig) { listSig = ls; q("#avaList").innerHTML = AVA.tracks.map(t => `<div class="av-trk" data-tr="${t.id}"><input type="checkbox" data-k="mute" ${t.mute ? "" : "checked"} title="On: heard"><span class="nm" title="${esc(t.name)}">${esc(t.name)}</span>
-          <span class="av-m">at</span><input class="av-n" data-k="off" type="number" step="${AVP.units === "seconds" ? 0.01 : 1}" title="Offset (${AVP.units})"><input type="range" data-k="vol" min="0" max="1.5" step="0.05" title="Volume" style="width:60px;accent-color:#2f7fd6">
-          <label class="av-chk" title="Use in video export"><input type="checkbox" data-k="exp" ${t.export ? "checked" : ""}>Export</label><button class="av-b" data-a="here" title="Start this track at the playhead">⇥</button><button class="av-b" data-a="ev" title="Add an audio event for this file at the playhead">＋ Event</button><button class="av-b" data-a="del" title="Remove">✕</button></div>`).join(""); }
-      el.querySelectorAll("[data-tr]").forEach(r => { const t = AVA.tracks.find(x => x.id === r.dataset.tr); if (!t) return; const o = r.querySelector("[data-k=off]"), v = r.querySelector("[data-k=vol]");
-        if (document.activeElement !== o) o.value = AVP.units === "seconds" ? +t.offset.toFixed(3) : Math.round(t.offset * fps()); if (document.activeElement !== v) v.value = t.volume; });
-      q("#avaPlay").checked = AVA.play; q("#avaScrub").checked = AVA.scrub; q("#avaEv").checked = AVA.events; if (document.activeElement !== q("#avaMaster")) q("#avaMaster").value = AVA.master;
-      L.prep(); const s = [editSig(), trackSig(), L.fw, L.sl, L.w, L.h, AVP.units, doc.fps, st.loopA, st.loopB].join("|");
+      if (!vis(el)) return; syncTransport(el.av);
+      const ls = allT().map(t => t.id + t.mute + t.name).join("|") + AVA.sel;
+      if (force || ls !== listSig) { listSig = ls; list.innerHTML = allT().length ? allT().map(t => `<div class="it${t.id === AVA.sel ? " on" : ""}" data-tr="${t.id}" title="${esc(t.name)}${t.event ? " (event sound)" : ""}"><span class="sq${t.mute ? " off" : ""}" style="background:${t.col}" title="Click: mute / unmute"></span><span>${esc(baseName(t.name).replace(/\.[^.]+$/, ""))}</span></div>`).join("") : `<div class="hint">Drop audio files here, or double-click to load.</div>`; }
+      q("#avaMute").innerHTML = AVA.muted ? ICN.speaker : ICN.speakerOn; q("#avaMute").classList.toggle("on", AVA.muted); const vv = q("#avaVol"); vv.sgDraw && vv.sgDraw();
+      L.prep(); zsync(); ssync(); const s = [editSig(), trackSig(), AVA.sel, L.fw, L.sl, L.w, L.h, AVP.units, doc.fps, Math.round(st.time * fps())].join("|");
       if (force || L.dirty || s !== bgSig) { bgSig = s; L.dirty = false; drawBg(); }
-      const g = L.g; g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(bgc, 0, 0); g.setTransform(L.d, 0, 0, L.d, 0, 0); L.head(g);
+      const g = L.g; g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(bgc, 0, 0); g.setTransform(L.d, 0, 0, L.d, 0, 0); L.head(g, 0, true);
+      if (!AVW._evLoadSig || AVW._evLoadSig !== (doc.events || []).map(e => e.audio || "").join("|")) { AVW._evLoadSig = (doc.events || []).map(e => e.audio || "").join("|"); loadEventSounds(); }
     } };
   })();
-  // video export: the Audio view's tracks, placed by their offsets on the exported animation's time
+  // video export: the Audio view's loaded tracks, placed by their offsets on the exported animation's time (event sounds go with "Event audio")
   AVW.mixForExport = async function (frames, durs) {
-    const tracks = AVA.tracks.filter(t => t.export && !t.mute && t.buf); if (!tracks.length) return null;
+    const tracks = AVA.tracks.filter(t => t.export && !t.mute && t.buf && !t.event); if (!tracks.length) return null;
     const duration = durs.reduce((a, b) => a + b, 0); if (!(duration > 0)) return null; const rate = 48000, n = Math.max(1, Math.ceil(duration * rate)), t0 = frames.length ? frames[0].t || 0 : 0;
     const oc = new OfflineAudioContext(2, n, rate);
     for (const tr of tracks) { const into = t0 - tr.offset; if (into >= tr.buf.duration) continue; const s = oc.createBufferSource(), g = oc.createGain(); s.buffer = tr.buf; g.gain.value = tr.volume * AVA.master; s.connect(g); g.connect(oc.destination); if (into >= 0) s.start(0, into); else s.start(-into, 0); }
     const out = await oc.startRendering(); return { rate, ch: 2, L: out.getChannelData(0), R: out.getChannelData(1) };
   };
   if (typeof exVideoAudio === "function") { const baseVA = exVideoAudio; exVideoAudio = async function (s, frames, durs, warnings) {
-    if (s && s.audio === "file" && !(typeof EXV !== "undefined" && EXV.audioBytes) && AVA.tracks.some(t => t.export && !t.mute)) { try { const r = await AVW.mixForExport(frames, durs); if (r) return r; } catch (e) { warnings && warnings.push("Audio view: could not mix the tracks (" + (e.message || e) + ")"); } }
+    if (s && s.audio === "file" && !(typeof EXV !== "undefined" && EXV.audioBytes) && AVA.tracks.some(t => t.export && !t.mute && !t.event)) { try { const r = await AVW.mixForExport(frames, durs); if (r) return r; } catch (e) { warnings && warnings.push("Audio view: could not mix the tracks (" + (e.message || e) + ")"); } }
     return baseVA.apply(this, arguments); }; }
-  if (typeof exEventAudioBytes === "function") { const baseEB = exEventAudioBytes; exEventAudioBytes = async function (path) { const b = await baseEB(path); if (b) return b; const n = String(path).replace(/\\/g, "/").split("/").pop().toLowerCase();
-    const t = AVA.tracks.find(x => x.name.toLowerCase() === n || x.name.toLowerCase().replace(/\.[^.]+$/, "") === n.replace(/\.[^.]+$/, "")); return t ? t.bytes : null; }; }
-  // exports render frames through render(): no stepped view curves, no mix preview, no event sounds
+  if (typeof exEventAudioBytes === "function") { const baseEB = exEventAudioBytes; exEventAudioBytes = async function (path) { const b = await baseEB(path); if (b) return b; const n = baseName(path).toLowerCase();
+    const t = AVA.tracks.find(x => baseName(x.name).toLowerCase() === n || baseName(x.name).toLowerCase().replace(/\.[^.]+$/, "") === n.replace(/\.[^.]+$/, "")); return t ? t.bytes : null; }; }
   if (typeof exRun === "function") { const b = exRun; exRun = async function (...a) { AVW.exporting = true; try { return await b.apply(this, a); } finally { AVW.exporting = false; } }; }
 
   /* ---------------- hosted by the Views module (aia_views.js): its panel body takes our content box ---------------- */
-  AVW.hosted = {};
   window.AIA_VIEWS_EXT = Object.assign(window.AIA_VIEWS_EXT || {}, Object.fromEntries(Object.keys(PID).map(id => [id, {
     html: () => `<div class="av-host" data-avhost="${id}" style="display:flex;flex-direction:column;flex:1;height:100%;min-height:0;min-width:0"></div>`,
     wire: body => { const host = (body && body.querySelector && body.querySelector(`[data-avhost="${id}"]`)) || body; if (!host) return; host.appendChild(AVW.panels[id].av); AVW.hosted[id] = true; AVW.refresh(id, true); },
-    key: () => id, // the content redraws itself every frame; the host never needs to rebuild it
+    key: () => id,
     onShow: () => AVW.refresh(id, true) }])));
 
   /* ---------------- per frame ---------------- */
-  let lastTime = null;
-  function post() {
-    for (const id in VIEWS) { const v = VIEWS[id]; if (v.el && vis(v.el)) v.update(false); }
-    audioSync(); if (lastTime !== st.time) { lastTime = st.time; }
-  }
+  function post() { for (const id in VIEWS) { const v = VIEWS[id]; if (v.el && vis(v.el)) v.update(false); } audioSync(); }
   AVW.post = post;
 
   /* ---------------- hotkeys (Spine 4.3 view keys) ---------------- */
@@ -18495,7 +18610,6 @@ body.sk #verBtn { color: #aaa; } body.sk #verBtn:hover { color: #e8e8e8; backgro
     const e = window.event; if (k === "props" && e && e.type === "keydown" && e.altKey && String(e.key).toLowerCase() === "p") return AVW.toggle("playback");
     if (typeof k === "string" && k.startsWith("av:")) return AVW.toggle(k.slice(3)); return bt.apply(this, arguments); }; }
   if (typeof SK_VIEWS !== "undefined") SK_VIEWS.forEach(v => { if (v[0] === "props" && v[2] === "Alt+P") v[2] = ""; });
-  // a view opened from a deep link: &views=curves,ghost
   try { const v = new URLSearchParams(location.search).get("views"); if (v) setTimeout(() => v.split(",").forEach(x => AVW.panels[x] && AVW.open(x)), 400); } catch (e) {}
 })();
 
@@ -19077,6 +19191,8 @@ body.sk #verBtn { color: #aaa; } body.sk #verBtn:hover { color: #e8e8e8; backgro
   /* animations panel */
   body.sk #skAnB{padding:4px 0} body.sk #skAnB svg{width:14px;height:14px;flex:none} body.sk #skAnB .r{height:22px;min-height:22px;padding-right:8px} body.sk #skAnB .r small{font-size:11px;color:#8f8f8f}
   body.sk #skAnB .r input[type=checkbox]{width:13px;height:13px;accent-color:var(--accent)}
+  /* properties: the body scrolls (long bone / slot properties stay reachable) */
+  body.dk3 #insp{display:flex!important;flex-direction:column} body.dk3 #inspBody{flex:1 1 auto;min-height:0;overflow-y:auto!important;overflow-x:hidden}
   /* properties */
   body.sk #insp{background:var(--panel)} body.sk #insp .kv{min-height:28px} body.sk #insp label{font-size:12px;color:#a8a8a8}
   body.sk #insp input,body.sk #insp select{height:24px;min-height:24px;border-radius:4px;background:#262626;border:1px solid var(--line);font:12px var(--ui)}
@@ -19522,6 +19638,195 @@ body.sk #verBtn { color: #aaa; } body.sk #verBtn:hover { color: #e8e8e8; backgro
     pushUndo(); const ch = rgbOnly ? "rgb2" : "rgba2"; const v = { r: light.r, g: light.g, b: light.b, dr: dark.r, dg: dark.g, db: dark.b }; if (!rgbOnly) v.a = light.a;
     setKey(an, `s|${s.id}|${ch}`, st.time, v); changed(); return true;
   };
+})();
+
+</script><script>
+/* AI_animation: transform handles on the selected bone, like Spine's.
+   Rotate: a red ring with a handle on the bone's X axis. Translate: a red X arrow and a green Y arrow. Scale: red / green handles with
+   square ends. Shear: red / green lines through the origin with round ends. The axes follow Local / Parent / World (Shear and Scale use
+   the bone's own axes, as Spine does). Dragging an X or Y handle moves (translate) or scales (scale) along that axis only; dragging
+   anywhere else works as before. Own drawing, no third-party assets. */
+(function () {
+  window.GZ_ON = true;
+  const GZ = window.GZ = { axis: null, hover: null };
+  const RED = "#ef3b2f", GREEN = "#36d13a", HOT = "#ffd23a", CYAN = "#3fe0f0", L = 44, LS = 38, LH = 46, R = 20;
+  const selBoneT = () => { const t = typeof currentTarget === "function" ? currentTarget() : null; return t && t.kind === "bone" ? t : null; };
+  const unit = (x, y) => { const n = Math.hypot(x, y) || 1; return [x / n, y / n]; };
+  /* screen directions of the X and Y axes for the tool and the axes mode */
+  function axesOf(t, tool) {
+    const w = W[t.id]; if (!w) return null; const b = boneById(t.id), p = b && b.parent ? W[b.parent] : null;
+    const mode = typeof PRO !== "undefined" ? PRO.axes : "local";
+    let ax = [1, 0], ay = [0, 1]; // world
+    if (tool === "shear" || tool === "scale" || mode === "local") { ax = [w.a, w.c]; ay = [w.b, w.d]; }
+    else if (mode === "parent" && p) { ax = [p.a, p.c]; ay = [p.b, p.d]; }
+    const o = toScreen(w.x, w.y), sx = toScreen(w.x + ax[0], w.y + ax[1]), sy = toScreen(w.x + ay[0], w.y + ay[1]);
+    return { o, x: unit(sx[0] - o[0], sx[1] - o[1]), y: unit(sy[0] - o[0], sy[1] - o[1]) };
+  }
+  function arrowHead(g, x, y, dx, dy, s) { g.beginPath(); g.moveTo(x + dx * s, y + dy * s); g.lineTo(x - dy * s * 0.6, y + dx * s * 0.6); g.lineTo(x + dy * s * 0.6, y - dx * s * 0.6); g.closePath(); g.fill(); }
+  function line(g, x0, y0, x1, y1, col, w) { g.strokeStyle = col; g.lineWidth = w; g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke(); }
+  function draw() {
+    const t = selBoneT(), tool = st.tool; if (!t || !["rotate", "translate", "scale", "shear"].includes(tool)) return;
+    const A = axesOf(t, tool); if (!A) return; const g = ctx, [ox, oy] = A.o, hx = GZ.hover;
+    g.save(); g.lineCap = "round"; g.lineJoin = "round"; g.shadowColor = "rgba(0,0,0,.55)"; g.shadowBlur = 3;
+    const wX = hx === "x" ? 3.5 : 2.5, wY = hx === "y" ? 3.5 : 2.5, cX = hx === "x" ? HOT : RED, cY = hx === "y" ? HOT : GREEN;
+    if (tool === "translate") {
+      const ex = [ox + A.x[0] * L, oy + A.x[1] * L], ey = [ox + A.y[0] * L, oy + A.y[1] * L];
+      line(g, ox, oy, ex[0], ex[1], cX, wX); g.fillStyle = cX; arrowHead(g, ex[0], ex[1], A.x[0], A.x[1], 9);
+      line(g, ox, oy, ey[0], ey[1], cY, wY); g.fillStyle = cY; arrowHead(g, ey[0], ey[1], A.y[0], A.y[1], 9);
+    } else if (tool === "scale") {
+      const ex = [ox + A.x[0] * LS, oy + A.x[1] * LS], ey = [ox + A.y[0] * LS, oy + A.y[1] * LS], s = 5;
+      line(g, ox, oy, ex[0], ex[1], cX, wX); line(g, ox, oy, ey[0], ey[1], cY, wY);
+      for (const [p, col, d] of [[ex, cX, A.x], [ey, cY, A.y]]) { g.fillStyle = col; g.save(); g.translate(p[0], p[1]); g.rotate(Math.atan2(d[1], d[0])); g.fillRect(-s, -s, s * 2, s * 2); g.restore(); }
+    } else if (tool === "shear") {
+      for (const [d, col, w] of [[A.x, cX, wX], [A.y, cY, wY]]) { const a = [ox - d[0] * LH, oy - d[1] * LH], b = [ox + d[0] * LH, oy + d[1] * LH];
+        line(g, a[0], a[1], b[0], b[1], col, w); g.fillStyle = col; for (const p of [a, b]) { g.beginPath(); g.arc(p[0], p[1], 4, 0, 7); g.fill(); } }
+    } else if (tool === "rotate") {
+      const cR = hx === "r" ? HOT : RED; g.strokeStyle = cR; g.lineWidth = hx === "r" ? 4 : 3; g.beginPath(); g.arc(ox, oy, R, 0, Math.PI * 2); g.stroke();
+      g.fillStyle = cR; arrowHead(g, ox + A.x[0] * (R + 2), oy + A.x[1] * (R + 2), A.x[0], A.x[1], 6);
+    }
+    // the origin: translate / scale have a cyan square (free move / uniform scale), the others a small dark disc with a light ring
+    g.shadowBlur = 0;
+    if (tool === "translate" || tool === "scale") { const s = hx === "c" ? 6 : 5; g.fillStyle = hx === "c" ? HOT : CYAN; g.fillRect(ox - s, oy - s, s * 2, s * 2); g.strokeStyle = "#0b2b30"; g.lineWidth = 1; g.strokeRect(ox - s + .5, oy - s + .5, s * 2 - 1, s * 2 - 1); }
+    else { g.fillStyle = "#1c1c1c"; g.beginPath(); g.arc(ox, oy, 4.5, 0, 7); g.fill(); g.strokeStyle = "#e6e6e6"; g.lineWidth = 1.5; g.stroke(); }
+    g.restore();
+  }
+  const baseRender = render;
+  render = function () { const r = baseRender.apply(this, arguments); try { draw(); } catch (e) { console.error(e); } return r; };
+  /* which handle is under a canvas point */
+  const segDist = (px, py, ax, ay, bx, by) => { const vx = bx - ax, vy = by - ay, t = Math.max(0, Math.min(1, ((px - ax) * vx + (py - ay) * vy) / (vx * vx + vy * vy || 1))); return Math.hypot(px - ax - vx * t, py - ay - vy * t); };
+  function handleAt(x, y) {
+    const t = selBoneT(), tool = st.tool; if (!t || !["translate", "scale", "rotate", "shear"].includes(tool)) return null;
+    computeWorld(); const A = axesOf(t, tool); if (!A) return null; const [ox, oy] = A.o, r0 = Math.hypot(x - ox, y - oy);
+    if (tool === "rotate") return Math.abs(r0 - R) < 6 ? "r" : null;
+    if (r0 < 7) return tool === "translate" || tool === "scale" ? "c" : null; // the centre square: free move / uniform scale
+    const len = tool === "translate" ? L + 8 : tool === "scale" ? LS + 6 : LH + 4;
+    const dX = tool === "shear" ? segDist(x, y, ox - A.x[0] * len, oy - A.x[1] * len, ox + A.x[0] * len, oy + A.x[1] * len) : segDist(x, y, ox, oy, ox + A.x[0] * len, oy + A.x[1] * len);
+    const dY = tool === "shear" ? segDist(x, y, ox - A.y[0] * len, oy - A.y[1] * len, ox + A.y[0] * len, oy + A.y[1] * len) : segDist(x, y, ox, oy, ox + A.y[0] * len, oy + A.y[1] * len);
+    if (Math.min(dX, dY) > 6) return null; return dX <= dY ? "x" : "y";
+  }
+  GZ.handleAt = handleAt; GZ.axesOf = axesOf;
+  const cvEl = document.getElementById("cv");
+  const pt = e => { const r = cvEl.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+  cvEl.addEventListener("pointerdown", e => { if (e.button !== 0) return; const [x, y] = pt(e); GZ.axis = handleAt(x, y); }, true);
+  addEventListener("pointerup", () => { GZ.axis = null; }, true);
+  cvEl.addEventListener("pointerleave", () => { if (GZ.hover) { GZ.hover = null; dirty.view = true; } });
+  cvEl.addEventListener("pointermove", e => { if (e.buttons) return; const [x, y] = pt(e); const h = handleAt(x, y); if (h !== GZ.hover) { GZ.hover = h; dirty.view = true; } cvEl.style.cursor = h ? "pointer" : ""; });
+  // a press on a handle never picks what lies under it: the selected bone stays the target
+  const baseHit = hitTest; hitTest = function () { if (GZ.axis) return null; return baseHit.apply(this, arguments); };
+  // dragging an X / Y handle: along that axis only
+  const baseApply = applyTool;
+  applyTool = function (tool, t, a, b, e) {
+    const ax = GZ.axis; if (!ax || ax === "r" || ax === "c" || !t || t.kind !== "bone" || (tool !== "translate" && tool !== "scale")) return baseApply.apply(this, arguments);
+    computeWorld(); const A = axesOf(t, tool); if (!A) return baseApply.apply(this, arguments); const d = ax === "x" ? A.x : A.y;
+    if (tool === "translate") { const k = (b.x - a.x) * d[0] + (b.y - a.y) * d[1]; return baseApply.call(this, tool, t, a, { x: a.x + d[0] * k, y: a.y + d[1] * k }, e); }
+    // scale one axis: the ratio of the distances along that axis from the origin
+    const [ox, oy] = A.o, pa = (a.x - ox) * d[0] + (a.y - oy) * d[1], pb = (b.x - ox) * d[0] + (b.y - oy) * d[1]; if (Math.abs(pa) < 4) return;
+    const f = pb / pa; if (!isFinite(f)) return; const v = readTarget(t), key = ax === "x" ? "scaleX" : "scaleY";
+    writeTarget(t, { [key]: rnd(v[key] * f) }, "scale");
+  };
+  if (typeof dirty !== "undefined") dirty.view = true;
+})();
+
+</script><script>
+/* AI_animation: Spine-style bone properties at the top of Properties, and the selection breadcrumb in the viewport.
+   Bone block: Inherit Rotation / Scale / Reflection (Spine's inherit modes), Length, Select (pickable in the viewport), Name (draw the bone's
+   name in the viewport), Icon (kind + size), Color; New… (child bone), Parent (pick the new parent in the viewport), Split (two bones at the
+   middle), Skin… (the skins the bone is in).
+   Breadcrumb: "root ▸ … ▸ bone" for the selected bone (or the slot's bone) at the bottom of the viewport; a click selects that bone. */
+(function () {
+  const css = document.createElement("style");
+  css.textContent = `.bp{padding:6px 8px 8px;border-bottom:1px solid var(--line,#1e1e1e);font:12px "Segoe UI",system-ui,sans-serif;color:#ddd}
+    .bp-h{display:flex;align-items:center;gap:6px;margin-bottom:6px;color:#9fd0ff} .bp-h svg{width:14px;height:14px;flex:none} .bp-h b{color:#e8e8e8;font-weight:600}
+    .bp-g{display:grid;grid-template-columns:auto repeat(3,minmax(0,1fr));border:1px solid #1e1e1e;border-radius:4px;overflow:hidden}
+    .bp-g>*{display:flex;align-items:center;gap:5px;padding:3px 6px;min-height:24px;border-bottom:1px solid #262626;border-right:1px solid #262626;background:#2e2e2e;white-space:nowrap;overflow:hidden;min-width:0} .bp-g label{overflow:hidden;text-overflow:ellipsis}
+    .bp-g>.l{background:#333;color:#bbb} .bp-g input[type=number]{width:100%;min-width:0;height:20px;background:#232323;border:1px solid #1a1a1a;color:#eee;border-radius:3px;padding:0 4px}
+    .bp-g input[type=checkbox]{margin:0;accent-color:#2f7fd6} .bp-g label{display:flex;align-items:center;gap:5px;cursor:pointer} .bp-g .dis{opacity:.45;cursor:default}
+    .bp-g input[type=range]{flex:1;min-width:40px;accent-color:#7fb8e8} .bp-g select{height:20px;background:#232323;border:1px solid #1a1a1a;color:#eee;border-radius:3px}
+    .bp-g input[type=color]{width:60px;height:18px;padding:0;border:1px solid #1a1a1a;background:none}
+    .bp-b{display:flex;gap:6px;justify-content:center;margin-top:7px} .bp-b button{height:24px;padding:0 9px;background:#4a4a4a;border:1px solid #2a2a2a;border-radius:3px;color:#e6e6e6;font:12px "Segoe UI",system-ui,sans-serif;cursor:pointer} .bp-b button:hover{background:#575757} .bp-b button:disabled{opacity:.45;cursor:default}
+    #vwCrumb{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);display:flex;align-items:center;gap:4px;background:rgba(30,30,30,.88);border:1px solid #151515;border-radius:4px;padding:3px 8px;font:12px "Segoe UI",system-ui,sans-serif;color:#cfcfcf;z-index:4;max-width:70%;overflow:hidden;white-space:nowrap}
+    #vwCrumb[hidden]{display:none} #vwCrumb .c{cursor:pointer;padding:0 2px;border-radius:2px} #vwCrumb .c:hover{background:#3d3d3d;color:#fff} #vwCrumb .c.last{color:#7fd0ff} #vwCrumb .s{color:#888;font-size:9px}`;
+  document.head.appendChild(css);
+  const INH = { normal: [1, 1, 1], onlyTranslation: [0, 0, 0], noRotationOrReflection: [0, 1, 0], noScale: [1, 0, 1], noScaleOrReflection: [1, 0, 0] };
+  const inhOf = (r, s, f) => r && s ? "normal" : r && !s ? (f ? "noScale" : "noScaleOrReflection") : !r && s ? "noRotationOrReflection" : "onlyTranslation";
+  const ICONS = ["", "ik", "arrows", "arrowsB", "arrowLeft", "arrowRight", "arrowUp", "arrowDown", "star", "circle", "square", "suiteHearts", "suiteSpades", "suiteClubs", "suiteDiamonds", "eye", "mouth", "hand", "foot", "hair", "weapon"];
+  const locked = id => typeof SK2 !== "undefined" && SK2.locked && SK2.locked.has(id);
+  function block(b) {
+    const inh = INH[b.inherit || "normal"] || INH.normal, [ri, si, fi] = inh, an = isAnim();
+    const ic = b.icon || "", icons = ICONS.includes(ic) ? ICONS : [...ICONS, ic];
+    return `<div class="bp" id="bpBlock"><div class="bp-h">${SKI && SKI.bone ? SKI.bone : ""}<span>Bone:</span><b>${esc(b.name)}</b></div>
+      <div class="bp-g">
+        <span class="l">Inherit</span><label><input type="checkbox" data-bi="r"${ri ? " checked" : ""}${an ? " disabled" : ""}> Rotation</label><label><input type="checkbox" data-bi="s"${si ? " checked" : ""}${an ? " disabled" : ""}> Scale</label><label class="${si ? "dis" : ""}" title="Reflection (only when Scale is off)"><input type="checkbox" data-bi="f"${si || fi ? " checked" : ""}${si || an ? " disabled" : ""}> Reflection</label>
+        <span class="l">Length</span><span><input type="number" id="bpLen" step="1" value="${+(b.length || 0).toFixed(2)}"${an ? " disabled" : ""}></span><label><input type="checkbox" id="bpSel"${locked(b.id) ? "" : " checked"}> Select</label><label><input type="checkbox" id="bpName"${b.showName ? " checked" : ""}> Name</label>
+        <span class="l">Icon</span><span><select id="bpIcon">${icons.map(x => `<option value="${esc(x)}"${x === ic ? " selected" : ""}>${x ? esc(x) : "bone"}</option>`).join("")}</select></span><span style="grid-column:span 2"><input type="number" id="bpIconN" min="0" max="400" step="10" value="${Math.round((b.iconSize ?? 1) * 100)}" style="width:52px"><input type="range" id="bpIconS" min="0" max="400" step="10" value="${Math.round((b.iconSize ?? 1) * 100)}"></span>
+        <span class="l">Color</span><span style="grid-column:span 3"><input type="color" id="bpCol" value="#${(b.color || "e8ad45ff").slice(0, 6)}"></span>
+      </div>
+      <div class="bp-b"><button id="bpNew"${an ? " disabled" : ""}>New…</button><button id="bpParent"${an || !b.parent ? " disabled" : ""}>Parent</button><button id="bpSplit"${an || !(b.length > 2) ? " disabled" : ""}>Split</button><button id="bpSkin">Skin…</button></div></div>`;
+  }
+  function wire(b) {
+    const set = (fn) => { pushUndo(); fn(); changed(); dirty.insp = dirty.view = dirty.tree = true; };
+    document.querySelectorAll("#bpBlock [data-bi]").forEach(c => c.onchange = () => { const v = { r: $('[data-bi="r"]').checked, s: $('[data-bi="s"]').checked, f: $('[data-bi="f"]').checked };
+      set(() => { const m = inhOf(v.r, v.s, v.f); if (m === "normal") delete b.inherit; else b.inherit = m; }); });
+    $("#bpLen").onchange = e => set(() => { b.length = Math.max(0, +e.target.value || 0); });
+    $("#bpSel").onchange = e => { if (typeof SK2 === "undefined") return; if (e.target.checked) SK2.locked.delete(b.id); else SK2.locked.add(b.id); dirty.view = dirty.tree = true; };
+    $("#bpName").onchange = e => set(() => { if (e.target.checked) b.showName = true; else delete b.showName; });
+    $("#bpIcon").onchange = e => set(() => { if (e.target.value) b.icon = e.target.value; else delete b.icon; });
+    const icSize = v => set(() => { const n = Math.max(0, Math.min(400, +v || 0)) / 100; if (Math.abs(n - 1) < 1e-6) delete b.iconSize; else b.iconSize = n; });
+    $("#bpIconS").onchange = e => icSize(e.target.value); $("#bpIconS").oninput = e => { $("#bpIconN").value = e.target.value; }; $("#bpIconN").onchange = e => icSize(e.target.value);
+    $("#bpCol").onchange = e => set(() => { b.color = e.target.value.slice(1) + ((b.color || "").slice(6, 8) || "ff"); });
+    $("#bpNew").onclick = () => { select({ type: "bone", id: b.id }); addChildBone(); };
+    $("#bpParent").onclick = () => { select({ type: "bone", id: b.id }); if (typeof hkSetParentPick === "function") hkSetParentPick(); };
+    $("#bpSplit").onclick = () => split(b);
+    $("#bpSkin").onclick = () => skinDialog(b);
+  }
+  /* Split: the bone becomes two at its middle; its child bones move to the second half and keep their place */
+  function split(b) {
+    if (isAnim() || !(b.length > 2)) return; pushUndo();
+    const half = b.length / 2, nb = { id: uid(), name: uniqueName(b.name + "2", doc.bones.map(x => x.name)), parent: b.id, x: half, y: 0, rotation: 0, scaleX: 1, scaleY: 1, length: half, color: b.color || null };
+    for (const c of doc.bones) if (c.parent === b.id) { c.parent = nb.id; c.x = (c.x || 0) - half; }
+    b.length = half; doc.bones.push(nb); sortBones(doc); select({ type: "bone", id: nb.id }); changed(); toast(`Split ${b.name}: ${nb.name} added`);
+    return nb;
+  }
+  window.bpSplit = split;
+  /* Skin…: the skins this bone is in (a bone in a skin is active only while one of its skins is) */
+  function skinDialog(b) {
+    if (!doc.skins.length) { toast("No skins yet: make one in the Skins view"); if (typeof vwOpen === "function") vwOpen("skins"); return; }
+    openModal(`<div class="dlg-h"><h2>Skins of ${esc(b.name)}</h2><button class="ico" data-close aria-label="Close">✕</button></div><div class="dlg-b">
+      <p class="muted">A bone in one or more skins is active only while one of them is active (Spine "skin bones").</p>
+      ${doc.skins.map(k => `<label style="display:flex;gap:8px;align-items:center;padding:3px 0"><input type="checkbox" data-sk="${k.id}"${(k.bones || []).includes(b.id) ? " checked" : ""}> ${esc(k.name)}</label>`).join("")}
+      <div class="row" style="margin-top:10px"><button class="btn primary" data-close>Done</button></div></div>`);
+    document.querySelectorAll("#modal [data-sk]").forEach(c => c.onchange = () => { const k = doc.skins.find(x => x.id === c.dataset.sk); pushUndo(); k.bones = (k.bones || []).filter(x => x !== b.id); if (c.checked) k.bones.push(b.id);
+      if (doc.skins.some(x => (x.bones || []).includes(b.id))) b.skin = true; else delete b.skin; changed(); });
+  }
+  const baseInsp = renderInsp;
+  renderInsp = function (...a) {
+    const r = baseInsp.apply(this, a);
+    try { const s = st.sel, body = $("#inspBody"); if (!body) return r; const old = body.querySelector("#bpBlock"), ae = document.activeElement;
+      if (old && ae && old.contains(ae) && ae.matches("input[type=number], select")) return r; // typing: keep the field
+      if (old) old.remove();
+      if (s && s.type === "bone") { const b = boneById(s.id); if (b) { body.insertAdjacentHTML("afterbegin", block(b)); wire(b); } } } catch (e) { console.error(e); }
+    return r;
+  };
+  /* bone names in the viewport (Name) */
+  const baseRender = render;
+  render = function () {
+    const r = baseRender.apply(this, arguments);
+    try { if (doc.bones.some(b => b.showName) && st.vis.bones.show) { const g = ctx; g.save(); g.font = "11px Segoe UI, system-ui, sans-serif"; g.textBaseline = "bottom";
+        for (const b of doc.bones) { if (!b.showName || !W[b.id]) continue; const w = W[b.id], [x, y] = toScreen(w.x, w.y); g.fillStyle = "rgba(0,0,0,.6)"; g.fillText(b.name, x + 7, y - 3); g.fillStyle = "#f2f2f2"; g.fillText(b.name, x + 6, y - 4); } g.restore(); } } catch (e) {}
+    return r;
+  };
+  /* breadcrumb */
+  const view = $("#view"); if (view) view.insertAdjacentHTML("beforeend", `<div id="vwCrumb" hidden></div>`);
+  let crumbKey = "";
+  setInterval(() => {
+    const el = $("#vwCrumb"); if (!el) return; const s = st.sel, id = s ? (s.type === "bone" ? s.id : (s.slot && slotById(s.slot) ? slotById(s.slot).bone : null)) : null;
+    const key = id ? id + "|" + doc.bones.length + "|" + (boneById(id) || {}).name : ""; if (key === crumbKey) return; crumbKey = key;
+    if (!id || !boneById(id)) { el.hidden = true; el.innerHTML = ""; return; }
+    const chain = []; for (let b = boneById(id); b; b = b.parent && boneById(b.parent)) chain.unshift(b);
+    const show = chain.length > 6 ? [chain[0], null, ...chain.slice(-4)] : chain;
+    el.innerHTML = show.map((b, i) => b ? `<span class="c${b.id === id ? " last" : ""}" data-cb="${b.id}" title="Select ${esc(b.name)}">${SKI && SKI.bone ? "" : ""}${esc(b.name)}</span>` : `<span>…</span>`).join(`<span class="s">▶</span>`); el.hidden = false;
+    el.querySelectorAll("[data-cb]").forEach(c => c.onclick = () => { select({ type: "bone", id: c.dataset.cb }); crumbKey = ""; dirty.view = dirty.tree = dirty.insp = true; });
+  }, 200);
 })();
 
 </script>
