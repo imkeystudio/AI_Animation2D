@@ -426,29 +426,52 @@ function newDoc() {
 function normalizeDoc(d) {
   d.iks = d.iks || []; d.tcs = d.tcs || []; d.pcs = d.pcs || []; d.paths = d.paths || []; d.sliders = d.sliders || []; d.corder = d.corder || []; d.skins = d.skins || []; d.events = d.events || []; d.atts = d.atts || {};
   for (const a of d.anims || []) { a.bones = a.bones || {}; a.slots = a.slots || {}; a.ik = a.ik || {}; a.drawOrder = a.drawOrder || []; a.events = a.events || []; a.deform = a.deform || {}; a.tc = a.tc || {}; a.phys = a.phys || {}; a.path = a.path || {}; a.slider = a.slider || {}; }
+  syncLinked(d);
   return d;
+}
+/* linked meshes (Spine linkedmesh): share the source mesh's geometry arrays; m.linked = { slot, source, skin, timelines } */
+const LINKED_GEOM = ["uvs", "tris", "hull", "pos", "uvMap", "bones", "weights", "bind", "edges", "vord", "_sparse"];
+function linkMeshGeometry(m, par) { for (const k of LINKED_GEOM) { if (par[k] === undefined) delete m[k]; else m[k] = par[k]; } }
+function linkedSource(d, m) {
+  const L = m && m.linked; if (!L) return null;
+  const map = !L.skin || L.skin === "default" ? d.atts : ((d.skins || []).find(k => k.name === L.skin) || {}).atts;
+  const p = map && map[L.slot] && map[L.slot][L.source]; return p && p.type === "mesh" && !p.linked ? p : null;
+}
+function syncLinked(d) {
+  if (!d || !d.atts) return;
+  for (const map of [d.atts, ...(d.skins || []).map(k => k.atts || {})]) for (const sid in map) for (const n in map[sid]) {
+    const m = map[sid][n]; if (!m || !m.linked) continue; const p = linkedSource(d, m); if (p) linkMeshGeometry(m, p);
+  }
 }
 const newAnim = name => ({ id: uid(), name, bones: {}, slots: {}, ik: {}, drawOrder: [], events: [], deform: {}, tc: {}, phys: {}, path: {}, slider: {} });
 /* every mesh in the default skin and other skins */
 function allMeshes(doc) {
   const out = [];
-  const scan = (map, skin) => { for (const sid in map) for (const name in map[sid]) if (map[sid][name] && map[sid][name].type === "mesh") out.push({ m: map[sid][name], slotId: sid, name, skin }); };
+  const scan = (map, skin) => { for (const sid in map) for (const name in map[sid]) if (map[sid][name] && map[sid][name].type === "mesh" && !map[sid][name].linked) out.push({ m: map[sid][name], slotId: sid, name, skin }); }; // linked meshes follow their source
   scan(doc.atts, null); for (const sk of doc.skins || []) scan(sk.atts, sk);
   return out;
 }
 /* attachment lookup: active skin first, then the default skin (Spine runtime order) */
+/* the skins in effect for a lookup: the given skin, and when it is the editor's skin (or none is chosen), the pinned active skins too
+   (Spine 4.x: several skins active together; the last pinned wins a placeholder they share) */
+function skinChain(doc, skinId) {
+  const ids = [];
+  if (skinId) ids.push(skinId);
+  if (typeof st !== "undefined" && st && Array.isArray(st.activeSkins) && st.activeSkins.length && (!skinId || skinId === st.skinId)) for (let i = st.activeSkins.length - 1; i >= 0; i--) if (!ids.includes(st.activeSkins[i])) ids.push(st.activeSkins[i]);
+  return ids.map(id => doc.skins.find(s => s.id === id)).filter(Boolean);
+}
 function attFor(doc, slotId, name, skinId) {
   if (!name) return null;
-  if (skinId) { const sk = doc.skins.find(s => s.id === skinId); const a = sk && sk.atts[slotId] && sk.atts[slotId][name]; if (a) return a; }
+  for (const sk of skinChain(doc, skinId)) { const a = sk.atts[slotId] && sk.atts[slotId][name]; if (a) return a; }
   return (doc.atts[slotId] && doc.atts[slotId][name]) || null;
 }
 function attOwner(doc, slotId, name, skinId) {
-  if (skinId) { const sk = doc.skins.find(s => s.id === skinId); if (sk && sk.atts[slotId] && sk.atts[slotId][name]) return skinId; }
+  for (const sk of skinChain(doc, skinId)) if (sk.atts[slotId] && sk.atts[slotId][name]) return sk.id;
   return null;
 }
 function placeholderNames(doc, slotId, skinId) {
   const set = new Set(Object.keys(doc.atts[slotId] || {}));
-  if (skinId) { const sk = doc.skins.find(s => s.id === skinId); for (const n of Object.keys((sk && sk.atts[slotId]) || {})) set.add(n); }
+  for (const sk of skinChain(doc, skinId)) for (const n of Object.keys(sk.atts[slotId] || {})) set.add(n);
   return [...set];
 }
 /* draw order at a time: list of slot ids, back to front */
@@ -932,7 +955,8 @@ function slotAttachmentAt(s, anim, time) {
 }
 function attCornersWorld(W, s, att, def) {
   const w = W[s.bone]; if (!w) return null;
-  if (isPath(att)) { const wv = pathWorld(att, s.bone, W), out = []; for (let i = 0; i < wv.length; i += 2) out.push([wv[i], wv[i + 1]]); return out; }
+  if (att && att.type === "point") { const w2 = W[s.bone]; return [[w2.a * att.x + w2.b * att.y + w2.x, w2.c * att.x + w2.d * att.y + w2.y]]; }
+  if (isPath(att) || att.type === "boundingbox" || att.type === "clipping") { const wv = pathWorld(att, s.bone, W), out = []; for (let i = 0; i < wv.length; i += 2) out.push([wv[i], wv[i + 1]]); return out; }
   if (isMesh(att)) {
     const wv = meshWorld(att, s.bone, W, def), out = [];
     for (let i = 0; i < att.hull; i++) out.push([wv[i * 2], wv[i * 2 + 1]]);
@@ -1038,7 +1062,7 @@ function buildSpineJSON(doc, imageInfo) {
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   for (const s of doc.slots) {
     const att = s.attachment && doc.atts[s.id] && doc.atts[s.id][s.attachment];
-    if (!att || isPath(att)) continue;
+    if (!att || isShape(att)) continue;
     for (const [x, y] of attCornersWorld(W, s, att)) { minX = Math.min(minX, x); minY = Math.min(minY, y); maxX = Math.max(maxX, x); maxY = Math.max(maxY, y); }
   }
   if (!isFinite(minX)) { minX = minY = 0; maxX = maxY = 0; }
@@ -1059,6 +1083,7 @@ function buildSpineJSON(doc, imageInfo) {
   const slots = doc.slots.map(s => {
     const o = { name: s.name, bone: boneName(s.bone) };
     if (s.color && s.color.toLowerCase() !== "ffffffff") o.color = s.color.toLowerCase();
+    if (s.blend && s.blend !== "normal") o.blend = s.blend;
     if (s.attachment && ((doc.atts[s.id] && doc.atts[s.id][s.attachment]) || doc.skins.some(sk => sk.atts[s.id] && sk.atts[s.id][s.attachment]))) o.attachment = s.attachment;
     return o;
   });
@@ -1083,6 +1108,29 @@ function buildSpineJSON(doc, imageInfo) {
         if (!a.bones) o.vertices = a.pos.map(rnd);
         else { const out = []; for (const ent of a.vw) { const live = ent.filter(e => boneIdx(e[0]) >= 0); out.push(live.length); for (const [bid, x, y, w] of live) out.push(boneIdx(bid), rnd(x), rnd(y), rnd(w)); } o.vertices = out; }
         if (hexOK(a.color)) o.color = a.color.toLowerCase();
+        return o;
+      }
+      if (a && (a.type === "boundingbox" || a.type === "clipping")) {
+        const o = { type: a.type }; if (a.name && a.name !== name) o.name = a.name;
+        if (a.type === "clipping") { if (a.end) o.end = a.end; if (a.convex) o.convex = true; if (a.inverse) o.inverse = true; }
+        o.vertexCount = a.bones ? a.vw.length : a.pos.length / 2;
+        if (!a.bones) o.vertices = a.pos.map(rnd);
+        else { const out = []; for (const ent of a.vw) { const live = ent.filter(e => boneIdx(e[0]) >= 0); out.push(live.length); for (const [bid, x, y, w] of live) out.push(boneIdx(bid), rnd(x), rnd(y), rnd(w)); } o.vertices = out; }
+        if (hexOK(a.color)) o.color = a.color.toLowerCase();
+        return o;
+      }
+      if (a && a.type === "point") {
+        const o = { type: "point" }; if (a.name && a.name !== name) o.name = a.name;
+        if (a.x) o.x = rnd(a.x); if (a.y) o.y = rnd(a.y); if (a.rotation) o.rotation = rnd(a.rotation); if (hexOK(a.color)) o.color = a.color.toLowerCase();
+        return o;
+      }
+      if (isMesh(a) && a.linked) {
+        const o = { type: "linkedmesh" };
+        const realName = a.name || name; if (realName !== name) o.name = realName;
+        const img = imageInfo(a.image), path = img ? img.name : realName; if (path !== realName) o.path = path;
+        if (a.linked.skin && a.linked.skin !== "default") o.skin = a.linked.skin;
+        o.source = a.linked.source; if (a.linked.timelines === false) o.timelines = false;
+        o.width = rnd(a.width); o.height = rnd(a.height);
         return o;
       }
       if (isMesh(a)) {
@@ -1999,9 +2047,9 @@ function importSpineJSON(json, findImage, makePlaceholder) {
   if (!doc.bones.length) doc.bones = newDoc().bones;
   for (const sm of json.slots || []) {
     const id = uid(); slotId[sm.name] = id;
-    if (sm.blend && sm.blend !== "normal") W("slot blend modes (kept as normal)");
+
     if (sm.dark) W("two-color tint (ignored)");
-    doc.slots.push({ id, name: sm.name, bone: boneId[sm.bone] || "root", attachment: sm.attachment || null, color: hexOK(sm.color) ? sm.color : "ffffffff" });
+    doc.slots.push(Object.assign({ id, name: sm.name, bone: boneId[sm.bone] || "root", attachment: sm.attachment || null, color: hexOK(sm.color) ? sm.color : "ffffffff" }, sm.blend && sm.blend !== "normal" ? { blend: sm.blend } : {}));
   }
   // skins: 4.x array; 3.7 and older used an object
   let skins = json.skins || [];
@@ -2046,6 +2094,37 @@ function importSpineJSON(json, findImage, makePlaceholder) {
           (atts[sid] = atts[sid] || {})[aname] = p;
           continue;
         }
+        if (type === "boundingbox" || type === "clipping") {
+          // outline shapes: vertices like a path (slot-bone local, or weighted per bone)
+          const vc = a.vertexCount || 0, vs = a.vertices || [];
+          const p = { type, pos: null, bones: null, vw: null };
+          if (hexOK(a.color)) p.color = a.color;
+          if (type === "clipping") { if (a.end) p.end = a.end; if (a.convex) p.convex = true; if (a.inverse) p.inverse = true; }
+          if (vs.length === vc * 2) p.pos = vs.slice();
+          else {
+            p.vw = []; const used = [];
+            for (let i = 0; i < vs.length;) { const c = vs[i++], ent = []; for (let k = 0; k < c; k++, i += 4) { const bid = doc.bones[vs[i]] ? doc.bones[vs[i]].id : null; if (!bid) continue; if (!used.includes(bid)) used.push(bid); ent.push([bid, vs[i + 1], vs[i + 2], vs[i + 3]]); } p.vw.push(ent); }
+            p.bones = used;
+          }
+          if (a.name && a.name !== aname) p.name = a.name;
+          (atts[sid] = atts[sid] || {})[aname] = p;
+          continue;
+        }
+        if (type === "point") {
+          const p = { type: "point", x: a.x || 0, y: a.y || 0, rotation: a.rotation || 0 }; if (hexOK(a.color)) p.color = a.color;
+          if (a.name && a.name !== aname) p.name = a.name;
+          (atts[sid] = atts[sid] || {})[aname] = p;
+          continue;
+        }
+        if (type === "linkedmesh") {
+          // shares its source mesh's vertices, UVs and triangles (resolved once every skin is read); its own image
+          const realName = a.name || aname, path = a.path || realName;
+          let img = findImage(path); if (!img) img = makePlaceholder(path, a.width || 32, a.height || 32);
+          const m = { type: "mesh", mid: uid(), image: img, width: a.width || 32, height: a.height || 32, linked: { source: a.source ?? a.parent, skin: a.skin || null, timelines: a.timelines ?? a.deform ?? true } };
+          if (realName !== aname) m.name = realName;
+          (atts[sid] = atts[sid] || {})[aname] = m; linkedTodo.push([m, sid]);
+          continue;
+        }
         if (type !== "region") { W(`${type} attachments (skipped)`); continue; }
         if (a.sequence) W("sequence attachments (first frame only)");
         const realName = a.name || aname;
@@ -2062,12 +2141,20 @@ function importSpineJSON(json, findImage, makePlaceholder) {
     }
     return atts;
   };
+  const linkedTodo = [];
   for (const sk of skins) {
     if (sk.name === "default") doc.atts = readSkinAtts(sk);
     else {
       doc.skins.push(Object.assign({ id: uid(), name: sk.name, atts: readSkinAtts(sk) }, sk.color ? { color: sk.color } : {}));
       if (sk.bones || sk.transform || sk.path || sk.physics || sk.slider) W("skin bone/constraint membership (all bones stay active)");
     }
+  }
+  for (const [m, sid] of linkedTodo) {
+    const map = !m.linked.skin || m.linked.skin === "default" ? doc.atts : (doc.skins.find(k => k.name === m.linked.skin) || {}).atts;
+    const par = map && map[sid] && map[sid][m.linked.source];
+    if (!isMesh(par) || par.linked) { W("linked meshes whose source mesh is missing (skipped)"); for (const mp of [doc.atts, ...doc.skins.map(k => k.atts)]) if (mp[sid]) for (const n in mp[sid]) if (mp[sid][n] === m) delete mp[sid][n]; continue; }
+    if (m.linked.timelines) m.mid = par.mid; // deform keys of the source apply to it too
+    m.linked.slot = sid; linkMeshGeometry(m, par);
   }
   for (const s of doc.slots) if (s.attachment && !(doc.atts[s.id] && doc.atts[s.id][s.attachment]) && !doc.skins.some(k => k.atts[s.id] && k.atts[s.id][s.attachment])) s.attachment = null;
   // constraints: 4.3 "constraints" array, 4.2 and older top-level "ik" array
@@ -2224,13 +2311,25 @@ function importSpineJSON(json, findImage, makePlaceholder) {
     }
     const dOrd = am.drawOrder || am.draworder;
     if (dOrd) anim.drawOrder = dOrd.map(k => { const ord = offsetsToOrder(slotNames, k.offsets); return { time: k.time || 0, order: ord ? ord.map(i => doc.slots[i].id) : null }; });
+    if (Array.isArray(am.drawOrderFolder) && am.drawOrderFolder.length) {
+      // Spine 4.3 draw order folder keys reorder only a folder's slots, among the places those slots hold; merged into full draw order keys
+      const setup = doc.slots.map(s => s.id), base = anim.drawOrder || [];
+      const folders = am.drawOrderFolder.map(f => ({ ids: (f.slots || []).map(n => slotId[n]), keys: (f.keys || []).map(k => ({ time: k.time || 0, ord: offsetsToOrder(f.slots || [], k.offsets) })) })).filter(f => f.ids.length && f.ids.every(Boolean));
+      const at = (keys, t) => { let k = null; for (const x of keys) { if (x.time <= t + 1e-6) k = x; else break; } return k; };
+      const times = [...new Set([...base.map(k => k.time), ...folders.flatMap(f => f.keys.map(k => k.time))])].sort((a, b) => a - b);
+      anim.drawOrder = times.map(t => {
+        const bk = at(base, t), order = (bk && bk.order ? bk.order : setup).slice();
+        for (const f of folders) { const k = at(f.keys, t); if (!k) continue; const want = k.ord ? k.ord.map(i => f.ids[i]) : f.ids, pos = f.ids.map(id => order.indexOf(id)).filter(i => i >= 0).sort((a, b) => a - b); pos.forEach((p, j) => { order[p] = want[j]; }); }
+        return { time: t, order: order.every((id, i) => id === setup[i]) ? null : order };
+      });
+      if (folders.length) anim.drawOrderFromFolders = true; // made from folder keys (kept apart so a .spine save does not see them as edits)
+    }
     if (am.events) {
       const seen = new Set();
       for (const k of am.events) {
         const id = evId[k.name]; if (!id) continue;
         const t = k.time || 0, key = Math.round(t * 10000);
-        if (seen.has(key)) { W("several events on one frame (only the first is kept)"); continue; }
-        seen.add(key);
+        seen.add(key); // several events may share a frame (all are kept, in file order)
         const o = { time: t, event: id };
         if (k.int !== undefined) o.int = k.int; if (k.float !== undefined) o.float = k.float; if (k.string !== undefined) o.string = k.string;
         anim.events.push(o);
@@ -2306,7 +2405,7 @@ function importSpineJSON(json, findImage, makePlaceholder) {
         anim.slider[id][ch] = raw.map((k, i) => { const o = { time: k.time || 0, value: k.value ?? 1 }; const n = raw[i + 1]; const c = normCurve(k, n, [[o.value, n ? (n.value ?? 1) : 0]]); if (c !== undefined) o.curve = c; return o; });
       }
     }
-    for (const other of ["constraints", "drawOrderFolder"]) if (am[other]) W(`${other} timelines (skipped)`);
+    for (const other of ["constraints"]) if (am[other]) W(`${other} timelines (skipped)`);
     doc.anims.push(anim);
   }
   for (const [sl, name] of slAnim) { const a = doc.anims.find(x => x.name === name); if (a) sl.animation = a.id; else { W("sliders without their animation (skipped)"); doc.sliders = doc.sliders.filter(x => x !== sl); doc.corder = doc.corder.filter(x => x !== sl.id); } }
@@ -2661,6 +2760,8 @@ function gridUV(rows, cols) {
    Timelines: anim.path[id] = {position|spacing: [{time,value,curve}], mix: [{time,mixRotate,mixX,mixY,curve}]}
               anim.slider[id] = {time|mix: [{time,value,curve}]} */
 const isPath = a => !!a && a.type === "path";
+/* attachments with no image: paths, bounding boxes, clipping, points */
+const isShape = a => !!a && (a.type === "path" || a.type === "boundingbox" || a.type === "clipping" || a.type === "point");
 const PATH_POS = ["fixed", "percent"], PATH_SPACE = ["length", "fixed", "percent", "proportional"], PATH_ROT = ["tangent", "chain", "chainScale"];
 function newPathConstraint(name, bones, slotId) {
   return { id: uid(), name, bones, slot: slotId, positionMode: "percent", spacingMode: "length", rotateMode: "tangent", rotation: 0, position: 0, spacing: 0, mixRotate: 1, mixX: 1, mixY: 1 };
@@ -3396,7 +3497,7 @@ function pushUndo() {
   undoS.push(JSON.stringify(doc)); if (undoS.length > 200) undoS.shift();
   redoS.length = 0; changed(); updateUndoBtns();
 }
-function changed() { markAll(); scheduleSave(); }
+function changed() { syncLinked(doc); markAll(); scheduleSave(); }
 function restore(json) {
   doc = normalizeDoc(JSON.parse(json));
   st.temp = {};
@@ -3485,7 +3586,7 @@ function currentTarget() {
   if (st.sel.type === "att" && isPath(getAtt(st.sel))) return { kind: "bone", id: s.bone };
   if (st.sel.type === "att") return getAtt(st.sel) ? { kind: "att", slot: s.id, name: st.sel.name, skin: st.sel.skin || null } : { kind: "bone", id: s.bone };
   const name = s.attachment, skin = attOwner(doc, s.id, name, st.skinId);
-  if (name && attFor(doc, s.id, name, st.skinId) && !isPath(attFor(doc, s.id, name, st.skinId))) return { kind: "att", slot: s.id, name, skin };
+  if (name && attFor(doc, s.id, name, st.skinId) && !isShape(attFor(doc, s.id, name, st.skinId))) return { kind: "att", slot: s.id, name, skin };
   return { kind: "bone", id: s.bone };
 }
 
@@ -3510,7 +3611,8 @@ function drawAttachments(Wm, alpha, timeAnim) {
     const name = timeAnim ? slotAttachmentAt(s, timeAnim.anim, timeAnim.t) : curAttName(s);
     const att = attFor(doc, s.id, name, st.skinId);
     const w = Wm[s.bone];
-    if (!att || !w || isPath(att)) continue;
+    if (!att || !w || isShape(att)) continue;
+    ctx.globalCompositeOperation = SLOT_BLEND[s.blend] || "source-over"; // slot blend mode (Spine: additive, multiply, screen)
     const im = images.get(att.image);
     const z = st.view.z;
     const sa = parseInt((s.color || "ffffffff").slice(6, 8), 16) / 255;
@@ -3529,8 +3631,9 @@ function drawAttachments(Wm, alpha, timeAnim) {
     if (im && im.img) ctx.drawImage(im.img, -att.width / 2, -att.height / 2, att.width, att.height);
     else { ctx.fillStyle = "rgba(138,147,161,.3)"; ctx.fillRect(-att.width / 2, -att.height / 2, att.width, att.height); }
   }
-  ctx.globalAlpha = 1;
+  ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over";
 }
+const SLOT_BLEND = { additive: "lighter", multiply: "multiply", screen: "screen" };
 const curDeform = att => (isAnim() && isMesh(att)) ? deformAt(animOf(), att, st.time) : null;
 /* textured triangles: each triangle maps its image triangle onto the world triangle */
 function drawMesh(m, wv, im) {
@@ -3645,7 +3748,7 @@ function render() {
   if (st.sel && (st.sel.type === "slot" || st.sel.type === "att")) {
     const s = slotById(st.sel.slot);
     const att = s && (st.sel.type === "att" ? getAtt(st.sel) : curAtt(s));
-    if (att && !isPath(att)) {
+    if (att && !isPath(att) && att.type !== "point") {
       const cs = attCornersWorld(W, s, att, curDeform(att)).map(([x, y]) => toScreen(x, y));
       ctx.beginPath(); cs.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); ctx.closePath();
       ctx.strokeStyle = "#f0cf58"; ctx.setLineDash([5, 4]); ctx.lineWidth = 1.5; ctx.stroke(); ctx.setLineDash([]);
@@ -3757,7 +3860,7 @@ function hitTest(px, py) {
   const order = curOrder();
   for (let i = order.length - 1; i >= 0; i--) {
     const s = order[i], name = curAttName(s);
-    const att = curAtt(s); if (!att || isPath(att)) continue;
+    const att = curAtt(s); if (!att || isShape(att)) continue;
     const cs = attCornersWorld(W, s, att, curDeform(att)).map(([x, y]) => toScreen(x, y));
     if (inPoly(px, py, cs)) return { type: "att", slot: s.id, name, skin: attOwner(doc, s.id, name, st.skinId) };
   }
@@ -4605,7 +4708,25 @@ function strokePath(sp, closed) {
     ctx.bezierCurveTo(a[0], a[1], b[0], b[1], c[0], c[1]);
   }
 }
+/* bounding boxes and clipping polygons (outline in their colour, like Spine), points (a small cross with a direction tick) */
+function drawShapes() {
+  for (const s of curOrder()) {
+    const att = curAtt(s); if (!att || !(att.type === "boundingbox" || att.type === "clipping" || att.type === "point")) continue;
+    const def = att.type === "boundingbox" ? "60f000ff" : att.type === "clipping" ? "ce3a3aff" : "f1f100ff", col = "#" + (hexOK(att.color) ? att.color : def).slice(0, 6);
+    const sel = st.sel && st.sel.type === "att" && getAtt(st.sel) === att;
+    ctx.strokeStyle = col; ctx.lineWidth = sel ? 2 : 1;
+    if (att.type === "point") {
+      const w = W[s.bone]; if (!w) continue; const [x, y] = toScreen(w.a * att.x + w.b * att.y + w.x, w.c * att.x + w.d * att.y + w.y);
+      const r = (att.rotation || 0) * D2R, dx = w.a * Math.cos(r) + w.b * Math.sin(r), dy = w.c * Math.cos(r) + w.d * Math.sin(r), L = Math.hypot(dx, dy) || 1;
+      ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2); ctx.moveTo(x, y); ctx.lineTo(x + dx / L * 14, y - dy / L * 14); ctx.stroke(); continue;
+    }
+    const sp = pathScreen(att, s); if (sp.length < 2) continue;
+    ctx.beginPath(); sp.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); ctx.closePath(); ctx.stroke();
+    if (sel) { ctx.fillStyle = col; for (const [x, y] of sp) ctx.fillRect(x - 2.5, y - 2.5, 5, 5); }
+  }
+}
 function drawPaths() {
+  drawShapes();
   const sp0 = selPath();
   for (const s of curOrder()) {
     const att = curAtt(s); if (!isPath(att)) continue;
@@ -6029,12 +6150,14 @@ async function sliceAtlases(atlases, imgs, blobURL) {
   return { byPath, pageNames, missingPages, dupes: loose.dupes, fromAtlas };
 }
 /* loose PNGs keyed by their path under images/ (or the file name) */
-async function looseImages(imgs, blobURL) {
+async function looseImages(imgs, blobURL, base) {
   const byPath = new Map(), flat = new Set(), dupes = new Set();
   for (const e of imgs) {
     let p = e.name.replace(/\\/g, "/");
+    // a project whose images sit in folders next to the .spine (no "images" folder): keep the path relative to the .spine's folder
+    if (base != null && p.toLowerCase().startsWith(base.toLowerCase())) p = p.slice(base.length);
     const i = p.toLowerCase().lastIndexOf("images/");
-    p = i >= 0 ? p.slice(i + 7) : p.replace(/^.*\//, "");
+    p = i >= 0 ? p.slice(i + 7) : base != null ? p : p.replace(/^.*\//, "");
     p = p.replace(/\.[^.]+$/, "");
     if (!p.includes("/") && flat.has(p)) { dupes.add(p); continue; } // same file name from different folders: can't tell which is which
     if (!p.includes("/")) flat.add(p);
@@ -6064,9 +6187,12 @@ async function finishSpineImport(spine, byPath, nameHint, notes, rig, missingPag
   // replace project
   pushUndo();
   images.clear();
-  for (const [p, src, id] of pending) await addImage(p, src, id);
+  // load the images 12 at a time (a project can have a thousand), then add them in order
+  const pre = new Map(); for (let i = 0; i < pending.length; i += 12) await Promise.all(pending.slice(i, i + 12).map(async ([p, src]) => { pre.set(src, await loadImg(src)); }));
+  for (const [p, src, id] of pending) { const im = pre.get(src); if (im) { images.set(id, { id, name: p, src, img: im, w: im.naturalWidth, h: im.naturalHeight }); } else await addImage(p, src, id); }
+  imagesChanged = true; dirty.imgs = true; dirty.view = true;
   for (const [p, w, h, id] of placeholders) await addImage(p, placeholderSrc(p, w, h), id);
-  doc = normalizeDoc(res.doc); st.skinId = null;
+  doc = normalizeDoc(res.doc); st.skinId = null; st.activeSkins = [];
   doc.name = nameHint || "skeleton"; if (spine.skeleton?.spine) doc.sourceSpine = spine.skeleton.spine;
   st.animId = doc.anims[0]?.id || null; st.sel = null; st.selKey = null; st.time = 0;
   imagesChanged = true; changed(); fitView();
@@ -6440,7 +6566,7 @@ async function openPreview() {
     <div id="pPairs" style="display:grid;gap:6px;margin-top:8px"></div>
     <div class="pvrow" style="margin-top:6px"><select id="pPF" class="field" aria-label="From">${opts}</select><span class="lbl">→</span><select id="pPT" class="field" aria-label="To">${opts}</select>
       <input id="pPM" class="field" type="number" min="0" step="0.05" value="0.3" style="width:72px" aria-label="Mix seconds"><button class="btn" id="pPAdd">Add</button></div></details>
-  <div class="pvrow"><span class="lbl">Skin</span><select id="pSkin" class="field" aria-label="Skin"><option value="default">default</option>${doc.skins.map(k => `<option ${k.id === st.skinId ? "selected" : ""}>${esc(k.name)}</option>`).join("")}</select></div>
+  <div class="pvrow"><span class="lbl">Skin</span><select id="pSkin" class="field" aria-label="Skin"><option value="default">default</option>${(st.activeSkins || []).some(id => skinById(id)) ? `<option value="__active" selected>Active skins (pinned)</option>` : ""}${doc.skins.map(k => `<option ${k.id === st.skinId && !(st.activeSkins || []).some(id => skinById(id)) ? "selected" : ""}>${esc(k.name)}</option>`).join("")}</select></div>
   <p class="muted" id="pEv" aria-live="polite"></p>
   <p class="muted" id="pMsg">Loading the Spine 4.3 canvas runtime…</p></div>`);
   let sp;
@@ -6482,7 +6608,14 @@ async function openPreview() {
     $("#pPause").onclick = e => { paused = !paused; e.currentTarget.innerHTML = paused ? ICON.play : ICON.pause; e.currentTarget.setAttribute("aria-label", paused ? "Play" : "Pause"); };
     if (cur && data.findAnimation(cur.name)) state.setAnimation(0, cur.name, true);
     const ps = $("#pSkin");
-    const setS = () => { if (ps.value === "default") sk.setSkin(null); else sk.setSkin(ps.value); (sk.setupPoseSlots || sk.setSlotsToSetupPose).call(sk); };
+    const setS = () => {
+      if (ps.value === "default") sk.setSkin(null);
+      else if (ps.value === "__active") { // several skins at once (Spine's pinned skins): one combined runtime skin, the edited skin last so it wins
+        const ids = (st.activeSkins || []).filter(id => id !== st.skinId); if (st.skinId) ids.push(st.skinId);
+        const C = new sp.Skin("active"); for (const id of ids) { const k = skinById(id), rs = k && sk.data.findSkin(k.name); if (rs) C.addSkin(rs); } sk.setSkin(C);
+      } else sk.setSkin(ps.value);
+      (sk.setupPoseSlots || sk.setSlotsToSetupPose).call(sk);
+    };
     ps.onchange = setS; setS();
     let evN = 0;
     state.addListener({ event: (entry, ev) => { evN++; const el = $("#pEv"); if (el) el.textContent = `Event “${ev.data.name}”${ev.stringValue ? ` (${ev.stringValue})` : ""} · ${evN} so far`; } });
@@ -6825,7 +6958,7 @@ function pmFitView() {
   computeWorld(); const panel = $("#pmPanel"), narrow = cw < 560; panel.classList.toggle("dock", narrow);
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   const add = (x, y) => { minX = Math.min(minX, x); minY = Math.min(minY, y); maxX = Math.max(maxX, x); maxY = Math.max(maxY, y); };
-  for (const s of doc.slots) { const a = curAtt(s); if (a && !isPath(a)) for (const [x, y] of attCornersWorld(W, s, a)) add(x, y); }
+  for (const s of doc.slots) { const a = curAtt(s); if (a && !isShape(a)) for (const [x, y] of attCornersWorld(W, s, a)) add(x, y); }
   if (st.pm.img && st.pm.op > 0) { add(st.pm.x, st.pm.y); add(st.pm.x + st.pm.img.naturalWidth * st.pm.k, st.pm.y - st.pm.img.naturalHeight * st.pm.k); }
   if (!isFinite(minX)) return fitView();
   const pw = panel.hidden || narrow ? 0 : panel.offsetWidth + 16, ph = panel.hidden || !narrow ? 0 : panel.offsetHeight + 8;
@@ -9578,7 +9711,7 @@ function compSnap(boneId) {
       if (an && curAtt(s) !== att) continue; // Animate: only the shown mesh gets a deform key
       snap.atts.push({ s, att, wv: meshWorld(att, s.bone, W, an ? curDeform(att) : null) });
     } else if (s.bone !== boneId) continue;
-    else if (isPath(att)) { if (!an && !att.bones && att.pos) snap.atts.push({ s, att, w: compCp(W[s.bone]) }); }
+    else if (isShape(att)) { if (!an && !att.bones && att.pos) snap.atts.push({ s, att, w: compCp(W[s.bone]) }); }
     else if (!an && "x" in att) snap.atts.push({ s, att, w: compCp(W[s.bone]) }); // regions, points, others with an offset; not in Animate (as Spine)
   }
   return snap;
@@ -9616,7 +9749,7 @@ function compFix(snap) {
       setKey(anim, `m|${att.mid}|deform`, st.time, { v: base }); continue;
     }
     const M = affMul(affInv(compAff(W[s.bone])), compAff(e.w)); // old bone space -> new bone space
-    if (isPath(att)) { for (let i = 0; i < att.pos.length; i += 2) { const [x, y] = affApply(M, att.pos[i], att.pos[i + 1]); att.pos[i] = x; att.pos[i + 1] = y; } continue; }
+    if (isShape(att) && att.pos) { for (let i = 0; i < att.pos.length; i += 2) { const [x, y] = affApply(M, att.pos[i], att.pos[i + 1]); att.pos[i] = x; att.pos[i + 1] = y; } continue; }
     const r = (att.rotation || 0) * D2R, sx = att.scaleX == null ? 1 : att.scaleX, sy = att.scaleY == null ? 1 : att.scaleY;
     const la = Math.cos(r) * sx, lb = -Math.sin(r) * sy, lc = Math.sin(r) * sx, ld = Math.cos(r) * sy;
     const A = M[0] * la + M[1] * lc, B = M[0] * lb + M[1] * ld, C = M[2] * la + M[3] * lc, D = M[2] * lb + M[3] * ld;
@@ -9649,7 +9782,7 @@ window.aiaOverlay = function () {
   if (sk2Overlay) sk2Overlay();
   if (!SK2.outline) return;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.lineWidth = 1; ctx.strokeStyle = "rgba(120,200,255,.8)";
-  for (const s of curOrder()) { if (sk2SlotHidden(s)) continue; const att = curAtt(s); if (!att || isPath(att)) continue; const cs = attCornersWorld(W, s, att, curDeform(att)).map(([x, y]) => toScreen(x, y)); ctx.beginPath(); cs.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); ctx.closePath(); ctx.stroke(); }
+  for (const s of curOrder()) { if (sk2SlotHidden(s)) continue; const att = curAtt(s); if (!att || isShape(att)) continue; const cs = attCornersWorld(W, s, att, curDeform(att)).map(([x, y]) => toScreen(x, y)); ctx.beginPath(); cs.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); ctx.closePath(); ctx.stroke(); }
 };
 aiaOverlay = window.aiaOverlay;
 /* ---------- palette: Pixels (pixel snapping), Shear row (keys shear in Animate) ---------- */
@@ -10888,8 +11021,8 @@ for (const [sel, t] of [['.rail [data-tool="select"]', "Select"], ['.rail [data-
   /* ---------- the attachment each selected item stands for ---------- */
   function attTarget(it) {
     const s = slotById(it.slot); if (!s) return null;
-    if (it.type === "att") { const a = getAtt(it); return a && !isPath(a) ? { kind: "att", slot: s.id, name: it.name, skin: it.skin || null } : null; }
-    const n = curAttName(s), a = n && attFor(doc, s.id, n, st.skinId); if (!a || isPath(a)) return null;
+    if (it.type === "att") { const a = getAtt(it); return a && !isShape(a) ? { kind: "att", slot: s.id, name: it.name, skin: it.skin || null } : null; }
+    const n = curAttName(s), a = n && attFor(doc, s.id, n, st.skinId); if (!a || isShape(a)) return null;
     return { kind: "att", slot: s.id, name: n, skin: attOwner(doc, s.id, n, st.skinId) };
   }
   const slotIds = () => [...new Set(live().map(it => it.slot))];
@@ -10899,7 +11032,7 @@ for (const [sel, t] of [['.rail [data-tool="select"]', "Select"], ['.rail [data-
   function boxItems(b) {
     computeWorld(); const x0 = Math.min(b.x0, b.x1), x1 = Math.max(b.x0, b.x1), y0 = Math.min(b.y0, b.y1), y1 = Math.max(b.y0, b.y1), out = [];
     for (const s of curOrder()) {
-      const n = curAttName(s), a = curAtt(s); if (!a || isPath(a)) continue;
+      const n = curAttName(s), a = curAtt(s); if (!a || isShape(a)) continue;
       if (typeof sk2Locked === "function" && sk2Locked("slot", s.id)) continue; if (typeof sk2SlotHidden === "function" && sk2SlotHidden(s)) continue;
       const cs = attCornersWorld(W, s, a, curDeform(a)).map(([x, y]) => toScreen(x, y)); if (!cs.length) continue;
       const cx = cs.reduce((t, p) => t + p[0], 0) / cs.length, cy = cs.reduce((t, p) => t + p[1], 0) / cs.length;
@@ -13752,7 +13885,7 @@ function spoNotes(r) { return (r.warnings || []).filter(Boolean).slice(0, 12); }
 /* Spine sizes a region by its image file; the project may hold an older size, so use the loaded original's size */
 function spoFixSizes() {
   let n = 0;
-  const fix = atts => { for (const sid in atts || {}) for (const nm in atts[sid]) { const a = atts[sid][nm]; if (!a || isMesh(a) || isPath(a) || a.type) continue; const im = images.get(a.image); if (im && im.img && !im.placeholder && im.w && im.h && (a.width !== im.w || a.height !== im.h)) { a.width = im.w; a.height = im.h; n++; } } };
+  const fix = atts => { for (const sid in atts || {}) for (const nm in atts[sid]) { const a = atts[sid][nm]; if (!a || isMesh(a) || isShape(a) || a.type) continue; const im = images.get(a.image); if (im && im.img && !im.placeholder && im.w && im.h && (a.width !== im.w || a.height !== im.h)) { a.width = im.w; a.height = im.h; n++; } } };
   fix(doc.atts); (doc.skins || []).forEach(k => fix(k.atts));
   if (n) { dirty.view = true; changed(); }
   return n;
@@ -13783,7 +13916,11 @@ async function spoImportPicked(spineFile, others) {
   const imgs = [];
   for (const f of others) if (/\.(png|jpe?g|webp)$/i.test(f.name)) imgs.push({ name: f.webkitRelativePath || f.name, data: new Uint8Array(await f.arrayBuffer()) });
   const mime = n => /\.png$/i.test(n) ? "image/png" : /\.webp$/i.test(n) ? "image/webp" : "image/jpeg";
-  const { byPath } = await looseImages(imgs, e => readAsDataURL(new Blob([e.data], { type: mime(e.name) })));
+  // paths relative to the .spine's folder (its images path setting, e.g. "./images/", is applied on top), so same-named files in different folders stay apart
+  const rel = (spineFile.webkitRelativePath || "").replace(/\\/g, "/"), sdir = rel.includes("/") ? rel.replace(/[^/]*$/, "") : "";
+  let base = sdir; const im = r.json.skeleton && r.json.skeleton.images;
+  if (im && !/^[a-z]:|^\/|^\\/i.test(im)) { const parts = (sdir + im.replace(/\\/g, "/")).split("/"), out = []; for (const s of parts) { if (!s || s === ".") continue; if (s === "..") out.pop(); else out.push(s); } const b2 = out.length ? out.join("/") + "/" : ""; if (imgs.some(e => e.name.replace(/\\/g, "/").toLowerCase().startsWith(b2.toLowerCase()))) base = b2; }
+  const { byPath } = await looseImages(imgs, e => readAsDataURL(new Blob([e.data], { type: mime(e.name) })), rel ? base : null);
   const notes = spoNotes(r);
   if (!imgs.length) notes.unshift("No images were picked with the project, so grey placeholders stand in. Pick the folder that holds the .spine and its images folder.");
   try { await finishSpineImport(r.json, byPath, spineFile.name.replace(/\.spine$/i, ""), notes, false, [], new Set()); }
@@ -15553,7 +15690,7 @@ function exBoundsAt(anim, t, skinId, withBones) {
   for (const s of doc.slots) {
     if (hid && typeof sk2SlotHidden === "function" && sk2SlotHidden(s)) continue;
     const name = anim ? slotAttachmentAt(s, anim, t) : s.attachment, att = name ? attFor(doc, s.id, name, skinId) : null;
-    if (!att || isPath(att) || !Wm[s.bone]) continue;
+    if (!att || isShape(att) || !Wm[s.bone]) continue;
     if (anim && s.color && /00$/i.test(s.color) && !(anim.slots[s.id] && (anim.slots[s.id].rgba || anim.slots[s.id].alpha))) continue;
     try { for (const [x, y] of attCornersWorld(Wm, s, att, isMesh(att) && anim ? deformAt(anim, att, t) : null)) add(x, y); } catch (e) {}
   }
@@ -16580,13 +16717,14 @@ const SPW = (() => {
     const reasons = [], edited = new Map(), raw = src.parsed.raw, C = raw.c, R = raw.r;
     if (window.SPW_MESH_WRITE === false) return { reasons: skinReasons(B0.skins || [], cur.skins || []), edited }; // mesh / weights writing (verified with Spine on every 4.3 project file); false switches it off
     const s0 = B0.skins || [], s1 = cur.skins || [], by = a => new Map(a.map(k => [k.name, k])), m0 = by(s0), m1 = by(s1);
-    const other = [], meshes = [], convs = [];
+    const other = [], meshes = [], convs = [], shapes = [];
     for (const n of new Set([...m0.keys(), ...m1.keys()])) { const k0 = m0.get(n), k1 = m1.get(n); if (!k0 || !k1) { other.push(n); continue; } if (eq(k0, k1)) continue;
       const A0 = k0.attachments || {}, A1 = k1.attachments || {};
       for (const sl of new Set([...Object.keys(A0), ...Object.keys(A1)])) for (const an of new Set([...Object.keys(A0[sl] || {}), ...Object.keys(A1[sl] || {})])) {
         const x = (A0[sl] || {})[an], y = (A1[sl] || {})[an]; if (eq(x, y)) continue;
         if (n === 'default' && x && y && x.type === 'mesh' && y.type === 'mesh' && eq(Object.assign({}, x, { uvs: 0, triangles: 0, vertices: 0, hull: 0, edges: 0 }), Object.assign({}, y, { uvs: 0, triangles: 0, vertices: 0, hull: 0, edges: 0 }))) meshes.push({ sl, an, x, y });
         else if (n === 'default' && x && y && (!x.type || x.type === 'region') && y.type === 'mesh') convs.push({ sl, an, x, y }); // region -> mesh
+        else if (n === 'default' && x && y && x.type === y.type && (x.type === 'boundingbox' || x.type === 'clipping') && x.vertexCount === y.vertexCount && eq(Object.assign({}, x, { vertices: 0 }), Object.assign({}, y, { vertices: 0 }))) shapes.push({ sl, an, x, y }); // bounding box / clipping vertices
         else other.push(n); } }
     if (other.length) return { reasons: skinReasons(s0, s1).filter(r => !/^Mesh "/.test(r) || !meshes.length), edited };
     // raw attachment objects by slot / name (default skin)
@@ -16599,7 +16737,7 @@ const SPW = (() => {
     const deformed = (sl, an) => Object.values(B0.animations || {}).some(A => A.attachments && Object.values(A.attachments).some(s => s[sl] && s[sl][an] && s[sl][an].deform));
     // rows of a mesh's vertices object from its JSON: weights and setup-space positions for every listed bone
     function vertRows(sl, y, old) {
-      const nV = (y.uvs || []).length / 2, V = y.vertices || [], weighted = V.length !== nV * 2;
+      const nV = y.vertexCount != null ? y.vertexCount : (y.uvs || []).length / 2, V = y.vertices || [], weighted = V.length !== nV * 2;
       const slotJ = (cur.slots || []).find(s => s.name === sl), slotBoneName = slotJ && slotJ.bone;
       let bones = [], rows = [];
       if (!weighted) { bones = [slotBoneName]; for (let i = 0; i < nV; i++) rows.push({ w: [1], p: [V[i * 2], V[i * 2 + 1]] }); }
@@ -16617,12 +16755,12 @@ const SPW = (() => {
       return { weighted, bones, rows, boneIds };
     }
     // the vertices object (class 0x47): fields rows (2), bones (1), the mesh (0), as Spine writes them
-    function vertsPiece(vcls, rcls, rows, boneIds, meshId, meshOld) {
+    function vertsPiece(vcls, rcls, rows, boneIds, meshId, ownerCls) {
       const vp = new Piece(); vp.varint(vcls); vp.def('M'); vp.varint(1); vp.varint(3);
       vp.varint(2); vp.varint(0x0f); vp.def('V'); vp.varint(1); vp.varint(rows.length);
       for (const r of rows) { vp.varint(rcls); vp.def('M'); vp.varint(1); vp.varint(2); vp.varint(0); vp.fa(r.w); vp.varint(1); vp.fa(r.p); }
       vp.varint(1); vp.varint(0x0f); vp.def('V'); vp.varint(1); vp.varint(boneIds.length); for (const id of boneIds) { vp.varint(0x0c); vp.ref('M', id); }
-      vp.varint(0); vp.varint(0x2e); vp.ref('M', meshId);
+      vp.varint(0); vp.varint(ownerCls || 0x2e); vp.ref('M', meshId);
       return vp;
     }
     for (const { sl, an, x, y } of meshes) {
@@ -16648,6 +16786,19 @@ const SPW = (() => {
       const vp = vertsPiece(vcls, rcls, rows, boneIds, meshId);
       edits.push({ a: fp[0x1c][0], b: fp[0x1c][1], piece: vp });
       edited.set(sl + '\u0000' + an, y); changed.push(`${w}: ${weighted ? 'vertices and weights' : 'vertices'}${y.edges ? ', edges' : ''}`);
+    }
+    // bounding box / clipping: the same vertices object as a mesh (owner class 0x34 / 0x54), and the weighted flag
+    for (const { sl, an, y } of shapes) {
+      const w = `${y.type === 'clipping' ? 'Clipping' : 'Bounding box'} "${sl} / ${an}"`, list = rawAtt.get(sl + '\u0000' + an) || [];
+      if (list.length !== 1) { reasons.push(`${w}: not found in the project file.`); continue; }
+      const a = list[0], fp = a.$fp, cls = y.type === 'clipping' ? 0x54 : 0x34; if (a.$c !== cls || !fp || !fp[0x1c]) { reasons.push(`${w}: stored in a form that cannot be rewritten yet.`); continue; }
+      const vo = C.o(a[0x1c]); if (!vo || !vo.$fp) { reasons.push(`${w}: its vertices cannot be rewritten.`); continue; }
+      const id = R.M.indexOf(a), rows0 = C.a(vo[0x02]), rcls = rows0.length ? rows0[0].$c : 0x36;
+      const vord = Object.keys(vo.$fp).map(Number).sort((p, q) => vo.$fp[p][0] - vo.$fp[q][0]); if (id < 0 || vord.join() !== '2,1,0') { reasons.push(`${w}: stored in a form that cannot be rewritten yet.`); continue; }
+      const old = C.a(vo[0x01]).map(r => C.name(C.m(r))), VR = vertRows(sl, y, old); if (VR.error) { reasons.push(`${w}: ${VR.error}`); continue; }
+      if (fp[0x1e] && fp[0x1e][2] === 'b') { const pc = new Piece(); pc.byte(VR.weighted ? 1 : 0); edits.push({ a: fp[0x1e][0], b: fp[0x1e][1], piece: pc }); }
+      edits.push({ a: fp[0x1c][0], b: fp[0x1c][1], piece: vertsPiece(a[0x1c].$c, rcls, VR.rows, VR.boneIds, id, cls) });
+      edited.set(sl + '\u0000' + an, y); changed.push(`${w}: vertices`);
     }
     /* region -> mesh, in place: the region object (class 0x2b) keeps its place and id and becomes a mesh object (0x2e). Its class byte
        and field count change, fields both kinds have keep their bytes (and any objects first defined inside them) under the mesh's tag
@@ -17813,7 +17964,7 @@ if (typeof window !== "undefined" && typeof st !== "undefined" && typeof cv !== 
   let lastK = ""; setInterval(() => { const ms = selMesh(); if (!on()) WT.binding = false; const k = [JSON.stringify(st.sel), st.mode, st.meshMode, ms ? wtNb(ms.m) : -1, selVerts().join(","), undoS.length, WT.binding].join("|"); if (k !== lastK) { lastK = k; wtPanelRefresh(); } }, 300);
 })();
 
-</script><script>window.AIA_VERSION = {"version": "1.20.4", "built": "2026-11-20 11:27", "changelog": [{"version": "1.20.4", "date": "2026-11-20", "items": ["Open more Spine 4.3 projects: extra skins, skin placeholders, slider constraints, path and point attachments, path constraints", "Spine projects open with the right IK settings (mix, stretch, compress) and physics", "Event names keep their folder path"]}, {"version": "1.20.3", "date": "2026-11-19", "items": ["Import works on any PC; clear errors for missing images / unsupported versions", "Open Project on the website: pick the .spine file itself or the whole folder"]}, {"version": "1.20.2", "date": "2026-11-19", "items": ["Save mesh and weights edits to .spine (vertices, UVs, triangles, edges, weights, region to mesh)"]}, {"version": "1.20.1", "date": "2026-11-19", "items": ["Spine-style key buttons on transform rows"]}, {"version": "1.20.0", "date": "2026-11-19", "items": ["Animation views rebuilt to match Spine (Curves, Ghosting, Playback, Timeline, Audio)", "Spine-style transform handles: translate / scale arrows, rotate ring, shear lines, in World / Local / Parent; drag an axis to move or scale along it", "Bone properties like Spine (inherit, length, select, name, icon, colour; New, Parent, Split, Skin) and a breadcrumb of the selected bone"]}, {"version": "1.19.3", "date": "2026-11-19", "items": ["Tint black: the viewport draws the dark colour, and tint black keys (Color view, Dark tab in Animate) show in the dopesheet and go to JSON and binary"]}, {"version": "1.19.2", "date": "2026-11-19", "items": ["Mix preview blends slot colours, mesh deforms and constraint mixes too, like Spine"]}, {"version": "1.19.1", "date": "2026-11-19", "items": ["Audio tracks and mix times are saved with the project (.aia.json and autosave) and come back when it is opened", "JSON export writes the audio folder when events use sounds"]}, {"version": "1.19.0", "date": "2026-11-19", "items": ["Save saves .spine in the opened file's version (PC: <name>_ai.spine next to it; website: a download); edits .spine cannot hold yet are saved as JSON with a notice", "Main menu on the logo: New / Open / Recent / Save / Save As / Package Project, New Skeleton, Import Project / Data / PSD, Export, Texture Packer, Texture Unpacker, Settings", "Spine version of the opened file next to the logo", "Exports are named skeleton.json / .skel / .atlas / .png, like Spine", "The envelope opens What's new; the version text is information only"]}, {"version": "1.18.1", "date": "2026-11-19", "items": ["Graph colours match Spine"]}, {"version": "1.18.0", "date": "2026-11-19", "items": ["Curves, Ghosting, Playback, Timeline and Audio views (Alt+V, Alt+H, Alt+P, Alt+L, Alt+U)", "View shortcuts: a view behind another tab comes to the front; pressed again it closes"]}, {"version": "1.17.2", "date": "2026-11-19", "items": ["Cleaner look: one neutral dark theme with one accent blue, Spine-like tree (search in the toolbar, compact rows, visibility column, short attachment names, constraint folders), tidy panel headers and toolbars"]}, {"version": "1.17.1", "date": "2026-11-19", "items": ["Legs fixed: constraints run in the project's own order (as Spine does), and the two-bone IK matches Spine's runtime exactly", "Graph colours like Spine (rotate sky blue, X green, Y blue), square keys, frame dots, Spine's Graph toolbar with Shift, Offset, copy / paste, Swap and Average (all)"]}, {"version": "1.17.0", "date": "2026-11-19", "items": ["Views menu laid out like Spine's, with icons and Alt shortcuts; open views are greyed and checked", "New views: Color (slot, dark tint, bone, skin, attachment colours and colour keys), Skins, Outline, Metrics, Problems; Animations view with folders and export flags", "Mesh Tools and Weights views", "Save as .spine says which mesh or attachment edit it cannot write yet"]}, {"version": "1.16.1", "date": "2026-11-19", "items": ["Preview opens fitted to the whole animation"]}, {"version": "1.16.0", "date": "2026-11-19", "items": ["Save as .spine in the same Spine version (Project > Save as .spine, Ctrl+Shift+S, or Export > Spine)", "Export of a project opened from .spine keeps its own Spine version, bone order, mesh weights, curves and the parts the editor does not show", "Preview zoom and pan fixed (wheel, drag, + / -, fit)"]}, {"version": "1.15.1", "date": "2026-11-19", "items": ["Removed project-specific names"]}, {"version": "1.15.0", "date": "2026-11-19", "items": ["Version number in the top-right corner; click it to see what changed", "A dot on the version shows there is news you have not read yet"]}, {"version": "1.14.0", "date": "2026-11-19", "items": ["Auto-rig has a second rig template (Template B, controller biped) with leg and shoulder controllers", "Rig template choice in the auto-rig wizard: Auto, A or B (Auto shows what it picked)"]}, {"version": "1.13.0", "date": "2026-11-19", "items": ["Selected bones are drawn in cyan like Spine", "Graph: Repeat shows the curves before and after the animation; X / Y splits channels", "Skins can have a colour and live in folders (name with a slash)", "Bones and slots can be selected together with Ctrl+click", "Dopesheet toolbar stays in one row and never scrolls sideways"]}, {"version": "1.12.0", "date": "2026-11-19", "items": ["Export: Polygons packing for images used only by meshes", "Export: audio track for AVI, MOV and WEBM videos (file or event sounds)", "Export check box on attachments, constraints, animations, skins and events"]}, {"version": "1.11.1", "date": "2026-11-19", "items": ["Fixed the folder import that hung on some rigs (overlapping draw-order keys)", "A failed import now shows a message instead of hanging"]}, {"version": "1.11.0", "date": "2026-11-19", "items": ["Opening .spine files reads weighted mesh deform keys, clipping, events and draw-order folders", "Inherit keys, export flags and more constraint settings are read from .spine files"]}, {"version": "1.10.0", "date": "2026-11-18", "items": ["Open .spine project files directly, without Spine installed", "Find works across your Spine projects without Spine"]}, {"version": "1.9.0", "date": "2026-11-18", "items": ["Import uses the original images from the images folder (sharper than the packed atlas)", "Sharper viewport on high-resolution screens"]}, {"version": "1.8.0", "date": "2026-11-18", "items": ["New Export dialog like Spine 4.3: JSON, Binary, HTML, images, video and texture packer", "Save and load export settings, preview before exporting"]}, {"version": "1.7.0", "date": "2026-11-18", "items": ["Dopesheet like Spine 4.3: zoom, pan, rows and keys", "Dopesheet: X / Y, colour, inherit and sequence keys, row reorder and Sync"]}, {"version": "1.6.0", "date": "2026-11-18", "items": ["Bones in the viewport are drawn like Spine 4.3", "Skin bones and skin constraints like Spine 4.3"]}, {"version": "1.5.0", "date": "2026-11-18", "items": ["Number fields: drag left or right to change the value (no spinner arrows)"]}, {"version": "1.4.0", "date": "2026-11-18", "items": ["Select several bones, slots and images at once like Spine", "Dopesheet key editing: move, duplicate (Ctrl+Shift+drag), Alt and Ctrl+Alt drag", "Dopesheet toolbar in one row with Shift, Offset and Adjust", "Graph view: curve editor with Bezier handles, presets and handle modes", "Skins like Spine"]}, {"version": "1.3.1", "date": "2026-11-17", "items": ["Fixed the bone rotate, move and scale tools", "Big rigs play and edit faster"]}, {"version": "1.3.0", "date": "2026-11-17", "items": ["Compensate buttons like Spine (move a parent without moving its children or images)"]}, {"version": "1.2.1", "date": "2026-11-17", "items": ["Tool palette buttons respond at once again", "Fixed a slowdown after the hotkeys update"]}, {"version": "1.2.0", "date": "2026-11-17", "items": ["Spine hotkeys for tools, modes, frames, keys and playback", "Interface closer to Spine"]}, {"version": "1.1.0", "date": "2026-11-17", "items": ["Auto-rig places bones from a template learned from a sample rig"]}, {"version": "1.0.0", "date": "2026-11-17", "items": ["First web version of AI_animation, with an English interface", "Runs in the browser on PC and phone; work is saved in your browser"]}]};</script><script>
+</script><script>window.AIA_VERSION = {"version": "1.20.5", "built": "2026-11-20 12:23", "changelog": [{"version": "1.20.5", "date": "2026-11-20", "items": ["Skins view like Spine: skin folders, pins, several active skins shown together (also in Preview)", "Bounding boxes, clipping, points and linked meshes are imported, drawn and exported; bounding box edits save into .spine", "Several events on one frame, slot blend modes and draw order folder keys are kept", "Images are found in the project folder (no more grey placeholders for same-named files) and big projects open much faster on the PC"]}, {"version": "1.20.4", "date": "2026-11-20", "items": ["Open more Spine 4.3 projects: extra skins, skin placeholders, slider constraints, path and point attachments, path constraints", "Spine projects open with the right IK settings (mix, stretch, compress) and physics", "Event names keep their folder path"]}, {"version": "1.20.3", "date": "2026-11-19", "items": ["Import works on any PC; clear errors for missing images / unsupported versions", "Open Project on the website: pick the .spine file itself or the whole folder"]}, {"version": "1.20.2", "date": "2026-11-19", "items": ["Save mesh and weights edits to .spine (vertices, UVs, triangles, edges, weights, region to mesh)"]}, {"version": "1.20.1", "date": "2026-11-19", "items": ["Spine-style key buttons on transform rows"]}, {"version": "1.20.0", "date": "2026-11-19", "items": ["Animation views rebuilt to match Spine (Curves, Ghosting, Playback, Timeline, Audio)", "Spine-style transform handles: translate / scale arrows, rotate ring, shear lines, in World / Local / Parent; drag an axis to move or scale along it", "Bone properties like Spine (inherit, length, select, name, icon, colour; New, Parent, Split, Skin) and a breadcrumb of the selected bone"]}, {"version": "1.19.3", "date": "2026-11-19", "items": ["Tint black: the viewport draws the dark colour, and tint black keys (Color view, Dark tab in Animate) show in the dopesheet and go to JSON and binary"]}, {"version": "1.19.2", "date": "2026-11-19", "items": ["Mix preview blends slot colours, mesh deforms and constraint mixes too, like Spine"]}, {"version": "1.19.1", "date": "2026-11-19", "items": ["Audio tracks and mix times are saved with the project (.aia.json and autosave) and come back when it is opened", "JSON export writes the audio folder when events use sounds"]}, {"version": "1.19.0", "date": "2026-11-19", "items": ["Save saves .spine in the opened file's version (PC: <name>_ai.spine next to it; website: a download); edits .spine cannot hold yet are saved as JSON with a notice", "Main menu on the logo: New / Open / Recent / Save / Save As / Package Project, New Skeleton, Import Project / Data / PSD, Export, Texture Packer, Texture Unpacker, Settings", "Spine version of the opened file next to the logo", "Exports are named skeleton.json / .skel / .atlas / .png, like Spine", "The envelope opens What's new; the version text is information only"]}, {"version": "1.18.1", "date": "2026-11-19", "items": ["Graph colours match Spine"]}, {"version": "1.18.0", "date": "2026-11-19", "items": ["Curves, Ghosting, Playback, Timeline and Audio views (Alt+V, Alt+H, Alt+P, Alt+L, Alt+U)", "View shortcuts: a view behind another tab comes to the front; pressed again it closes"]}, {"version": "1.17.2", "date": "2026-11-19", "items": ["Cleaner look: one neutral dark theme with one accent blue, Spine-like tree (search in the toolbar, compact rows, visibility column, short attachment names, constraint folders), tidy panel headers and toolbars"]}, {"version": "1.17.1", "date": "2026-11-19", "items": ["Legs fixed: constraints run in the project's own order (as Spine does), and the two-bone IK matches Spine's runtime exactly", "Graph colours like Spine (rotate sky blue, X green, Y blue), square keys, frame dots, Spine's Graph toolbar with Shift, Offset, copy / paste, Swap and Average (all)"]}, {"version": "1.17.0", "date": "2026-11-19", "items": ["Views menu laid out like Spine's, with icons and Alt shortcuts; open views are greyed and checked", "New views: Color (slot, dark tint, bone, skin, attachment colours and colour keys), Skins, Outline, Metrics, Problems; Animations view with folders and export flags", "Mesh Tools and Weights views", "Save as .spine says which mesh or attachment edit it cannot write yet"]}, {"version": "1.16.1", "date": "2026-11-19", "items": ["Preview opens fitted to the whole animation"]}, {"version": "1.16.0", "date": "2026-11-19", "items": ["Save as .spine in the same Spine version (Project > Save as .spine, Ctrl+Shift+S, or Export > Spine)", "Export of a project opened from .spine keeps its own Spine version, bone order, mesh weights, curves and the parts the editor does not show", "Preview zoom and pan fixed (wheel, drag, + / -, fit)"]}, {"version": "1.15.1", "date": "2026-11-19", "items": ["Removed project-specific names"]}, {"version": "1.15.0", "date": "2026-11-19", "items": ["Version number in the top-right corner; click it to see what changed", "A dot on the version shows there is news you have not read yet"]}, {"version": "1.14.0", "date": "2026-11-19", "items": ["Auto-rig has a second rig template (Template B, controller biped) with leg and shoulder controllers", "Rig template choice in the auto-rig wizard: Auto, A or B (Auto shows what it picked)"]}, {"version": "1.13.0", "date": "2026-11-19", "items": ["Selected bones are drawn in cyan like Spine", "Graph: Repeat shows the curves before and after the animation; X / Y splits channels", "Skins can have a colour and live in folders (name with a slash)", "Bones and slots can be selected together with Ctrl+click", "Dopesheet toolbar stays in one row and never scrolls sideways"]}, {"version": "1.12.0", "date": "2026-11-19", "items": ["Export: Polygons packing for images used only by meshes", "Export: audio track for AVI, MOV and WEBM videos (file or event sounds)", "Export check box on attachments, constraints, animations, skins and events"]}, {"version": "1.11.1", "date": "2026-11-19", "items": ["Fixed the folder import that hung on some rigs (overlapping draw-order keys)", "A failed import now shows a message instead of hanging"]}, {"version": "1.11.0", "date": "2026-11-19", "items": ["Opening .spine files reads weighted mesh deform keys, clipping, events and draw-order folders", "Inherit keys, export flags and more constraint settings are read from .spine files"]}, {"version": "1.10.0", "date": "2026-11-18", "items": ["Open .spine project files directly, without Spine installed", "Find works across your Spine projects without Spine"]}, {"version": "1.9.0", "date": "2026-11-18", "items": ["Import uses the original images from the images folder (sharper than the packed atlas)", "Sharper viewport on high-resolution screens"]}, {"version": "1.8.0", "date": "2026-11-18", "items": ["New Export dialog like Spine 4.3: JSON, Binary, HTML, images, video and texture packer", "Save and load export settings, preview before exporting"]}, {"version": "1.7.0", "date": "2026-11-18", "items": ["Dopesheet like Spine 4.3: zoom, pan, rows and keys", "Dopesheet: X / Y, colour, inherit and sequence keys, row reorder and Sync"]}, {"version": "1.6.0", "date": "2026-11-18", "items": ["Bones in the viewport are drawn like Spine 4.3", "Skin bones and skin constraints like Spine 4.3"]}, {"version": "1.5.0", "date": "2026-11-18", "items": ["Number fields: drag left or right to change the value (no spinner arrows)"]}, {"version": "1.4.0", "date": "2026-11-18", "items": ["Select several bones, slots and images at once like Spine", "Dopesheet key editing: move, duplicate (Ctrl+Shift+drag), Alt and Ctrl+Alt drag", "Dopesheet toolbar in one row with Shift, Offset and Adjust", "Graph view: curve editor with Bezier handles, presets and handle modes", "Skins like Spine"]}, {"version": "1.3.1", "date": "2026-11-17", "items": ["Fixed the bone rotate, move and scale tools", "Big rigs play and edit faster"]}, {"version": "1.3.0", "date": "2026-11-17", "items": ["Compensate buttons like Spine (move a parent without moving its children or images)"]}, {"version": "1.2.1", "date": "2026-11-17", "items": ["Tool palette buttons respond at once again", "Fixed a slowdown after the hotkeys update"]}, {"version": "1.2.0", "date": "2026-11-17", "items": ["Spine hotkeys for tools, modes, frames, keys and playback", "Interface closer to Spine"]}, {"version": "1.1.0", "date": "2026-11-17", "items": ["Auto-rig places bones from a template learned from a sample rig"]}, {"version": "1.0.0", "date": "2026-11-17", "items": ["First web version of AI_animation, with an English interface", "Runs in the browser on PC and phone; work is saved in your browser"]}]};</script><script>
 /* Version label (top-right of the header) and the "What's new" dialog.
    build.py puts window.AIA_VERSION = {version, built, changelog} in front of this file; CHANGELOG.json is the source.
    Unbuilt page (ai_animation.html from a server): falls back to fetching CHANGELOG.json. */
@@ -18845,7 +18996,7 @@ body.sk #verBtn { color: #aaa; } body.sk #verBtn:hover { color: #e8e8e8; backgro
   for (const id of ["mesh", "weights", "curves", "ghost", "playback", "timeline", "audio"]) extKeys[id] = () => { const e = EXT()[id]; return (e ? "x" : "-") + (e && e.key ? e.key() : ""); };
 
   DP_FN.color = [colorHtml, colorWire]; extKeys.color = () => [VW.color.tab, VW.color.mode, st.skinId, isAnim() ? frameOf(st.time) : -1, st.mode].join("|");
-  DP_FN.skins = [skinsHtml, skinsWire]; extKeys.skins = () => [st.skinId, doc.skins.length, doc.skins.map(k => k.name + (k.bones || []).length + (k.cons || []).length).join()].join("|");
+  DP_FN.skins = [skinsHtml, skinsWire]; extKeys.skins = () => [st.skinId, (st.activeSkins || []).join(), [...(VW.skOpen || [])].join(), doc.skins.length, doc.skins.map(k => k.name + (k.bones || []).length + (k.cons || []).length).join()].join("|");
   DP_FN.outline = [outlineHtml, outlineWire]; extKeys.outline = () => [VW.outline.q, JSON.stringify(VW.outline.f), [...VW.outline.open].join(), doc.bones.length, doc.slots.length, doc.anims.length, images.size, st.skinId].join("|");
   DP_FN.metrics = [metricsHtml, () => {}]; extKeys.metrics = () => [st.mode, st.animId, isAnim() ? frameOf(st.time) : -1, st.skinId, undoS.length].join("|");
   DP_FN.problems = [problemsHtml, problemsWire]; extKeys.problems = () => [undoS.length, images.size, st.animId, VW.pb.key].join("|");
@@ -18967,10 +19118,24 @@ body.sk #verBtn { color: #aaa; } body.sk #verBtn:hover { color: #e8e8e8; backgro
   function skinsHtml() {
     const sk = st.skinId ? skinById(st.skinId) : null, dot = c => `<i style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#${(c || "999999").slice(0, 6)};opacity:${c ? 1 : .35}"></i>`;
     const n = k => { let a = 0; for (const s in k.atts || {}) a += Object.keys(k.atts[s]).length; return a; };
-    let h = `<div class="vw-x"><div class="sec"><div class="row"><button class="b" id="vwSkNew" title="New empty skin">New</button><button class="b" id="vwSkDup"${sk ? "" : " disabled"}>Duplicate</button><button class="b" id="vwSkRen"${sk ? "" : " disabled"}>Rename</button><button class="b" id="vwSkDel"${sk ? "" : " disabled"}>Delete</button></div>
-      <div class="vw-list"><div class="r${!sk ? " on" : ""}" data-sk=""><input type="radio" name="vwSkA"${!sk ? " checked" : ""} title="Active skin">${dot(null)}<span class="nm">default</span><small>${n({ atts: doc.atts })} attachments</small></div>
-      ${doc.skins.map(k => `<div class="r${sk === k ? " on" : ""}" data-sk="${k.id}"><input type="radio" name="vwSkA"${sk === k ? " checked" : ""} title="Active skin">${dot(k.color)}<span class="nm">${esc(k.name)}</span><small>${n(k)} attachments${(k.bones || []).length ? ` · ${(k.bones || []).length} bones` : ""}${(k.cons || []).length ? ` · ${(k.cons || []).length} constraints` : ""}</small></div>`).join("")}</div>
-      <p class="muted">The active skin is drawn in the viewport. Put skins in folders with a slash, e.g. <b>outfits/red</b>.</p></div>`;
+    // Spine-style tree: skin folders from the names ("boy/babyHair_01"), a pin on each skin; the list below = the active (pinned) skins
+    const pins = (st.activeSkins = (st.activeSkins || []).filter(id => skinById(id)));
+    const open = VW.skOpen || (VW.skOpen = new Set());
+    if (sk && VW.skLastOpened !== sk.id) { VW.skLastOpened = sk.id; let p = ""; for (const part of sk.name.split("/").slice(0, -1)) { p += (p ? "/" : "") + part; open.add(p); } } // show the edited skin's folder
+    const root = { f: new Map(), s: [] };
+    for (const k of doc.skins) { const parts = k.name.split("/"); let nd = root, path = ""; for (const p of parts.slice(0, -1)) { path += (path ? "/" : "") + p; if (!nd.f.has(p)) nd.f.set(p, { f: new Map(), s: [], path }); nd = nd.f.get(p); } nd.s.push(k); }
+    const pinI = on => `<svg viewBox="0 0 16 16" width="14" height="14"><path d="M6 1.5h4l-.6 4 2.6 2.5v1.2H8.7L8 15l-.7-5.8H4V8l2.6-2.5z" fill="${on ? "#f0b43c" : "none"}" stroke="${on ? "#a8741c" : "#8a8f98"}" stroke-width="1"/></svg>`;
+    const folderI = `<svg viewBox="0 0 16 16" width="14" height="14"><path d="M1.5 3.5h5l1.2 1.5h6.8v8h-13z" fill="#e8c55a" stroke="#9c7b22" stroke-width=".8"/></svg>`;
+    const skI = `<svg viewBox="0 0 16 16" width="14" height="14"><path d="M5 2.5 3 4.5 1.5 7.5l2.5 1V14h8V8.5l2.5-1L13 4.5 11 2.5c-.6 1.3-1.7 2-3 2s-2.4-.7-3-2z" fill="#f08a3c" stroke="#7a3d12" stroke-width=".8"/></svg>`;
+    const leafN = k => k.name.slice(k.name.lastIndexOf("/") + 1);
+    const rowSk = (k, d) => `<div class="r skr${sk === k ? " on" : ""}" data-sk="${k.id}" style="padding-left:${8 + d * 16}px" title="${esc(k.name)} · ${n(k)} attachments">${skI}<span class="nm">${esc(leafN(k))}</span>${k.color ? dot(k.color) : ""}<button class="b pin${pins.includes(k.id) ? " on" : ""}" data-pin="${k.id}" title="${pins.includes(k.id) ? "Unpin: no longer active" : "Pin: active together with the other pinned skins"}">${pinI(pins.includes(k.id))}</button></div>`;
+    const walk = (nd, d) => { let o = ""; for (const [nm, f] of [...nd.f.entries()].sort((a, b) => a[0].localeCompare(b[0]))) { const op = open.has(f.path); o += `<div class="r skf" data-skf="${esc(f.path)}" style="padding-left:${8 + d * 16}px"><span class="tw">${op ? "▾" : "▸"}</span>${folderI}<span class="nm">${esc(nm)}</span></div>`; if (op) o += walk(f, d + 1); } for (const k of nd.s) o += rowSk(k, d); return o; };
+    let h = `<div class="vw-x"><style>.vw-x .skr,.vw-x .skf{display:flex;align-items:center;gap:6px;cursor:pointer}.vw-x .skr .pin,.vw-x .skact .pin{margin-left:auto;padding:0 3px;background:none!important;border:0!important;box-shadow:none!important;opacity:.55}.vw-x .skr .pin.on,.vw-x .skr:hover .pin{opacity:1}.vw-x .tw{width:10px;color:#8a8f98;font-size:10px}.vw-x .skact .r{display:flex;align-items:center;gap:6px;cursor:pointer}</style>
+      <div class="sec"><div class="row"><button class="b" id="vwSkNew" title="New empty skin">New</button><button class="b" id="vwSkDup"${sk ? "" : " disabled"}>Duplicate</button><button class="b" id="vwSkRen"${sk ? "" : " disabled"}>Rename</button><button class="b" id="vwSkDel"${sk ? "" : " disabled"}>Delete</button></div>
+      <div class="vw-list" id="vwSkTree"><div class="r skr${!sk ? " on" : ""}" data-sk="">${skI}<span class="nm">default</span><small style="margin-left:auto">${n({ atts: doc.atts })}</small></div>${walk(root, 0)}</div>
+      <h4 style="margin-top:8px">Active skins${pins.length ? ` (${pins.length})` : ""}</h4>
+      <div class="vw-list skact" id="vwSkAct">${pins.length ? pins.map(id => { const k = skinById(id); return `<div class="r${sk === k ? " on" : ""}" data-sk="${k.id}">${skI}<span class="nm">${esc(k.name)}</span><button class="b pin on" data-pin="${k.id}" title="Unpin" style="margin-left:auto;background:none;border:0">${pinI(true)}</button></div>`; }).join("") : `<p class="muted">Pin skins to show them together (e.g. hair + clothes + skin colour). The selected skin is the one you edit.</p>`}</div>
+      <p class="muted">Folders come from the skin names, e.g. <b>outfits/red</b>.</p></div>`;
     if (sk) {
       // placeholders: every placeholder name any skin uses, per slot; what this skin puts there
       const rows = []; for (const s of doc.slots) { const names = new Set([...Object.keys(doc.atts[s.id] || {}), ...doc.skins.flatMap(k => Object.keys((k.atts || {})[s.id] || {}))]); for (const nm of names) rows.push([s, nm]); }
@@ -18990,7 +19155,9 @@ body.sk #verBtn { color: #aaa; } body.sk #verBtn:hover { color: #e8e8e8; backgro
   const setSkin = id => { st.skinId = id || null; if (st.sel && st.sel.type === "att") st.sel = { type: "slot", slot: st.sel.slot }; const s = $("#skinSel"); if (s) s.value = st.skinId || ""; markAll(); dirty.view = dirty.tree = true; };
   function skinsWire() {
     const B = $("#dkBody"), sk = st.skinId ? skinById(st.skinId) : null;
-    B.querySelectorAll("[data-sk]").forEach(r => r.onclick = () => setSkin(r.dataset.sk));
+    B.querySelectorAll("[data-sk]").forEach(r => r.onclick = e => { if (e.target.closest("[data-pin]")) return; setSkin(r.dataset.sk); });
+    B.querySelectorAll("[data-pin]").forEach(b => b.onclick = e => { e.stopPropagation(); const id = b.dataset.pin; st.activeSkins = (st.activeSkins || []).filter(x => x !== id); if (!b.classList.contains("on")) st.activeSkins.push(id); markAll(); dirty.view = dirty.tree = true; vwRe("skins"); });
+    B.querySelectorAll("[data-skf]").forEach(r => r.onclick = () => { const p = r.dataset.skf, o = VW.skOpen || (VW.skOpen = new Set()); if (o.has(p)) o.delete(p); else o.add(p); vwRe("skins"); });
     $("#vwSkNew").onclick = () => vwAsk("New skin", uniqueName("skin", doc.skins.map(k => k.name)), n => { if (n === "default" || doc.skins.some(k => k.name === n)) { toast("That name is taken"); return; } pushUndo(); const k = { id: uid(), name: n, atts: {} }; doc.skins.push(k); changed(); setSkin(k.id); });
     if (!sk) return;
     $("#vwSkDup").onclick = () => { pushUndo(); const c = JSON.parse(JSON.stringify(sk)); c.id = uid(); c.name = uniqueName(sk.name + "-copy", doc.skins.map(k => k.name)); doc.skins.push(c); changed(); setSkin(c.id); toast(`Duplicated as ${c.name}`); };
