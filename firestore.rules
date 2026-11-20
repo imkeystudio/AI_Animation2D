@@ -18,6 +18,11 @@ service cloud.firestore {
     match /users/{uid}/anims/{id} {
       allow read, write: if signedIn() && request.auth.uid == uid;
     }
+    // the shared animation library: every signed-in user reads it, admins publish to it
+    match /library/{id} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
     // sessions and events: a user adds and updates only records carrying their own uid
     match /sessions/{id} {
       allow read: if isAdmin();
