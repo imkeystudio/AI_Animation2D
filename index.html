@@ -8788,7 +8788,8 @@ function arBuild(parts, charName, family, opts) {
   const TB = new Map(T.bones.map(b => [b.name, b])), TS = new Map(T.slots.map(s => [s.name, s])), D = Math.PI / 180;
   const r2 = v => Math.round(v * 100) / 100, dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]), ang = (a, b) => Math.atan2(b[1] - a[1], b[0] - a[0]) / D;
   const bySlot = new Map();
-  for (const p of parts) if (p.slot && TS.has(p.slot)) { if (!bySlot.has(p.slot)) bySlot.set(p.slot, []); bySlot.get(p.slot).push(p); }
+  // (Template B names some slots differently: those parts are kept here and renamed below)
+  for (const p of parts) if (p.slot && (TS.has(p.slot) || (fam === "B" && TS.has(AR_B_SLOT[p.slot])))) { if (!bySlot.has(p.slot)) bySlot.set(p.slot, []); bySlot.get(p.slot).push(p); }
   for (const l of bySlot.values()) l.sort(arOrder);
   // no "top hair": the main front hair (a name with "hair", not a curl) is the bangs, like Codex sets name it
   if (!bySlot.has("hair-bangs") && bySlot.has("hair-side-front")) { const l = bySlot.get("hair-side-front"), i = Math.max(0, l.findIndex(p => /hair/i.test(p.base))); bySlot.set("hair-bangs", l.splice(i, 1)); if (!l.length) bySlot.delete("hair-side-front"); }
@@ -8823,6 +8824,13 @@ function arBuild(parts, charName, family, opts) {
     const ov = opts.place && opts.place[slot]; // placed from a reference picture (final world; the feet shift opts.dl is taken back out here)
     if (ov && slot !== "shadow") { const d0 = opts.dl || [0, 0]; m.L = ov.L.slice(); m.t = [ov.t[0] - d0[0], ov.t[1] - d0[1]]; }
     const mv = opts.moves && opts.moves[slot]; if (mv) { m.t[0] += mv[0]; m.t[1] += mv[1]; }
+    // turned / scaled by the user (Parts step), about the part's centre; the parts hanging on it follow
+    const xf = opts.xform && opts.xform[slot];
+    if (xf && ((xf.r || 0) || (xf.s && xf.s !== 1))) {
+      const c = [m.p.w / 2, m.p.h / 2], cw = apply(m, c), k = xf.s || 1, co = Math.cos((xf.r || 0) * D) * k, sn = Math.sin((xf.r || 0) * D) * k, L0 = m.L;
+      m.L = [co * L0[0] - sn * L0[2], co * L0[1] - sn * L0[3], sn * L0[0] + co * L0[2], sn * L0[1] + co * L0[3]];
+      m.t = [cw[0] - (m.L[0] * c[0] + m.L[1] * c[1]), cw[1] - (m.L[2] * c[0] + m.L[3] * c[1])];
+    }
     placed.set(slot, m); visiting.delete(slot); return m;
   }
   for (const sl of bySlot.keys()) place(sl);
@@ -8885,7 +8893,7 @@ function arBuild(parts, charName, family, opts) {
     return o;
   });
   // slots and attachments (regions, bone-local), template order
-  const slots = [], atts = {}, used = new Map(), report = { slots: {}, extra: [], missing: [], scale: r2(S), unused: parts.filter(p => !p.slot || !bySlot.has(p.slot)).map(p => p.base) };
+  const slots = [], atts = {}, used = new Map(), report = { slots: {}, extra: [], missing: [], scale: r2(S), unused: parts.filter(p => !p.slot || !(bySlot.has(p.slot) || (fam === "B" && bySlot.has(AR_B_SLOT[p.slot])))).map(p => p.base) };
   const ext = [Infinity, Infinity, -Infinity, -Infinity];
   for (const ts of T.slots) {
     const list = bySlot.get(ts.name);
@@ -18732,7 +18740,7 @@ if (typeof window !== "undefined" && typeof st !== "undefined" && typeof cv !== 
   let lastK = ""; setInterval(() => { const ms = selMesh(); if (!on()) WT.binding = false; const k = [JSON.stringify(st.sel), st.mode, st.meshMode, ms ? wtNb(ms.m) : -1, selVerts().join(","), undoS.length, WT.binding].join("|"); if (k !== lastK) { lastK = k; wtPanelRefresh(); } }, 300);
 })();
 
-</script><script>window.AIA_VERSION = {"version": "1.22.0", "built": "2026-11-20 16:17", "changelog": [{"version": "1.22.0", "date": "2026-11-20", "items": ["Auto-rig opens on a quick path like Mixamo: drop the images folder, place 8 markers (chin, wrists, elbows, knees, groin), press Auto-rig", "Animation library: 17 starter animations play on your character (idle, walk, run, jump, wave, cheer, clap, sit, talk, nod, no, happy, sad, bow, point, dance, look around); search and pick several", "Per animation: speed, arm spacing, stride, trim, in place, mirror", "Add my animations: from a Spine JSON or the open project, kept in this browser", "Download as .spine (PC version), Spine JSON + images, or skeleton + atlas + png, all named skeleton", "The full 5-step wizard stays under Advanced"]}, {"version": "1.21.0", "date": "2026-11-20", "items": ["New Auto-rig wizard (Project menu > Auto-rig): images, parts with a body map, joints, rig type, test and export", "Drag joints (or whole parts) while the character plays a test pose: idle, arms up, sit, walk, extreme", "Green / yellow / red confidence for parts and joints; Fix gaps moves joints whose parts pull apart", "Rig Doctor: setup check, every joint turned through its range with a gap finder, feet planted, knee flips, loop seam, cost meter", "Smart IK feet on or off; download skeleton.json + atlas + png named skeleton for Spine 4.3.23 or 4.3.26", "Claude can drive the auto-rig: window.AIA commands, and an MCP connector on the PC version"]}, {"version": "1.20.17", "date": "2026-11-20", "items": ["New attachments with a new image (regions) save into .spine, in existing or new slots (the image file goes into the project's images folder)", "Empty new skins save into .spine", "Edited draw order keys save into .spine"]}, {"version": "1.20.16", "date": "2026-11-20", "items": ["New slots on top of the draw order (empty, or with copies of existing attachments) save into .spine"]}, {"version": "1.20.15", "date": "2026-11-20", "items": ["New skins made from existing attachments (a duplicated skin, or parts taken from other skins) save into .spine"]}, {"version": "1.20.14", "date": "2026-11-20", "items": ["Open Spine 4.2 projects (.spine) and save key and bone edits back into them", "Spine 4.3.25 / 4.3.26 projects open and save too"]}, {"version": "1.20.13", "date": "2026-11-20", "items": ["New animations with event keys save into .spine"]}, {"version": "1.20.12", "date": "2026-11-20", "items": ["New animations save slot attachment and colour keys, mesh deform keys and draw order keys into .spine", "Edited slot attachment and colour keys of existing animations save into .spine", "Scale keys within Spine's precision of 1 and colour values rounded like Spine (matches Spine's export more closely)"]}, {"version": "1.20.11", "date": "2026-11-20", "items": ["New animations with bone keys (rotate, translate, scale, shear) now save straight into .spine"]}, {"version": "1.20.10", "date": "2026-11-20", "items": ["Phones and tablets: long-press works as right-click; the tool palettes fold behind a Palettes button", "Mesh deform key edits (weighted or not) now save into .spine"]}, {"version": "1.20.9", "date": "2026-11-20", "items": ["HTML exports clip and blend like Spine; projects opened from .spine export their atlas correctly", "Clipping, bounding box and path shapes keep their deform keys (animated clipping)", "Two-colour tint and alpha-only keys are read from .spine (box.spine opens fully)", "Mesh tools: drag bones in the Weights list to reorder them, Alt+click an edge to select its loop, pen pressure for the weight brush"]}, {"version": "1.20.8", "date": "2026-11-20", "items": ["Slider constraints keep all their settings (time, mix, loop, additive) and run in the editor", "Constraint settings (IK, transform, physics, path, slider) and slot colour / blend mode now save into .spine", "Slot blend mode (Normal, Additive, Multiply, Screen) can be changed in Properties"]}, {"version": "1.20.7", "date": "2026-11-20", "items": ["Login is on for the website: Firebase connected (admin dashboard at admin.html)"]}, {"version": "1.20.6", "date": "2026-11-20", "items": ["Clipping masks images in the editor and Preview, like Spine", "Login and admin dashboard: users, active now, usage and speed (needs Firebase setup, see SETUP.md; off until then)"]}, {"version": "1.20.5", "date": "2026-11-20", "items": ["Skins view like Spine: skin folders, pins, several active skins shown together (also in Preview)", "Bounding boxes, clipping, points and linked meshes are imported, drawn and exported; bounding box edits save into .spine", "Several events on one frame, slot blend modes and draw order folder keys are kept", "Images are found in the project folder (no more grey placeholders for same-named files) and big projects open much faster on the PC"]}, {"version": "1.20.4", "date": "2026-11-20", "items": ["Open more Spine 4.3 projects: extra skins, skin placeholders, slider constraints, path and point attachments, path constraints", "Spine projects open with the right IK settings (mix, stretch, compress) and physics", "Event names keep their folder path"]}, {"version": "1.20.3", "date": "2026-11-19", "items": ["Import works on any PC; clear errors for missing images / unsupported versions", "Open Project on the website: pick the .spine file itself or the whole folder"]}, {"version": "1.20.2", "date": "2026-11-19", "items": ["Save mesh and weights edits to .spine (vertices, UVs, triangles, edges, weights, region to mesh)"]}, {"version": "1.20.1", "date": "2026-11-19", "items": ["Spine-style key buttons on transform rows"]}, {"version": "1.20.0", "date": "2026-11-19", "items": ["Animation views rebuilt to match Spine (Curves, Ghosting, Playback, Timeline, Audio)", "Spine-style transform handles: translate / scale arrows, rotate ring, shear lines, in World / Local / Parent; drag an axis to move or scale along it", "Bone properties like Spine (inherit, length, select, name, icon, colour; New, Parent, Split, Skin) and a breadcrumb of the selected bone"]}, {"version": "1.19.3", "date": "2026-11-19", "items": ["Tint black: the viewport draws the dark colour, and tint black keys (Color view, Dark tab in Animate) show in the dopesheet and go to JSON and binary"]}, {"version": "1.19.2", "date": "2026-11-19", "items": ["Mix preview blends slot colours, mesh deforms and constraint mixes too, like Spine"]}, {"version": "1.19.1", "date": "2026-11-19", "items": ["Audio tracks and mix times are saved with the project (.aia.json and autosave) and come back when it is opened", "JSON export writes the audio folder when events use sounds"]}, {"version": "1.19.0", "date": "2026-11-19", "items": ["Save saves .spine in the opened file's version (PC: <name>_ai.spine next to it; website: a download); edits .spine cannot hold yet are saved as JSON with a notice", "Main menu on the logo: New / Open / Recent / Save / Save As / Package Project, New Skeleton, Import Project / Data / PSD, Export, Texture Packer, Texture Unpacker, Settings", "Spine version of the opened file next to the logo", "Exports are named skeleton.json / .skel / .atlas / .png, like Spine", "The envelope opens What's new; the version text is information only"]}, {"version": "1.18.1", "date": "2026-11-19", "items": ["Graph colours match Spine"]}, {"version": "1.18.0", "date": "2026-11-19", "items": ["Curves, Ghosting, Playback, Timeline and Audio views (Alt+V, Alt+H, Alt+P, Alt+L, Alt+U)", "View shortcuts: a view behind another tab comes to the front; pressed again it closes"]}, {"version": "1.17.2", "date": "2026-11-19", "items": ["Cleaner look: one neutral dark theme with one accent blue, Spine-like tree (search in the toolbar, compact rows, visibility column, short attachment names, constraint folders), tidy panel headers and toolbars"]}, {"version": "1.17.1", "date": "2026-11-19", "items": ["Legs fixed: constraints run in the project's own order (as Spine does), and the two-bone IK matches Spine's runtime exactly", "Graph colours like Spine (rotate sky blue, X green, Y blue), square keys, frame dots, Spine's Graph toolbar with Shift, Offset, copy / paste, Swap and Average (all)"]}, {"version": "1.17.0", "date": "2026-11-19", "items": ["Views menu laid out like Spine's, with icons and Alt shortcuts; open views are greyed and checked", "New views: Color (slot, dark tint, bone, skin, attachment colours and colour keys), Skins, Outline, Metrics, Problems; Animations view with folders and export flags", "Mesh Tools and Weights views", "Save as .spine says which mesh or attachment edit it cannot write yet"]}, {"version": "1.16.1", "date": "2026-11-19", "items": ["Preview opens fitted to the whole animation"]}, {"version": "1.16.0", "date": "2026-11-19", "items": ["Save as .spine in the same Spine version (Project > Save as .spine, Ctrl+Shift+S, or Export > Spine)", "Export of a project opened from .spine keeps its own Spine version, bone order, mesh weights, curves and the parts the editor does not show", "Preview zoom and pan fixed (wheel, drag, + / -, fit)"]}, {"version": "1.15.1", "date": "2026-11-19", "items": ["Removed project-specific names"]}, {"version": "1.15.0", "date": "2026-11-19", "items": ["Version number in the top-right corner; click it to see what changed", "A dot on the version shows there is news you have not read yet"]}, {"version": "1.14.0", "date": "2026-11-19", "items": ["Auto-rig has a second rig template (Template B, controller biped) with leg and shoulder controllers", "Rig template choice in the auto-rig wizard: Auto, A or B (Auto shows what it picked)"]}, {"version": "1.13.0", "date": "2026-11-19", "items": ["Selected bones are drawn in cyan like Spine", "Graph: Repeat shows the curves before and after the animation; X / Y splits channels", "Skins can have a colour and live in folders (name with a slash)", "Bones and slots can be selected together with Ctrl+click", "Dopesheet toolbar stays in one row and never scrolls sideways"]}, {"version": "1.12.0", "date": "2026-11-19", "items": ["Export: Polygons packing for images used only by meshes", "Export: audio track for AVI, MOV and WEBM videos (file or event sounds)", "Export check box on attachments, constraints, animations, skins and events"]}, {"version": "1.11.1", "date": "2026-11-19", "items": ["Fixed the folder import that hung on some rigs (overlapping draw-order keys)", "A failed import now shows a message instead of hanging"]}, {"version": "1.11.0", "date": "2026-11-19", "items": ["Opening .spine files reads weighted mesh deform keys, clipping, events and draw-order folders", "Inherit keys, export flags and more constraint settings are read from .spine files"]}, {"version": "1.10.0", "date": "2026-11-18", "items": ["Open .spine project files directly, without Spine installed", "Find works across your Spine projects without Spine"]}, {"version": "1.9.0", "date": "2026-11-18", "items": ["Import uses the original images from the images folder (sharper than the packed atlas)", "Sharper viewport on high-resolution screens"]}, {"version": "1.8.0", "date": "2026-11-18", "items": ["New Export dialog like Spine 4.3: JSON, Binary, HTML, images, video and texture packer", "Save and load export settings, preview before exporting"]}, {"version": "1.7.0", "date": "2026-11-18", "items": ["Dopesheet like Spine 4.3: zoom, pan, rows and keys", "Dopesheet: X / Y, colour, inherit and sequence keys, row reorder and Sync"]}, {"version": "1.6.0", "date": "2026-11-18", "items": ["Bones in the viewport are drawn like Spine 4.3", "Skin bones and skin constraints like Spine 4.3"]}, {"version": "1.5.0", "date": "2026-11-18", "items": ["Number fields: drag left or right to change the value (no spinner arrows)"]}, {"version": "1.4.0", "date": "2026-11-18", "items": ["Select several bones, slots and images at once like Spine", "Dopesheet key editing: move, duplicate (Ctrl+Shift+drag), Alt and Ctrl+Alt drag", "Dopesheet toolbar in one row with Shift, Offset and Adjust", "Graph view: curve editor with Bezier handles, presets and handle modes", "Skins like Spine"]}, {"version": "1.3.1", "date": "2026-11-17", "items": ["Fixed the bone rotate, move and scale tools", "Big rigs play and edit faster"]}, {"version": "1.3.0", "date": "2026-11-17", "items": ["Compensate buttons like Spine (move a parent without moving its children or images)"]}, {"version": "1.2.1", "date": "2026-11-17", "items": ["Tool palette buttons respond at once again", "Fixed a slowdown after the hotkeys update"]}, {"version": "1.2.0", "date": "2026-11-17", "items": ["Spine hotkeys for tools, modes, frames, keys and playback", "Interface closer to Spine"]}, {"version": "1.1.0", "date": "2026-11-17", "items": ["Auto-rig places bones from a template learned from a sample rig"]}, {"version": "1.0.0", "date": "2026-11-17", "items": ["First web version of AI_animation, with an English interface", "Runs in the browser on PC and phone; work is saved in your browser"]}]};</script><script>
+</script><script>window.AIA_VERSION = {"version": "1.23.0", "built": "2026-11-20 17:07", "changelog": [{"version": "1.23.0", "date": "2026-11-20", "items": ["Parts step: click a part to move, turn or scale it (knob and corner handles, or numbers), replace its image, or add an image where a body part is missing", "Batch auto-rig: a folder of character folders gives a rig for each, one zip and report.csv", "My animations and own packs are saved to your account when signed in (website); ready-made packs: Basics, Emotions, Gestures, Fun", "Smarter retarget: planted feet never slide in walk and run, hands keep their reach from the shoulder on other rigs, clap hands meet", "Fix: controller-biped rigs now keep their hair and lower legs (joint error 3.9% -> 3.2%)", "Library animations are made only when shown, so rebuilding is fast"]}, {"version": "1.22.0", "date": "2026-11-20", "items": ["Auto-rig opens on a quick path like Mixamo: drop the images folder, place 8 markers (chin, wrists, elbows, knees, groin), press Auto-rig", "Animation library: 17 starter animations play on your character (idle, walk, run, jump, wave, cheer, clap, sit, talk, nod, no, happy, sad, bow, point, dance, look around); search and pick several", "Per animation: speed, arm spacing, stride, trim, in place, mirror", "Add my animations: from a Spine JSON or the open project, kept in this browser", "Download as .spine (PC version), Spine JSON + images, or skeleton + atlas + png, all named skeleton", "The full 5-step wizard stays under Advanced"]}, {"version": "1.21.0", "date": "2026-11-20", "items": ["New Auto-rig wizard (Project menu > Auto-rig): images, parts with a body map, joints, rig type, test and export", "Drag joints (or whole parts) while the character plays a test pose: idle, arms up, sit, walk, extreme", "Green / yellow / red confidence for parts and joints; Fix gaps moves joints whose parts pull apart", "Rig Doctor: setup check, every joint turned through its range with a gap finder, feet planted, knee flips, loop seam, cost meter", "Smart IK feet on or off; download skeleton.json + atlas + png named skeleton for Spine 4.3.23 or 4.3.26", "Claude can drive the auto-rig: window.AIA commands, and an MCP connector on the PC version"]}, {"version": "1.20.17", "date": "2026-11-20", "items": ["New attachments with a new image (regions) save into .spine, in existing or new slots (the image file goes into the project's images folder)", "Empty new skins save into .spine", "Edited draw order keys save into .spine"]}, {"version": "1.20.16", "date": "2026-11-20", "items": ["New slots on top of the draw order (empty, or with copies of existing attachments) save into .spine"]}, {"version": "1.20.15", "date": "2026-11-20", "items": ["New skins made from existing attachments (a duplicated skin, or parts taken from other skins) save into .spine"]}, {"version": "1.20.14", "date": "2026-11-20", "items": ["Open Spine 4.2 projects (.spine) and save key and bone edits back into them", "Spine 4.3.25 / 4.3.26 projects open and save too"]}, {"version": "1.20.13", "date": "2026-11-20", "items": ["New animations with event keys save into .spine"]}, {"version": "1.20.12", "date": "2026-11-20", "items": ["New animations save slot attachment and colour keys, mesh deform keys and draw order keys into .spine", "Edited slot attachment and colour keys of existing animations save into .spine", "Scale keys within Spine's precision of 1 and colour values rounded like Spine (matches Spine's export more closely)"]}, {"version": "1.20.11", "date": "2026-11-20", "items": ["New animations with bone keys (rotate, translate, scale, shear) now save straight into .spine"]}, {"version": "1.20.10", "date": "2026-11-20", "items": ["Phones and tablets: long-press works as right-click; the tool palettes fold behind a Palettes button", "Mesh deform key edits (weighted or not) now save into .spine"]}, {"version": "1.20.9", "date": "2026-11-20", "items": ["HTML exports clip and blend like Spine; projects opened from .spine export their atlas correctly", "Clipping, bounding box and path shapes keep their deform keys (animated clipping)", "Two-colour tint and alpha-only keys are read from .spine (box.spine opens fully)", "Mesh tools: drag bones in the Weights list to reorder them, Alt+click an edge to select its loop, pen pressure for the weight brush"]}, {"version": "1.20.8", "date": "2026-11-20", "items": ["Slider constraints keep all their settings (time, mix, loop, additive) and run in the editor", "Constraint settings (IK, transform, physics, path, slider) and slot colour / blend mode now save into .spine", "Slot blend mode (Normal, Additive, Multiply, Screen) can be changed in Properties"]}, {"version": "1.20.7", "date": "2026-11-20", "items": ["Login is on for the website: Firebase connected (admin dashboard at admin.html)"]}, {"version": "1.20.6", "date": "2026-11-20", "items": ["Clipping masks images in the editor and Preview, like Spine", "Login and admin dashboard: users, active now, usage and speed (needs Firebase setup, see SETUP.md; off until then)"]}, {"version": "1.20.5", "date": "2026-11-20", "items": ["Skins view like Spine: skin folders, pins, several active skins shown together (also in Preview)", "Bounding boxes, clipping, points and linked meshes are imported, drawn and exported; bounding box edits save into .spine", "Several events on one frame, slot blend modes and draw order folder keys are kept", "Images are found in the project folder (no more grey placeholders for same-named files) and big projects open much faster on the PC"]}, {"version": "1.20.4", "date": "2026-11-20", "items": ["Open more Spine 4.3 projects: extra skins, skin placeholders, slider constraints, path and point attachments, path constraints", "Spine projects open with the right IK settings (mix, stretch, compress) and physics", "Event names keep their folder path"]}, {"version": "1.20.3", "date": "2026-11-19", "items": ["Import works on any PC; clear errors for missing images / unsupported versions", "Open Project on the website: pick the .spine file itself or the whole folder"]}, {"version": "1.20.2", "date": "2026-11-19", "items": ["Save mesh and weights edits to .spine (vertices, UVs, triangles, edges, weights, region to mesh)"]}, {"version": "1.20.1", "date": "2026-11-19", "items": ["Spine-style key buttons on transform rows"]}, {"version": "1.20.0", "date": "2026-11-19", "items": ["Animation views rebuilt to match Spine (Curves, Ghosting, Playback, Timeline, Audio)", "Spine-style transform handles: translate / scale arrows, rotate ring, shear lines, in World / Local / Parent; drag an axis to move or scale along it", "Bone properties like Spine (inherit, length, select, name, icon, colour; New, Parent, Split, Skin) and a breadcrumb of the selected bone"]}, {"version": "1.19.3", "date": "2026-11-19", "items": ["Tint black: the viewport draws the dark colour, and tint black keys (Color view, Dark tab in Animate) show in the dopesheet and go to JSON and binary"]}, {"version": "1.19.2", "date": "2026-11-19", "items": ["Mix preview blends slot colours, mesh deforms and constraint mixes too, like Spine"]}, {"version": "1.19.1", "date": "2026-11-19", "items": ["Audio tracks and mix times are saved with the project (.aia.json and autosave) and come back when it is opened", "JSON export writes the audio folder when events use sounds"]}, {"version": "1.19.0", "date": "2026-11-19", "items": ["Save saves .spine in the opened file's version (PC: <name>_ai.spine next to it; website: a download); edits .spine cannot hold yet are saved as JSON with a notice", "Main menu on the logo: New / Open / Recent / Save / Save As / Package Project, New Skeleton, Import Project / Data / PSD, Export, Texture Packer, Texture Unpacker, Settings", "Spine version of the opened file next to the logo", "Exports are named skeleton.json / .skel / .atlas / .png, like Spine", "The envelope opens What's new; the version text is information only"]}, {"version": "1.18.1", "date": "2026-11-19", "items": ["Graph colours match Spine"]}, {"version": "1.18.0", "date": "2026-11-19", "items": ["Curves, Ghosting, Playback, Timeline and Audio views (Alt+V, Alt+H, Alt+P, Alt+L, Alt+U)", "View shortcuts: a view behind another tab comes to the front; pressed again it closes"]}, {"version": "1.17.2", "date": "2026-11-19", "items": ["Cleaner look: one neutral dark theme with one accent blue, Spine-like tree (search in the toolbar, compact rows, visibility column, short attachment names, constraint folders), tidy panel headers and toolbars"]}, {"version": "1.17.1", "date": "2026-11-19", "items": ["Legs fixed: constraints run in the project's own order (as Spine does), and the two-bone IK matches Spine's runtime exactly", "Graph colours like Spine (rotate sky blue, X green, Y blue), square keys, frame dots, Spine's Graph toolbar with Shift, Offset, copy / paste, Swap and Average (all)"]}, {"version": "1.17.0", "date": "2026-11-19", "items": ["Views menu laid out like Spine's, with icons and Alt shortcuts; open views are greyed and checked", "New views: Color (slot, dark tint, bone, skin, attachment colours and colour keys), Skins, Outline, Metrics, Problems; Animations view with folders and export flags", "Mesh Tools and Weights views", "Save as .spine says which mesh or attachment edit it cannot write yet"]}, {"version": "1.16.1", "date": "2026-11-19", "items": ["Preview opens fitted to the whole animation"]}, {"version": "1.16.0", "date": "2026-11-19", "items": ["Save as .spine in the same Spine version (Project > Save as .spine, Ctrl+Shift+S, or Export > Spine)", "Export of a project opened from .spine keeps its own Spine version, bone order, mesh weights, curves and the parts the editor does not show", "Preview zoom and pan fixed (wheel, drag, + / -, fit)"]}, {"version": "1.15.1", "date": "2026-11-19", "items": ["Removed project-specific names"]}, {"version": "1.15.0", "date": "2026-11-19", "items": ["Version number in the top-right corner; click it to see what changed", "A dot on the version shows there is news you have not read yet"]}, {"version": "1.14.0", "date": "2026-11-19", "items": ["Auto-rig has a second rig template (Template B, controller biped) with leg and shoulder controllers", "Rig template choice in the auto-rig wizard: Auto, A or B (Auto shows what it picked)"]}, {"version": "1.13.0", "date": "2026-11-19", "items": ["Selected bones are drawn in cyan like Spine", "Graph: Repeat shows the curves before and after the animation; X / Y splits channels", "Skins can have a colour and live in folders (name with a slash)", "Bones and slots can be selected together with Ctrl+click", "Dopesheet toolbar stays in one row and never scrolls sideways"]}, {"version": "1.12.0", "date": "2026-11-19", "items": ["Export: Polygons packing for images used only by meshes", "Export: audio track for AVI, MOV and WEBM videos (file or event sounds)", "Export check box on attachments, constraints, animations, skins and events"]}, {"version": "1.11.1", "date": "2026-11-19", "items": ["Fixed the folder import that hung on some rigs (overlapping draw-order keys)", "A failed import now shows a message instead of hanging"]}, {"version": "1.11.0", "date": "2026-11-19", "items": ["Opening .spine files reads weighted mesh deform keys, clipping, events and draw-order folders", "Inherit keys, export flags and more constraint settings are read from .spine files"]}, {"version": "1.10.0", "date": "2026-11-18", "items": ["Open .spine project files directly, without Spine installed", "Find works across your Spine projects without Spine"]}, {"version": "1.9.0", "date": "2026-11-18", "items": ["Import uses the original images from the images folder (sharper than the packed atlas)", "Sharper viewport on high-resolution screens"]}, {"version": "1.8.0", "date": "2026-11-18", "items": ["New Export dialog like Spine 4.3: JSON, Binary, HTML, images, video and texture packer", "Save and load export settings, preview before exporting"]}, {"version": "1.7.0", "date": "2026-11-18", "items": ["Dopesheet like Spine 4.3: zoom, pan, rows and keys", "Dopesheet: X / Y, colour, inherit and sequence keys, row reorder and Sync"]}, {"version": "1.6.0", "date": "2026-11-18", "items": ["Bones in the viewport are drawn like Spine 4.3", "Skin bones and skin constraints like Spine 4.3"]}, {"version": "1.5.0", "date": "2026-11-18", "items": ["Number fields: drag left or right to change the value (no spinner arrows)"]}, {"version": "1.4.0", "date": "2026-11-18", "items": ["Select several bones, slots and images at once like Spine", "Dopesheet key editing: move, duplicate (Ctrl+Shift+drag), Alt and Ctrl+Alt drag", "Dopesheet toolbar in one row with Shift, Offset and Adjust", "Graph view: curve editor with Bezier handles, presets and handle modes", "Skins like Spine"]}, {"version": "1.3.1", "date": "2026-11-17", "items": ["Fixed the bone rotate, move and scale tools", "Big rigs play and edit faster"]}, {"version": "1.3.0", "date": "2026-11-17", "items": ["Compensate buttons like Spine (move a parent without moving its children or images)"]}, {"version": "1.2.1", "date": "2026-11-17", "items": ["Tool palette buttons respond at once again", "Fixed a slowdown after the hotkeys update"]}, {"version": "1.2.0", "date": "2026-11-17", "items": ["Spine hotkeys for tools, modes, frames, keys and playback", "Interface closer to Spine"]}, {"version": "1.1.0", "date": "2026-11-17", "items": ["Auto-rig places bones from a template learned from a sample rig"]}, {"version": "1.0.0", "date": "2026-11-17", "items": ["First web version of AI_animation, with an English interface", "Runs in the browser on PC and phone; work is saved in your browser"]}]};</script><script>
 /* Version label (top-right of the header) and the "What's new" dialog.
    build.py puts window.AIA_VERSION = {version, built, changelog} in front of this file; CHANGELOG.json is the source.
    Unbuilt page (ai_animation.html from a server): falls back to fetching CHANGELOG.json. */
@@ -20944,11 +20952,11 @@ body.sk #verBtn { color: #aaa; } body.sk #verBtn:hover { color: #e8e8e8; backgro
     $id("alUp").onclick = () => { const [e, p] = ep(); if (!e || !p) return msg("Enter an email and a password."); auth.createUserWithEmailAndPassword(e, p).catch(x => msg(nice(x))); };
     $id("alPass").onkeydown = e => { if (e.key === "Enter") $id("alIn").click(); };
     $id("alForgot").onclick = () => { const [e] = ep(); if (!e) return msg("Enter your email first."); auth.sendPasswordResetEmail(e).then(() => msg("Reset link sent to " + e + ".", true)).catch(x => msg(nice(x))); };
-    AUTH.signOut = () => auth.signOut();
+    AUTH.signOut = () => auth.signOut(); AUTH.db = db; // the auto-rig library keeps "my animations" under users/{uid}/anims
 
     let session = null, beat = null;
     auth.onAuthStateChanged(async u => {
-      AUTH.user = u;
+      AUTH.user = u; try { window.dispatchEvent(new CustomEvent("aia-auth", { detail: u ? { uid: u.uid } : null })); } catch (e) { }
       if (!u) { ov.style.display = "flex"; const b = $id("aiaAcct"); if (b) b.style.display = "none"; if (beat) clearInterval(beat); return; }
       ov.style.display = "none";
       try { await startSession(u); } catch (e) { console.warn("usage data", e); }
@@ -21068,7 +21076,7 @@ body.sk #verBtn { color: #aaa; } body.sk #verBtn:hover { color: #e8e8e8; backgro
    Rules from the owner's auto-rig skill (spine_autorig_skill/SKILL.md sections 3, 4.2, 4.3, 5, 9, 10). */
 (function () {
   const AR3 = window.AR3 = { step: 0, name: "new_character", family: "auto", smartFeet: true, mirror: false, moveParts: false,
-    moves: {}, joints: {}, dl: null, json: null, report: null, doc: null, img: new Map(), alpha: new Map(), conf: {}, partConf: {},
+    moves: {}, xform: {}, joints: {}, dl: null, json: null, report: null, doc: null, img: new Map(), alpha: new Map(), conf: {}, partConf: {},
     pose: "idle", t: 0, playing: true, sel: null, doctor: null, view: null, built: false, err: null };
   const D = Math.PI / 180, r1 = v => Math.round(v * 10) / 10, r2 = v => Math.round(v * 100) / 100;
   const STEPS = ["Images", "Parts", "Joints", "Rig", "Test and export"];
@@ -21088,7 +21096,7 @@ body.sk #verBtn { color: #aaa; } body.sk #verBtn:hover { color: #e8e8e8; backgro
     if (top && AR3.name === "new_character" && !/^images$/i.test(top)) AR3.name = top;
     if (AR3.onFiles) await AR3.onFiles(fs); // the reference picture (aia_autorig_ref.js) is taken out of the parts
     await arReadFiles(fs); if (AR3.onParts) AR3.onParts(); await loadImages();
-    AR3.moves = {}; AR3.joints = {}; AR3.place = {}; AR3.dl = null; AR3.doctor = null; AR3.built = false;
+    AR3.moves = {}; AR3.xform = {}; AR3.selPart = null; AR3.joints = {}; AR3.place = {}; AR3.dl = null; AR3.doctor = null; AR3.built = false;
     partConfidence(); if (ART.parts.some(p => p.slot)) { build(); AR3.step = 1; AR3.qstep = 1; AR3.pose = quick() ? "rest" : AR3.pose; if (AR3.afterLoad) await AR3.afterLoad(); } AR3.view = null; fit(); panel(); kick();
   }
   /* parts given as { name, url } (window.AIA / MCP): a folder read by the PC server, or data URLs */
@@ -21115,7 +21123,7 @@ body.sk #verBtn { color: #aaa; } body.sk #verBtn:hover { color: #e8e8e8; backgro
   function build(fast) {
     AR3.err = null;
     try {
-      const opts = { moves: AR3.moves, joints: AR3.joints, place: AR3.place, smartFeet: AR3.smartFeet }; if (AR3.dl) opts.dl = AR3.dl;
+      const opts = { moves: AR3.moves, xform: AR3.xform, joints: AR3.joints, place: AR3.place, smartFeet: AR3.smartFeet }; if (AR3.dl) opts.dl = AR3.dl;
       const r = arBuild(ART.parts, AR3.name, AR3.family, opts);
       if (!AR3.dl) AR3.dl = r.report.dl;
       AR3.json = r.json; AR3.report = r.report;
@@ -21357,6 +21365,7 @@ body.sk #verBtn { color: #aaa; } body.sk #verBtn:hover { color: #e8e8e8; backgro
     g.strokeStyle = "rgba(138,147,161,.35)"; g.lineWidth = 1 / z; g.beginPath(); const e = bounds(); g.moveTo(e.x, 0); g.lineTo(e.x + e.w, 0); g.stroke();
     if (AR3.drawUnder && (!a || !fx)) AR3.drawUnder(g, z);
     drawRig(g, W, a, AR3.t);
+    if (partsMode()) { drawPartBox(); return; }
     if (quick() ? AR3.qstep !== 1 : AR3.step < 2 && !AR3.overlay) return;
     // bones
     g.lineCap = "round";
@@ -21386,7 +21395,8 @@ body.sk #verBtn { color: #aaa; } body.sk #verBtn:hover { color: #e8e8e8; backgro
   function partAt(q) { const sl = [...AR3.doc.slots].reverse(); for (const s of sl) if (s.name !== "shadow" && AR3.report.place[s.name] && alphaAt(s.name, q) > 96) return s.name; return null; }
   /* a point dragged in a pose -> setup world, through the joint bone's parent (the joint rides on it) */
   function toSetup(id, p, W) { const j = AR3.report.joints[id], b = AR3.byName.get(j.bone); if (!b || !b.parent || W === AR3.setupW) return p; return ap(AR3.setupW[b.parent], ap(inv(W[b.parent]), p)); }
-  const editing = () => quick() ? AR3.qstep === 1 : AR3.step >= 2;
+  const partsMode = () => !quick() && AR3.step === 1;
+  const editing = () => quick() ? AR3.qstep === 1 : AR3.step >= 1;
   /* quick path: the groin marker carries both hips, the chin marker half the neck */
   function linked(id, p, base) {
     if (!quick() || !base || !base[id]) return; const d = [p[0] - base[id][0], p[1] - base[id][1]];
@@ -21394,19 +21404,61 @@ body.sk #verBtn { color: #aaa; } body.sk #verBtn:hover { color: #e8e8e8; backgro
     if (id === "head" && base.neck) AR3.joints.neck = [r2(base.neck[0] + d[0] / 2), r2(base.neck[1] + d[1] / 2)];
   }
   AR3.linked = linked;
+  /* ---------- Parts step: edit a part (move, rotate, scale, replace) ---------- */
+  function partBox(slot) { // screen corners, centre and the two handles of a placed part
+    const pl = AR3.report && AR3.report.place[slot]; if (!pl) return null;
+    const S = (u, v) => toScr(pl.L[0] * u + pl.L[1] * v + pl.t[0], pl.L[2] * u + pl.L[3] * v + pl.t[1]);
+    const C = [S(0, 0), S(pl.w, 0), S(pl.w, pl.h), S(0, pl.h)], c = S(pl.w / 2, pl.h / 2), top = S(pl.w / 2, 0), d = Math.hypot(top[0] - c[0], top[1] - c[1]) || 1;
+    return { C, c, rot: [top[0] + (top[0] - c[0]) / d * 26, top[1] + (top[1] - c[1]) / d * 26], top, scale: C[2] };
+  }
+  function drawPartBox() {
+    const b = AR3.selPart && partBox(AR3.selPart); if (!b) return;
+    g.setTransform(dpr, 0, 0, dpr, 0, 0); g.strokeStyle = "#58a6ef"; g.lineWidth = 1.5; g.setLineDash([5, 4]); g.beginPath(); b.C.forEach((p, i) => i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])); g.closePath(); g.stroke(); g.setLineDash([]);
+    g.beginPath(); g.moveTo(b.top[0], b.top[1]); g.lineTo(b.rot[0], b.rot[1]); g.stroke();
+    g.fillStyle = "#58a6ef"; g.beginPath(); g.arc(b.rot[0], b.rot[1], 7, 0, 2 * Math.PI); g.fill(); g.strokeStyle = "#fff"; g.lineWidth = 1.5; g.stroke();
+    g.fillRect(b.scale[0] - 6, b.scale[1] - 6, 12, 12); g.strokeRect(b.scale[0] - 6, b.scale[1] - 6, 12, 12);
+  }
+  AR3.drawPartBox = drawPartBox;
+  const partIndex = slot => { const pl = AR3.report && AR3.report.place[slot]; return pl ? ART.parts.findIndex(p => p.base === pl.base) : -1; };
+  const slotOfPart = p => p && p.slot ? slotName(p.slot) : null;
+  /* a PNG file / url -> a part (trimmed to its pixels, like the folder reader) */
+  async function readPart(src, name) {
+    const bmp = await createImageBitmap(src instanceof Blob ? src : await (await fetch(src)).blob()), c = document.createElement("canvas"); c.width = bmp.width; c.height = bmp.height;
+    const g2 = c.getContext("2d"); g2.drawImage(bmp, 0, 0); const b = alphaBBox(g2.getImageData(0, 0, c.width, c.height).data, c.width, c.height, 20); if (!b) throw new Error("The image is empty");
+    const t = document.createElement("canvas"); t.width = b.w; t.height = b.h; t.getContext("2d").drawImage(c, b.x, b.y, b.w, b.h, 0, 0, b.w, b.h);
+    let base = String(name || "part").replace(/\.png$/i, "").replace(/[^\w.-]+/g, "_"); while (ART.parts.some(p => p.base === base)) base += "_2";
+    return { base, w: b.w, h: b.h, url: t.toDataURL("image/png") };
+  }
+  async function replacePart(i, src, name) { const p = ART.parts[i]; if (!p) throw new Error("No part"); const n = await readPart(src, name); Object.assign(p, { base: n.base, w: n.w, h: n.h, url: n.url, setup: true }); for (const q of ART.parts) if (q !== p && q.slot === p.slot) q.setup = false; await loadImages(); partConfidence(); build(); panel(); kick(); return p; }
+  async function addPart(role, src, name) { if (!AR_LABEL[role]) throw new Error("Unknown body part " + role); const n = await readPart(src, name || role); const p = Object.assign(n, { slot: role, setup: !ART.parts.some(q => q.slot === role) }); ART.parts.push(p); await loadImages(); partConfidence(); build(); AR3.selPart = slotOfPart(p); panel(); kick(); return p; }
+  function setXform(slot, o) { // o: { x, y } move (adds to the template place), rotation (deg), scale
+    if (!AR3.report.place[slot]) throw new Error("No placed part " + slot); const x = AR3.xform[slot] = Object.assign({ r: 0, s: 1 }, AR3.xform[slot]);
+    if (o.rotation !== undefined) x.r = +o.rotation; if (o.scale !== undefined) x.s = Math.max(.1, Math.min(10, +o.scale)); if (o.x !== undefined || o.y !== undefined) { const m = AR3.moves[slot] || [0, 0]; AR3.moves[slot] = [o.x !== undefined ? +o.x : m[0], o.y !== undefined ? +o.y : m[1]]; }
+    build(); AR3.doctor = null; panel(); kick(); return { part: slot, x: (AR3.moves[slot] || [0, 0])[0], y: (AR3.moves[slot] || [0, 0])[1], rotation: x.r, scale: x.s };
+  }
   function wirePointer() {
     let drag = null;
     cv.onpointerdown = e => {
       if (!AR3.built || !editing()) return; const r = cv.getBoundingClientRect(), sx = e.clientX - r.left, sy = e.clientY - r.top;
+      if (partsMode()) { // handles of the selected part first, then any part (select + move)
+        const b = AR3.selPart && partBox(AR3.selPart), x0 = AR3.xform[AR3.selPart] || { r: 0, s: 1 };
+        if (b && Math.hypot(sx - b.rot[0], sy - b.rot[1]) < 11) drag = { mode: "rot", slot: AR3.selPart, a0: Math.atan2(sy - b.c[1], sx - b.c[0]), r0: x0.r || 0, c: b.c };
+        else if (b && Math.abs(sx - b.scale[0]) < 9 && Math.abs(sy - b.scale[1]) < 9) drag = { mode: "scale", slot: AR3.selPart, d0: Math.hypot(sx - b.c[0], sy - b.c[1]) || 1, s0: x0.s || 1, c: b.c };
+        else { const q = toW(sx, sy), s = partAt(q); AR3.selPart = s; if (s) drag = { part: s, q0: q, m0: (AR3.moves[s] || [0, 0]).slice() }; panel(); kick(); if (!s) return; }
+        cv.setPointerCapture(e.pointerId); e.preventDefault(); return;
+      }
       if (!quick() && (AR3.moveParts || e.shiftKey)) { if (AR3.pose !== "rest") { AR3.pose = "rest"; panel(); } const q = toW(sx, sy), s = partAt(q); if (!s) return; drag = { part: s, q0: q, m0: (AR3.moves[s] || [0, 0]).slice() }; AR3.selPart = s; }
       else { const id = jointAt(sx, sy); if (!id) { AR3.sel = null; panel(); kick(); return; } AR3.sel = id; drag = { id, base: {} }; for (const k of ["hips", "hipF", "hipB", "neck", "head"]) if (AR3.report.joints[k]) drag.base[k] = AR3.report.joints[k].at.slice(); panel(); }
       cv.setPointerCapture(e.pointerId); e.preventDefault();
     };
     cv.onpointermove = e => {
       const r = cv.getBoundingClientRect(), sx = e.clientX - r.left, sy = e.clientY - r.top;
+      if (!drag && partsMode()) { if (AR3.built) { const b = AR3.selPart && partBox(AR3.selPart); cv.style.cursor = b && Math.hypot(sx - b.rot[0], sy - b.rot[1]) < 11 ? "grab" : b && Math.abs(sx - b.scale[0]) < 9 && Math.abs(sy - b.scale[1]) < 9 ? "nwse-resize" : partAt(toW(sx, sy)) ? "move" : "default"; } return; }
       if (!drag) { if (AR3.built && editing()) { const h = jointAt(sx, sy); if (h !== AR3.hover) { AR3.hover = h; cv.style.cursor = h ? "grab" : AR3.moveParts ? "move" : "default"; kick(); } } return; }
       const q = toW(sx, sy);
-      if (drag.part) { AR3.moves[drag.part] = [r2(drag.m0[0] + q[0] - drag.q0[0]), r2(drag.m0[1] + q[1] - drag.q0[1])]; }
+      if (drag.mode === "rot") { const x = AR3.xform[drag.slot] = Object.assign({ r: 0, s: 1 }, AR3.xform[drag.slot]); x.r = r1(drag.r0 - (Math.atan2(sy - drag.c[1], sx - drag.c[0]) - drag.a0) / D); if (e.shiftKey) x.r = Math.round(x.r / 15) * 15; }
+      else if (drag.mode === "scale") { const x = AR3.xform[drag.slot] = Object.assign({ r: 0, s: 1 }, AR3.xform[drag.slot]); x.s = Math.max(.1, Math.round(drag.s0 * Math.hypot(sx - drag.c[0], sy - drag.c[1]) / drag.d0 * 1000) / 1000); }
+      else if (drag.part) { AR3.moves[drag.part] = [r2(drag.m0[0] + q[0] - drag.q0[0]), r2(drag.m0[1] + q[1] - drag.q0[1])]; }
       else { const { W } = curW(), p = toSetup(drag.id, q, W).map(r2); AR3.joints[drag.id] = p; linked(drag.id, p, drag.base); if (AR3.mirror) { const o = drag.id.endsWith("F") ? drag.id.slice(0, -1) + "B" : drag.id.endsWith("B") ? drag.id.slice(0, -1) + "F" : null, oj = o && AR3.report.joints[o]; if (oj) AR3.joints[o] = [oj.at[0], p[1]]; } }
       AR3.rebuild = true; kick();
     };
@@ -21438,8 +21490,15 @@ body.sk #verBtn { color: #aaa; } body.sk #verBtn:hover { color: #e8e8e8; backgro
       <p class="muted ar3-small">Tip: name the files like your rigs (arm-front, forearm, hand, leg-up, shin, foot, pelvis, body, head...). Other names can be set in the next step.</p>`;
     if (AR3.step === 1) {
       const miss = AR_NEEDED.filter(k => !ART.parts.some(p => p.slot === k));
-      return `<h3>2. Parts</h3><p class="muted">Each image got a body part. Click a box on the figure, then a part below, to set it. Green = sure, yellow = check, red = not recognised.</p>
-        <div class="ar3-row">${bodyMap()}<div class="ar3-legend">${chip("green")} found<br>${chip("red")} missing<br><span class="ar3-dot" style="background:#555"></span> optional${AR3.pick ? `<br><br><b>${esc(AR_LABEL[AR3.pick] || AR3.pick)}</b>: click a part below to put it here` : ""}</div></div>
+      const si = AR3.selPart ? partIndex(AR3.selPart) : -1, sp = si >= 0 ? ART.parts[si] : null, xf = AR3.selPart ? Object.assign({ r: 0, s: 1 }, AR3.xform[AR3.selPart]) : null, mv = AR3.selPart ? (AR3.moves[AR3.selPart] || [0, 0]) : null;
+      const has = new Set(ART.parts.filter(p => p.slot).map(p => p.slot));
+      return `<h3>2. Parts</h3><p class="muted">Click a part on the character to edit it: drag to move, the round knob turns it (Shift: 15° steps), the square scales it. Click a box on the figure, then a part below, to set a body part.</p>
+        ${sp ? `<div class="ar3-pedit"><div class="ar3-row"><img src="${sp.url}" alt=""><div><b>${esc(sp.base)}</b><br><small class="muted">${esc(AR_LABEL[sp.slot] || sp.slot || "")}</small></div></div>
+          <div class="ar3-num"><label>X<input type="number" step="1" data-xf="x" value="${r1(mv[0])}"></label><label>Y<input type="number" step="1" data-xf="y" value="${r1(mv[1])}"></label><label>Turn °<input type="number" step="1" data-xf="rotation" value="${r1(xf.r)}"></label><label>Scale<input type="number" step="0.01" min="0.1" data-xf="scale" value="${r2(xf.s)}"></label></div>
+          <div class="ar3-row2"><button class="btn" id="ar3Replace">Replace image…</button><button class="btn" id="ar3PReset">Reset</button><a href="#" id="ar3PDone">Done</a></div>
+          <small class="muted">Parts hanging on it (forearm on the upper arm…) follow it.</small></div>` : ""}
+        <input type="file" id="ar3ImgIn" accept="image/png,image/webp" hidden>
+        <div class="ar3-row">${bodyMap()}<div class="ar3-legend">${chip("green")} found<br>${chip("red")} missing<br><span class="ar3-dot" style="background:#555"></span> optional${AR3.pick ? `<br><br><b>${esc(AR_LABEL[AR3.pick] || AR3.pick)}</b>: ${has.has(AR3.pick) ? "click a part below to put it here, or" : "empty."}<br><button class="btn" id="ar3AddImg">Add an image for it…</button>` : ""}</div></div>
         ${miss.length ? `<div class="ar3-warn">Missing: ${esc(miss.map(k => AR_LABEL[k]).join(", "))}. Their bones are still made, placed from the template.</div>` : ""}
         <div class="ar3-parts">${ART.parts.map((p, i) => { const c = AR3.partConf[p.base] || {}; return `<div class="ar3-part${AR3.pick ? " pickable" : ""}" data-part="${i}" title="${esc(c.why || "")}">${chip(c.c)}<img src="${p.url}" alt=""><div><small>${esc(p.base)}</small>
           <select data-role="${i}" class="field"><option value="">(not used)</option>${p.slot ? opts.replace(`value="${p.slot}"`, `value="${p.slot}" selected`) : opts}</select></div></div>`; }).join("")}</div>
@@ -21492,12 +21551,21 @@ body.sk #verBtn { color: #aaa; } body.sk #verBtn:hover { color: #e8e8e8; backgro
     on("#ar3Dir", "onchange", take); on("#ar3Files", "onchange", take);
     on("#ar3Name", "onchange", e => { AR3.name = e.target.value.trim() || "new_character"; });
     p.querySelectorAll("select[data-role]").forEach(s => s.onchange = () => { ART.parts[+s.dataset.role].slot = s.value || null; partConfidence(); rebuildFresh(); });
-    p.querySelectorAll("[data-part]").forEach(el => el.onclick = e => { if (!AR3.pick || e.target.tagName === "SELECT") return; ART.parts[+el.dataset.part].slot = AR3.pick; AR3.pick = null; partConfidence(); rebuildFresh(); });
+    p.querySelectorAll("[data-part]").forEach(el => el.onclick = e => { if (e.target.tagName === "SELECT" || e.target.tagName === "OPTION") return; const pp = ART.parts[+el.dataset.part];
+      if (!AR3.pick) { const s = slotOfPart(pp); if (s && AR3.report.place[s] && AR3.report.place[s].base === pp.base) { AR3.selPart = s; panel(); kick(); } return; }
+      pp.slot = AR3.pick; AR3.pick = null; partConfidence(); rebuildFresh(); });
+    p.querySelectorAll("[data-xf]").forEach(inp => inp.onchange = () => { const v = +inp.value; if (!isFinite(v) || !AR3.selPart) return; setXform(AR3.selPart, { [inp.dataset.xf]: v }); });
+    let imgFor = null; const imgIn = p.querySelector("#ar3ImgIn");
+    if (imgIn) imgIn.onchange = async e => { const f = e.target.files[0]; e.target.value = ""; if (!f || !imgFor) return; try { if (imgFor.replace !== undefined) await replacePart(imgFor.replace, f, f.name); else await addPart(imgFor.add, f, f.name); } catch (err) { toast("Not added: " + err.message); } imgFor = null; };
+    on("#ar3Replace", "onclick", () => { imgFor = { replace: partIndex(AR3.selPart) }; imgIn.click(); });
+    on("#ar3AddImg", "onclick", () => { imgFor = { add: AR3.pick }; AR3.pick = null; imgIn.click(); });
+    on("#ar3PReset", "onclick", () => { delete AR3.xform[AR3.selPart]; delete AR3.moves[AR3.selPart]; build(); panel(); kick(); });
+    on("#ar3PDone", "onclick", e => { e.preventDefault(); AR3.selPart = null; panel(); kick(); });
     p.querySelectorAll(".ar3-body rect").forEach(r => r.onclick = () => { AR3.pick = AR3.pick === r.dataset.role ? null : r.dataset.role; panel(); });
     p.querySelectorAll("[data-joint]").forEach(b => b.onclick = () => { AR3.sel = b.dataset.joint; panel(); kick(); });
     on("#ar3Mirror", "onchange", e => { AR3.mirror = e.target.checked; }); on("#ar3Move", "onchange", e => { AR3.moveParts = e.target.checked; if (AR3.moveParts) { AR3.pose = "rest"; panel(); kick(); } });
     on("#ar3Reset", "onclick", e => { e.preventDefault(); delete AR3.joints[AR3.sel]; build(); panel(); kick(); });
-    on("#ar3ResetAll", "onclick", () => { AR3.joints = {}; AR3.moves = {}; build(); panel(); kick(); });
+    on("#ar3ResetAll", "onclick", () => { AR3.joints = {}; AR3.moves = {}; AR3.xform = {}; build(); panel(); kick(); });
     on("#ar3Snap", "onclick", () => { const s = snapJoints(false); toast(s.length ? `${s.length} joint${s.length > 1 ? "s" : ""} moved into the overlap of their parts` : "No gaps to fix"); panel(); kick(); });
     on("#ar3Fam", "onchange", e => { AR3.family = e.target.value; partConfidence(); rebuildFresh(); });
     on("#ar3Feet", "onchange", e => { AR3.smartFeet = e.target.checked; build(); AR3.doctor = null; panel(); kick(); });
@@ -21507,8 +21575,8 @@ body.sk #verBtn { color: #aaa; } body.sk #verBtn:hover { color: #e8e8e8; backgro
     on("#ar3Zip", "onclick", async () => { const z = await packageZip(); saveFile("skeleton.zip", z); });
     on("#ar3Json", "onclick", () => saveFile("skeleton.json", JSON.stringify(exportJSON(), null, "\t")));
   }
-  function rebuildFresh() { AR3.joints = {}; AR3.moves = {}; AR3.place = {}; AR3.dl = null; AR3.doctor = null; build(); fit(); panel(); kick(); if (AR3.afterLoad) AR3.afterLoad().then(() => { panel(); kick(); }); }
-  function go(i) { if (i > 0 && !AR3.built) return; AR3.step = i; if (i >= 2 && AR3.pose === "rest") AR3.pose = "idle"; panel(); kick(); }
+  function rebuildFresh() { AR3.joints = {}; AR3.moves = {}; AR3.xform = {}; AR3.place = {}; AR3.dl = null; AR3.doctor = null; build(); fit(); panel(); kick(); if (AR3.afterLoad) AR3.afterLoad().then(() => { panel(); kick(); }); }
+  function go(i) { if (i > 0 && !AR3.built) return; AR3.step = i; if (i === 1) AR3.pose = "rest"; if (i >= 2 && AR3.pose === "rest") AR3.pose = "idle"; panel(); kick(); }
 
   /* ---------- export ---------- */
   const VERSIONS = ["4.3.23", "4.3.26"]; // the Spine editor warns when the data's version differs from its own
@@ -21571,7 +21639,7 @@ body.sk #verBtn { color: #aaa; } body.sk #verBtn:hover { color: #e8e8e8; backgro
 #ar3 .ar3-j{background:var(--panel-2);border:1px solid var(--line);border-radius:6px;padding:4px 6px;text-align:left;cursor:pointer;color:var(--fg)}#ar3 .ar3-j.on{border-color:#fff}
 #ar3 .ar3-sel{background:var(--panel-2);border-radius:7px;padding:6px 8px;font-size:12px}
 #ar3 .ar3-cost{border-radius:8px;padding:8px;margin:10px 0;font-size:12px;border:1px solid var(--line)}#ar3 .ar3-green{border-color:#3fbf6a}#ar3 .ar3-yellow{border-color:#e8c33f}#ar3 .ar3-red{border-color:#e5534b}
-#ar3 .ar3-doc{margin:8px 0}#ar3 .ar3-chk{display:flex;gap:6px;margin:6px 0;font-size:12.5px}#ar3 .ar3-heat{max-width:100%;margin-top:4px;border-radius:6px}
+#ar3 .ar3-pedit{background:var(--panel-2);border:1px solid #58a6ef66;border-radius:8px;padding:8px;margin:8px 0}#ar3 .ar3-pedit img{width:42px;height:42px;object-fit:contain;background:#fff;border-radius:4px}#ar3 .ar3-num{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin:6px 0}#ar3 .ar3-num label{font-size:11px;color:var(--muted)}#ar3 .ar3-num input{width:100%;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:5px;padding:3px}#ar3 .ar3-doc{margin:8px 0}#ar3 .ar3-chk{display:flex;gap:6px;margin:6px 0;font-size:12.5px}#ar3 .ar3-heat{max-width:100%;margin-top:4px;border-radius:6px}
 @media (max-width:760px){#ar3 .ar3-main{flex-direction:column}#ar3 .ar3-panel{width:auto;border-left:0;border-top:1px solid var(--line);max-height:46vh}#ar3 .ar3-stage{min-height:42vh}#ar3 .ar3-step{padding:4px 7px}#ar3 .ar3-step:not(.on){font-size:0}#ar3 .ar3-step:not(.on) b{font-size:11px;margin:0}}`;
   document.head.appendChild(css);
 
@@ -21598,6 +21666,10 @@ body.sk #verBtn { color: #aaa; } body.sk #verBtn:hover { color: #e8e8e8; backgro
     setSmartFeet: on => { AR3.smartFeet = !!on; build(); AR3.doctor = null; panel(); kick(); return st3(); },
     joints: () => { need(); return jointsOut(); },
     setJoint: (id, x, y) => { need(); if (!AR3.report.joints[id]) throw new Error("No joint " + id); AR3.joints[id] = [+x, +y]; build(); AR3.doctor = null; panel(); kick(); return jointsOut().find(j => j.id === id); },
+    selectPart: part => { const s = slotName(part); if (!AR3.report.place[s]) throw new Error("No placed part " + part); AR3.mode = "advanced"; go(1); AR3.selPart = s; panel(); kick(); return { part: s, image: AR3.report.place[s].base }; },
+    transformPart: (part, o) => { need(); return setXform(slotName(part), o || {}); },
+    replacePart: async (part, url, name) => { need(); const i = partIndex(slotName(part)); if (i < 0) throw new Error("No placed part " + part); const p = await replacePart(i, url, name || "replaced"); return { part, image: p.base, w: p.w, h: p.h }; },
+    addPart: async (part, url, name) => { const p = await addPart(part, url, name); return { part, image: p.base, w: p.w, h: p.h }; },
     resetJoint: id => { delete AR3.joints[id]; build(); panel(); kick(); return jointsOut().find(j => j.id === id); },
     snapJoints: all => { need(); const s = snapJoints(!!all); panel(); kick(); return s; },
     movePart: (part, dx, dy) => { need(); const s = slotName(part); if (!AR3.report.place[s]) throw new Error("No placed part " + part); const m = AR3.moves[s] || [0, 0]; AR3.moves[s] = [m[0] + +dx, m[1] + +dy]; build(); panel(); kick(); return { part: s, move: AR3.moves[s] }; },
@@ -21628,7 +21700,7 @@ body.sk #verBtn { color: #aaa; } body.sk #verBtn:hover { color: #e8e8e8; backgro
   /* ---------- MCP bridge (PC version only): the server queues window.AIA commands from Claude; this page runs them ---------- */
   const ALLOWED = new Set(["autorig.open", "autorig.close", "autorig.state", "autorig.loadUrls", "autorig.parts", "autorig.partNames", "autorig.setPart", "autorig.setFamily", "autorig.setSmartFeet", "autorig.setVersion",
     "autorig.joints", "autorig.setJoint", "autorig.resetJoint", "autorig.snapJoints", "autorig.movePart", "autorig.pose", "autorig.step", "autorig.doctor", "autorig.cost", "autorig.exportJSON",
-    "autorig.openInEditor", "autorig.snapshot", "autorig.packageBase64", "autorig.mode", "autorig.setMarker", "autorig.markers", "autorig.autoRig", "autorig.library", "autorig.select", "autorig.animOptions", "autorig.focus", "autorig.addAnimationsJSON", "autorig.addAnimationsFromProject", "autorig.removeAnimation", "autorig.download", "autorig.spineBase64", "project.info", "project.bones", "project.anims", "help", "version"]);
+    "autorig.openInEditor", "autorig.snapshot", "autorig.packageBase64", "autorig.mode", "autorig.setMarker", "autorig.markers", "autorig.autoRig", "autorig.library", "autorig.select", "autorig.animOptions", "autorig.focus", "autorig.addAnimationsJSON", "autorig.addAnimationsFromProject", "autorig.removeAnimation", "autorig.download", "autorig.spineBase64", "autorig.selectPart", "autorig.transformPart", "autorig.replacePart", "autorig.addPart", "autorig.footSlide", "autorig.handsCheck", "autorig.packs", "autorig.selectPack", "autorig.savePack", "autorig.removePack", "autorig.libraryWhere", "autorig.batchUrls", "autorig.batchReport", "autorig.batchZipBase64", "autorig.setReference", "autorig.removeReference", "autorig.reference", "autorig.fitReference", "project.info", "project.bones", "project.anims", "help", "version"]);
   async function runCmd(c) {
     if (!ALLOWED.has(c.cmd)) throw new Error("Not allowed: " + c.cmd);
     const parts = c.cmd.split("."), fn = parts.reduce((o, k) => o && o[k], window.AIA), self = parts.length > 1 ? window.AIA[parts[0]] : window.AIA;
@@ -21674,17 +21746,19 @@ body.sk #verBtn { color: #aaa; } body.sk #verBtn:hover { color: #e8e8e8; backgro
   const breathe = n => ({ hips: { translate: [[0, 0, 0], [n / 2, 0, -.012], [n, 0, 0]] } });
   const M = (...o) => { const out = {}; for (const x of o) for (const b in x) out[b] = Object.assign(out[b] || {}, x[b]); return out; };
   const S = .2, LIFT = .1, RS = .3, RLIFT = .24;
+  // swing: forward motion linear, the lift leaves the ground fast (ease out) and lands fast (ease in), so a foot never drags on the ground
+  const UP = [[1 / 3, 1 / 3, 2 / 3, 2 / 3], [0, 0, .58, 1]], DN = [[1 / 3, 1 / 3, 2 / 3, 2 / 3], [.42, 0, 1, 1]];
   const LIB = [
     { id: "idle", name: "Idle", tags: "breathe stand rest", dur: 72, loop: true, tracks: M(breathe(72), blink(48), { body_up: { rotate: [[0, 0], [36, 1.5], [72, 0]] }, head: { rotate: [[0, 0], [42, -1.5], [72, 0]] }, "arm_front-up": { rotate: [[0, 0], [40, 1.5], [72, 0]] }, "arm_back-up": { rotate: [[0, 0], [40, -1.5], [72, 0]] } }) },
     { id: "look", name: "Idle look around", tags: "idle head turn bored", dur: 120, loop: true, tracks: M(breathe(120), blink(30), blink(92), { head: { rotate: [[0, 0], [24, 5], [54, 5], [78, -4], [102, -4], [120, 0]] }, body_up: { rotate: [[0, 0], [30, 1.2], [78, -1], [120, 0]] } }) },
     { id: "walk", name: "Walk", tags: "move locomotion cycle", dur: 30, loop: true, travel: 4 * S, feet: true, tracks: {
-      foot_front: { translate: [[0, S, 0], [15, -S, 0], [22, 0, LIFT], [30, S, 0]] }, foot_back: { translate: [[0, -S, 0], [7, 0, LIFT], [15, S, 0], [30, -S, 0]] },
+      foot_front: { translate: [[0, S, 0, "lin"], [15, -S, 0, UP], [22, 0, LIFT, DN], [30, S, 0]] }, foot_back: { translate: [[0, -S, 0, UP], [7, 0, LIFT, DN], [15, S, 0, "lin"], [30, -S, 0]] },
       hips: { translate: [[0, 0, -.035], [7, 0, .005], [15, 0, -.035], [22, 0, .005], [30, 0, -.035]], rotate: [[0, -1.5], [15, 1.5], [30, -1.5]] },
       body_up: { rotate: [[0, -2], [15, -4], [30, -2]] }, head: { rotate: [[0, 1], [15, -1], [30, 1]] },
       "arm_front-up": { rotate: [[0, -14], [15, 14], [30, -14]] }, "arm_back-up": { rotate: [[0, 14], [15, -14], [30, 14]] },
       "arm_front-down": { rotate: [[0, 8], [2, 6], [17, 16], [30, 8]] }, "arm_back-down": { rotate: [[0, 13], [2, 16], [17, 6], [30, 13]] } } },
     { id: "run", name: "Run", tags: "move locomotion fast sprint cycle", dur: 18, loop: true, travel: 4 * RS, feet: true, tracks: {
-      foot_front: { translate: [[0, RS, 0], [9, -RS, 0], [13, 0, RLIFT], [18, RS, 0]] }, foot_back: { translate: [[0, -RS, 0], [4, 0, RLIFT], [9, RS, 0], [18, -RS, 0]] },
+      foot_front: { translate: [[0, RS, 0, "lin"], [9, -RS, 0, UP], [13, 0, RLIFT, DN], [18, RS, 0]] }, foot_back: { translate: [[0, -RS, 0, UP], [4, 0, RLIFT, DN], [9, RS, 0, "lin"], [18, -RS, 0]] },
       hips: { translate: [[0, 0, -.07], [4, 0, .03], [9, 0, -.07], [13, 0, .03], [18, 0, -.07]] }, body_up: { rotate: [[0, -9], [9, -11], [18, -9]] }, head: { rotate: [[0, 4], [9, 2], [18, 4]] },
       "arm_front-up": { rotate: [[0, -32], [9, 30], [18, -32]] }, "arm_back-up": { rotate: [[0, 30], [9, -32], [18, 30]] },
       "arm_front-down": { rotate: [[0, 65], [9, 80], [18, 65]] }, "arm_back-down": { rotate: [[0, 80], [9, 65], [18, 80]] } } },
@@ -21702,7 +21776,7 @@ body.sk #verBtn { color: #aaa; } body.sk #verBtn:hover { color: #e8e8e8; backgro
       "arm_front-up": { rotate: [[0, -148], [9, -138], [18, -148], [27, -138], [36, -148]] }, "arm_back-up": { rotate: [[0, 148], [9, 138], [18, 148], [27, 138], [36, 148]] },
       "arm_front-down": { rotate: [[0, -10], [11, 0], [20, -10], [29, 0], [36, -10]] }, "arm_back-down": { rotate: [[0, 10], [11, 0], [20, 10], [29, 0], [36, 10]] },
       hips: { translate: [[0, 0, 0], [9, 0, -.04], [18, 0, 0], [27, 0, -.04], [36, 0, 0]] }, head: { rotate: [[0, 6], [18, 2], [36, 6]] }, body_up: { rotate: [[0, 2], [18, -1], [36, 2]] } } },
-    { id: "clap", name: "Clap", tags: "applause hands happy", dur: 30, loop: true, tracks: {
+    { id: "clap", name: "Clap", tags: "applause hands happy", dur: 30, loop: true, meet: [0, 15, 30], tracks: {
       "arm_front-up": { rotate: [[0, 30], [30, 30]] }, "arm_back-up": { rotate: [[0, -25], [30, -25]] },
       "arm_front-down": { rotate: [[0, 85], [7, 62], [15, 85], [22, 62], [30, 85]] }, "arm_back-down": { rotate: [[0, -75], [7, -52], [15, -75], [22, -52], [30, -75]] },
       head: { rotate: [[0, 0], [7, -2], [15, 0], [22, -2], [30, 0]] }, hips: { translate: [[0, 0, 0], [15, 0, -.01], [30, 0, 0]] } } },
@@ -21736,7 +21810,7 @@ body.sk #verBtn { color: #aaa; } body.sk #verBtn:hover { color: #e8e8e8; backgro
       head: { rotate: [[0, 4], [15, -4], [30, 4]] }, body_up: { rotate: [[0, 3], [15, -3], [30, 3]] } } },
   ];
   // authored arrays -> keys { time, value | x, y, curve }; leg-length units (L = 1)
-  const toKeys = (ch, arr) => arr.map(k => Object.assign({ time: k[0] / F, curve: EASE }, ch === "rotate" ? { value: k[1] } : { x: k[1], y: k[2] }));
+  const toKeys = (ch, arr) => arr.map(k => Object.assign({ time: k[0] / F, curve: k[k.length - 1] === "lin" ? undefined : Array.isArray(k[k.length - 1]) ? k[k.length - 1] : EASE }, ch === "rotate" ? { value: k[1] } : { x: k[1], y: k[2] })); // "lin": a planted foot moves at a steady speed (no slide against the travel)
   for (const e of LIB) { const t = {}; for (const b in e.tracks) { t[b] = {}; for (const ch in e.tracks[b]) t[b][ch] = toKeys(ch, e.tracks[b][ch]); } e.keys = t; e.L = 1; e.dur = e.dur / F; if (e.travel) e.travelL = e.travel; }
   Q.LIB = LIB;
   const all = () => [...LIB, ...Q.user];
@@ -21765,7 +21839,43 @@ body.sk #verBtn { color: #aaa; } body.sk #verBtn:hover { color: #e8e8e8; backgro
     if (!o.inPlace && e.travelL) out.skeleton_control = Object.assign(out.skeleton_control || {}, { translate: [{ time: 0, x: 0, y: 0 }, { time: dur, x: r3(e.travelL * legLen() * o.stride * (b - a) / dur0), y: 0 }] });
     // mirror: the whole character flipped (skill: never mirror single parts)
     if (o.mirror) out.flip = Object.assign(out.flip || {}, { scale: [{ time: 0, x: -1, y: 1 }] });
-    return { tracks: out, dur };
+    const g = { tracks: out, dur };
+    if ((e.meet || e.hands) && o.hands !== false) try { solveHands(e, g, t => r3((t - a) / sp), dur); } catch (err) { console.warn("hands", e.id, err); }
+    return g;
+  }
+  /* smarter retarget, hands: each wrist reaches the same place from its shoulder, in the chest's frame, as the same share of the arm's
+     reach as in the source (own animations: stored when added; always reachable on a rig with other arm lengths), or meet each other (clap); the arm rotations are solved on this rig (2-bone, no stretch) at those times */
+  const ARMS = [["L", "arm_front-up", "arm_front-down", "hand_front", "F"], ["R", "arm_back-up", "arm_back-down", "hand_back", "B"]];
+  function solveHands(e, g, tf, dur) {
+    const d = AR3.doc, B = n => AR3.byName && AR3.byName.get(n); if (!d || !B("body_up") || typeof solvePoseFromMarks !== "function") return;
+    const arms = ARMS.filter(x => B(x[1]) && B(x[2]) && B(x[3])); if (!arms.length) return;
+    const an = docAnim(e, g), map = {}, L = legLen(); for (const [t, up, lo, h] of arms) { map["up" + t] = B(up).id; map["lo" + t] = B(lo).id; map["hand" + t] = B(h).id; }
+    const times = new Map(); // out time -> { F: [x, y] rel | "meet", B: ... }
+    if (e.meet) for (const f of e.meet) { const t = tf(f / F); if (t >= -1e-6 && t <= dur + 1e-6) times.set(r3(t), { meet: true }); }
+    if (e.hands) for (const side of ["F", "B"]) for (const [ts, x, y] of e.hands[side] || []) { const t = r3(tf(ts)); if (t < -1e-6 || t > dur + 1e-6) continue; const o = times.get(t) || {}; o[side] = [x, y]; times.set(t, o); }
+    for (const [t, want] of [...times].sort((p, q) => p[0] - q[0])) {
+      const W = worldFrom(d, b => bonePose(d, b, an, t), an, t), bu = W[B("body_up").id], T = {};
+      const wrist = side => { const h = W[B(side === "F" ? "hand_front" : "hand_back").id]; return [h.x, h.y]; };
+      if (want.meet) { const a = wrist("F"), b = wrist("B"), m = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]; T.wrist_L = m; T.wrist_R = m; }
+      for (const [side, tag, un, ln] of [["F", "L", "arm_front-up", "arm_front-down"], ["B", "R", "arm_back-up", "arm_back-down"]]) if (want[side] && B(un) && B(ln)) { // the same share of this arm's reach
+        const [x, y] = want[side], sh = W[B(un).id], r = (B(un).length || 1) + (B(ln).length || 1); T["wrist_" + tag] = [bu.a * x * r + bu.b * y * r + sh.x, bu.c * x * r + bu.d * y * r + sh.y]; }
+      solvePoseFromMarks(d, an, t, T, map, { noHand: true, minLen: 1, maxLen: 1, bend: 0 });
+    }
+    for (const [, up, lo] of arms) for (const n of [up, lo]) { const k = an.bones[B(n).id] && an.bones[B(n).id].rotate; if (k && k.length) (g.tracks[n] = g.tracks[n] || {}).rotate = k.map(x => Object.assign({}, x)); }
+    g.handsSolved = times.size;
+  }
+  /* feet: how far a planted foot slides in the world (travel on) over the clip, px: a foot counts as planted near its lowest height */
+  function footSlide(e) {
+    const o = optOf(e.id), keep = o.inPlace; o.inPlace = false; let g; try { g = gen(e); } finally { o.inPlace = keep; }
+    const d = AR3.doc, a = docAnim(e, g), out = {};
+    for (const n of ["foot_front", "foot_back"]) {
+      const b = AR3.byName.get(n); if (!b) continue; const P = [];
+      for (let i = 0; i <= 60; i++) { const t = g.dur * i / 60, W = worldFrom(d, x => bonePose(d, x, a, t), a, t); P.push([W[b.id].x, W[b.id].y]); }
+      const y0 = Math.min(...P.map(p => p[1])); let s = 0;
+      for (let i = 1; i < P.length; i++) if (P[i][1] - y0 < 1 && P[i - 1][1] - y0 < 1) s = Math.max(s, Math.abs(P[i][0] - P[i - 1][0]) * 60 / g.dur / 30); // px per frame at 30 fps
+      out[n] = Math.round(s * 100) / 100;
+    }
+    return out;
   }
   /* -> the live document's animation (preview) */
   function docAnim(e, g) {
@@ -21788,10 +21898,19 @@ body.sk #verBtn { color: #aaa; } body.sk #verBtn:hover { color: #e8e8e8; backgro
     }
     return out;
   }
-  function addLib() {
-    if (!AR3.doc) return; AR3.doc.anims = AR3.doc.anims.filter(a => !a.name.startsWith("lib:"));
-    for (const e of all()) { try { AR3.doc.anims.push(docAnim(e, gen(e))); } catch (err) { console.warn("library", e.id, err); } }
+  /* lazy: an animation is made for this rig only when it is shown (card on screen, focused) or exported, and kept until the rig
+     (a new build) or its options change */
+  const cache = new Map();
+  function ensure(id) {
+    const e = byId(id); if (!e || !AR3.doc) return null; const sig = JSON.stringify(optOf(id)), c = cache.get(id);
+    let a = AR3.doc.anims.find(x => x.name === "lib:" + id);
+    if (a && c && c.doc === AR3.doc && c.sig === sig) return a;
+    try { a = docAnim(e, gen(e)); } catch (err) { console.warn("library", id, err); return null; }
+    const i = AR3.doc.anims.findIndex(x => x.name === "lib:" + id); if (i >= 0) AR3.doc.anims[i] = a; else AR3.doc.anims.push(a);
+    cache.set(id, { doc: AR3.doc, sig }); return a;
   }
+  Q.ensure = ensure;
+  function addLib() { if (!AR3.doc) return; AR3.doc.anims = AR3.doc.anims.filter(a => !a.name.startsWith("lib:")); cache.clear(); if (Q.focus) ensure(Q.focus); }
   AR3.onBuild = () => { if (Q.libOn) addLib(); };
   AR3.extraAnims = j => {
     if (!Q.libOn && !Q.forceExport) return {}; const bones = new Set(j.bones.map(b => b.name)), out = {}, used = new Set(Object.keys(j.animations || {}));
@@ -21804,7 +21923,19 @@ body.sk #verBtn { color: #aaa; } body.sk #verBtn:hover { color: #e8e8e8; backgro
   async function dbAll() { try { const db = await DB(); return await new Promise(res => { const q = db.transaction("anims").objectStore("anims").getAll(); q.onsuccess = () => res(q.result || []); q.onerror = () => res([]); }); } catch (e) { return []; } }
   async function dbPut(list) { const db = await DB(); await new Promise((res, rej) => { const tx = db.transaction("anims", "readwrite"); for (const x of list) tx.objectStore("anims").put(x); tx.oncomplete = res; tx.onerror = () => rej(tx.error); }); }
   async function dbDel(id) { const db = await DB(); await new Promise(res => { const tx = db.transaction("anims", "readwrite"); tx.objectStore("anims").delete(id); tx.oncomplete = res; tx.onerror = res; }); }
-  async function loadUser() { Q.user = (await dbAll()).sort((a, b) => (a.added || 0) - (b.added || 0)); }
+  /* signed in (website login): also kept in the account, users/{uid}/anims/{id}, so they follow the user to every device */
+  const cloud = () => { const A = window.AIA_AUTH; return A && A.enabled && A.user && A.db ? { db: A.db, uid: A.user.uid, col: () => A.db.collection("users/" + A.user.uid + "/anims") } : null; };
+  const META = ["name", "tags", "dur", "loop", "L", "src", "added", "kind", "ids", "travelL", "feet", "hands"];
+  async function cloudAll() { const c = cloud(); if (!c) return null; try { const s = await c.col().get(); return s.docs.map(d => { const x = d.data() || {}; try { return Object.assign({}, x, { id: d.id, user: true, keys: x.data ? JSON.parse(x.data) : undefined, data: undefined }); } catch (e) { return null; } }).filter(Boolean); } catch (e) { console.warn("library (account)", e); Q.cloudErr = e.message || String(e); return null; } }
+  async function cloudPut(list) { const c = cloud(); if (!c) return 0; let n = 0; for (const x of list) { const o = {}; for (const k of META) if (x[k] !== undefined) o[k] = x[k]; if (x.keys) { o.data = JSON.stringify(x.keys); if (o.data.length > 900000) continue; } try { await c.col().doc(x.id).set(o); n++; } catch (e) { Q.cloudErr = e.message || String(e); } } return n; }
+  async function cloudDel(id) { const c = cloud(); if (!c) return; try { await c.col().doc(id).delete(); } catch (e) { Q.cloudErr = e.message || String(e); } }
+  async function loadUser() {
+    const local = await dbAll(), remote = await cloudAll(), by = new Map(local.map(x => [x.id, x]));
+    if (remote) { for (const x of remote) by.set(x.id, x); const missing = local.filter(x => !remote.some(r => r.id === x.id)); if (missing.length) await cloudPut(missing); if (remote.length) try { await dbPut(remote); } catch (e) { } } // first sign-in: this browser's ones go up too
+    const all2 = [...by.values()].sort((a, b) => (a.added || 0) - (b.added || 0));
+    Q.user = all2.filter(x => x.kind !== "pack"); Q.userPacks = all2.filter(x => x.kind === "pack"); Q.where = remote ? "account" : "browser";
+  }
+  window.addEventListener("aia-auth", async () => { await loadUser(); if (Q.libOn) addLib(); if ($("#ar3")) _.panel(); });
   /* a document's animations -> library entries: tracks by bone name, translations kept with the source's leg length (L) */
   function fromDoc(d, srcName) {
     const bn = id => (d.bones.find(b => b.id === id) || {}).name, W = worldFrom(d, b => bonePose(d, b, null, 0), null, 0), bw = n => { const b = d.bones.find(x => x.name === n); return b && W[b.id]; };
@@ -21816,21 +21947,85 @@ body.sk #verBtn { color: #aaa; } body.sk #verBtn:hover { color: #e8e8e8; backgro
       const keys = {}; let n = 0;
       for (const id in a.bones) { const name = bn(id); if (!name) continue; keys[name] = {}; for (const ch of ["rotate", "translate", "scale"]) if (a.bones[id][ch] && a.bones[id][ch].length) { keys[name][ch] = JSON.parse(JSON.stringify(a.bones[id][ch])); n++; } }
       if (!n) continue;
-      out.push({ id: "u" + uid(), name: a.name.split("/").pop(), tags: "mine " + (srcName || ""), user: true, dur: Math.max(1 / F, animDuration(a)), loop: true, L, keys, added: Date.now(), src: srcName || "" });
+      // hands: where each wrist is relative to the chest (body_up), in leg lengths, at every arm key (smarter retarget)
+      let hands; const bu = d.bones.find(x => x.name === "body_up");
+      if (bu) { const ids = new Set(d.bones.filter(x => /^(arm_(front|back)-(up|down)|hand_(front|back)|body_(up|down)|hips)$/.test(x.name)).map(x => x.id)), ts = new Set([0]);
+        for (const id of ids) for (const ch in a.bones[id] || {}) for (const k of a.bones[id][ch]) ts.add(Math.round(k.time * 1000) / 1000);
+        if (ts.size > 1) { hands = { F: [], B: [] };
+          for (const t of [...ts].sort((p, q) => p - q).slice(0, 80)) { const Wt = worldFrom(d, x => bonePose(d, x, a, t), a, t), w = Wt[bu.id], det = w.a * w.d - w.b * w.c || 1e-9;
+            for (const [side, hn, un, ln] of [["F", "hand_front", "arm_front-up", "arm_front-down"], ["B", "hand_back", "arm_back-up", "arm_back-down"]]) {
+              const hb = d.bones.find(x => x.name === hn), ub = d.bones.find(x => x.name === un), lb = d.bones.find(x => x.name === ln); if (!hb || !ub || !lb) continue;
+              const reach = (ub.length || 1) + (lb.length || 1), dx = Wt[hb.id].x - Wt[ub.id].x, dy = Wt[hb.id].y - Wt[ub.id].y; // wrist from the shoulder, in the chest frame, in arm lengths
+              hands[side].push([t, Math.round((w.d * dx - w.b * dy) / det / reach * 1e4) / 1e4, Math.round((-w.c * dx + w.a * dy) / det / reach * 1e4) / 1e4]); } } } }
+      out.push({ id: "u" + uid(), name: a.name.split("/").pop(), tags: "mine " + (srcName || ""), user: true, dur: Math.max(1 / F, animDuration(a)), loop: true, L, keys, hands, added: Date.now(), src: srcName || "" });
     }
     return out;
   }
-  async function addUser(list) { if (!list.length) return 0; await dbPut(list); await loadUser(); if (Q.libOn) addLib(); return list.length; }
+  async function addUser(list) { if (!list.length) return 0; await dbPut(list); await cloudPut(list); await loadUser(); if (Q.libOn) addLib(); return list.length; }
+  async function removeUser(id) { await dbDel(id); await cloudDel(id); Q.sel.delete(id); await loadUser(); if (Q.libOn) addLib(); }
+  /* packs: groups of animations to select together (ours, and the user's own) */
+  const PACKS = [{ id: "p_basics", name: "Basics", ids: ["idle", "walk", "run", "jump"] }, { id: "p_emotions", name: "Emotions", ids: ["happy", "sad", "cheer", "nod", "shake"] },
+    { id: "p_gestures", name: "Gestures", ids: ["wave", "clap", "point", "bow", "talk"] }, { id: "p_fun", name: "Fun", ids: ["dance", "look", "cheer"] }];
+  Q.userPacks = [];
+  const packs = () => [...PACKS, ...Q.userPacks];
+  async function savePack(name, ids) { const x = { id: "k" + uid(), kind: "pack", name: String(name).slice(0, 40), ids: [...ids], added: Date.now(), user: true }; await dbPut([x]); await cloudPut([x]); await loadUser(); return x; }
   async function addFromJSONText(text, name) { const j = JSON.parse(text); if (!j.bones || !j.animations) throw new Error("Not a Spine JSON export (no bones / animations)"); const d = normalizeDoc(importSpineJSON(j, () => null, () => null).doc); return addUser(fromDoc(d, name)); }
   async function addFromProject() { if (!doc || !doc.anims || !doc.anims.length) throw new Error("The open project has no animations"); return addUser(fromDoc(doc, doc.name)); }
 
   /* ---------- quick pipeline: build, fix gaps, check, retarget (progress bar) ---------- */
-  async function autoRig() {
+  async function autoRig(silent) {
     const st = [["Building the skeleton", () => { AR3.family = AR3.family || "auto"; _.build(); }], ["Fixing gaps at the joints", () => AIA.autorig.snapJoints(false)], ["Checking the rig (Rig Doctor)", () => _.doctor()],
       [`Retargeting ${all().length} animations`, () => { Q.libOn = true; addLib(); }]];
-    for (let i = 0; i < st.length; i++) { Q.progress = { i, n: st.length, label: st[i][0] }; _.panel(); await new Promise(r => setTimeout(r, 60)); st[i][1](); }
+    for (let i = 0; i < st.length; i++) { if (!silent) { Q.progress = { i, n: st.length, label: st[i][0] }; _.panel(); await new Promise(r => setTimeout(r, 60)); } st[i][1](); }
+    if (silent) return { doctor: AR3.doctor && AR3.doctor.pass, animations: all().length };
     Q.progress = null; AR3.qstep = 2; AR3.pose = "lib:" + Q.focus; AR3.t = 0; AR3.playing = true; AR3.sel = null; _.panel(); _.kick();
     return { doctor: AR3.doctor && AR3.doctor.pass, animations: all().length };
+  }
+
+  /* ---------- batch: a folder of character folders -> a rig each (the quick pipeline, the selected animations), one report, one zip ---------- */
+  const BATCH = Q.batchState = { running: false, rows: [], zip: null, i: 0, n: 0 };
+  function groupFiles(files) { // <picked>/<character>/images/... (or <picked>/<character>/*.png) -> [{ name, files }]
+    const g = new Map(), rel = f => (f.webkitRelativePath || f.name).replace(/\\/g, "/");
+    for (const f of files) {
+      if (!/\.png$/i.test(f.name)) continue; const s = rel(f).split("/"); if (s.length < 3) continue;
+      const name = s[1], rest = s.slice(2).join("/").toLowerCase();
+      if (!(/^images\/front\/[^/]+$/.test(rest) || /^images\/[^/]+$/.test(rest) || /^front\/[^/]+$/.test(rest) || /^[^/]+$/.test(rest))) continue;
+      if (!g.has(name)) g.set(name, []); g.get(name).push(f);
+    }
+    return [...g].map(([name, files]) => ({ name, files: files.map(f => { const r = rel(f).split("/").slice(1).join("/"); const c = new File([f], f.name, { type: "image/png" }); Object.defineProperty(c, "webkitRelativePath", { value: r }); return c; }) }))
+      .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+  }
+  async function batch(groups) {
+    Object.assign(BATCH, { running: true, rows: [], zip: null, i: 0, n: groups.length }); _.panel();
+    const enc = new TextEncoder(), files = [], sel = [...Q.sel];
+    for (const g of groups) {
+      BATCH.i++; BATCH.cur = g.name; _.panel();
+      const row = { name: g.name };
+      try {
+        AR3.joints = {}; AR3.moves = {}; AR3.dl = null; AR3.family = "auto"; AR3.name = g.name;
+        await _.takeFiles(g.files); AR3.name = g.name;
+        if (!AR3.built) throw new Error("no body parts recognised");
+        await autoRig(true); Q.sel = new Set(sel); AR3.qstep = 0;
+        const j = _.exportJSON(), d = AR3.doctor, gaps = ((d.checks.find(c => c.id === "range") || {}).gaps || []).filter(x => x.gap > .05);
+        files.push({ name: g.name + "/skeleton.json", data: enc.encode(JSON.stringify(j, null, "\t")) });
+        for (const p of ART.parts) if (p.path) files.push({ name: g.name + "/images/" + p.path + ".png", data: new Uint8Array(await (await fetch(p.url)).arrayBuffer()) });
+        Object.assign(row, { ok: true, rig: AR3.report.family === "B" ? "controller biped" : "game biped", parts: ART.parts.length, recognised: ART.parts.filter(p => p.slot).length,
+          missing: AR3.report.missing.map(x => AR_LABEL[x] || x), unused: AR3.report.unused.length, bones: j.bones.length, animations: Object.keys(j.animations).length,
+          doctor: d.pass ? "pass" : d.checks.filter(c => !c.pass).map(c => c.name).join(", "), gaps: gaps.map(x => x.label) });
+      } catch (e) { Object.assign(row, { ok: false, error: e.message || String(e) }); }
+      BATCH.rows.push(row); AR3.qstep = 0; _.panel(); await new Promise(r => setTimeout(r, 0));
+    }
+    const esc2 = s => '"' + String(s ?? "").replace(/"/g, '""') + '"';
+    const csv = ["character,result,rig,parts,recognised,missing parts,bones,animations,rig doctor,gaps"].concat(BATCH.rows.map(r => r.ok ? [r.name, "ok", r.rig, r.parts, r.recognised, r.missing.join("; "), r.bones, r.animations, r.doctor, r.gaps.join("; ")].map(esc2).join(",") : [r.name, "not rigged: " + r.error].map(esc2).join(","))).join("\r\n");
+    files.push({ name: "report.csv", data: enc.encode(csv) });
+    BATCH.zip = makeZip(files); BATCH.running = false; _.panel();
+    return BATCH.rows;
+  }
+  function batchHtml() {
+    const B = BATCH; if (!B.running && !B.rows.length) return "";
+    return `<div class="ar3-batch"><b>Batch auto-rig</b> ${B.running ? `<div class="ar3-prog"><div style="width:${Math.round(B.i / B.n * 100)}%"></div></div><small>${B.i} of ${B.n}: ${esc(B.cur || "")}</small>` : `<small class="muted">${B.rows.filter(r => r.ok).length} of ${B.rows.length} rigged</small>`}
+      <table class="ar3-tab"><tr><th>Character</th><th>Parts</th><th>Missing</th><th>Rig Doctor</th></tr>${B.rows.map(r => r.ok ? `<tr><td>${esc(r.name)}</td><td>${r.recognised}/${r.parts}</td><td>${esc(r.missing.join(", ") || "-")}</td><td>${r.doctor === "pass" ? _.chip("green") + "pass" : _.chip("yellow") + esc(r.doctor + (r.gaps.length ? " (" + r.gaps.join(", ") + ")" : ""))}</td></tr>` : `<tr><td>${esc(r.name)}</td><td colspan="3">${_.chip("red")}${esc(r.error)}</td></tr>`).join("")}</table>
+      ${B.zip ? `<button class="btn primary" id="ar3BatchDown">Download all (zip)</button>` : ""}</div>`;
   }
 
   /* ---------- panel ---------- */
@@ -21842,7 +22037,9 @@ body.sk #verBtn { color: #aaa; } body.sk #verBtn:hover { color: #e8e8e8; backgro
       <input type="file" id="ar3Dir" webkitdirectory multiple hidden><input type="file" id="ar3Files" accept="image/png" multiple hidden>
       <label class="ar3-l">Character name<input id="ar3Name" class="field" value="${esc(AR3.name)}"></label>
       <p class="muted ar3-small">Separate PNG parts of a standing character (head, body, arms, legs...), like your rigs' images folder: only <b>front</b> is used. Nothing is uploaded.</p>
-      ${n ? `<p>${n} images, ${ART.parts.filter(p => p.slot).length} recognised.</p><button class="btn primary" data-q="1">Next: markers</button>` : ""}`;
+      ${n && !BATCH.rows.length && !BATCH.running ? `<p>${n} images, ${ART.parts.filter(p => p.slot).length} recognised.</p><button class="btn primary" data-q="1">Next: markers</button>` : ""}
+      <details class="ar3-mine"${BATCH.running || BATCH.rows.length ? " open" : ""}><summary>Many characters? Batch auto-rig</summary><p class="muted ar3-small">Pick a folder that holds one folder per character (each with its images folder, like your customers folder). Every character is rigged the quick way, with the animations selected in the library (now: ${esc([...Q.sel].map(id => (byId(id) || {}).name).filter(Boolean).join(", ") || "none")}); you get one zip with a folder per character and report.csv.</p>
+        <button class="btn" id="ar3BatchPick"${BATCH.running ? " disabled" : ""}>Pick the characters folder…</button><input type="file" id="ar3Batch" webkitdirectory multiple hidden>${batchHtml()}</details>`;
     if (s === 1) {
       const conf = id => (AR3.conf[id] || {}).c || "yellow", list = _.MARKERS.filter(([id]) => AR3.report && AR3.report.joints[id]);
       if (Q.progress) { const p = Q.progress; return `<h3>Auto-rigging…</h3><div class="ar3-prog"><div style="width:${Math.round((p.i + 1) / p.n * 100)}%"></div></div><p>${esc(p.label)} (${p.i + 1}/${p.n})</p>`; }
@@ -21850,12 +22047,14 @@ body.sk #verBtn { color: #aaa; } body.sk #verBtn:hover { color: #e8e8e8; backgro
         <div class="ar3-jl">${list.map(([id, label, ch]) => `<button class="ar3-j${AR3.sel === id ? " on" : ""}" data-joint="${id}" title="${esc((AR3.conf[id] || {}).why || "")}">${_.chip(conf(id))} ${ch} · ${esc(label)}</button>`).join("")}</div>
         <label class="ar3-row2"><input type="checkbox" id="ar3Mirror"${AR3.mirror ? " checked" : ""}> Symmetry (left and right markers at the same height)</label>
         ${AR3.sel ? `<div class="ar3-sel">${esc((AR3.conf[AR3.sel] || {}).why || "")}${AR3.joints[AR3.sel] ? ` <a href="#" id="ar3Reset">Undo this marker</a>` : ""}</div>` : ""}
-        <button class="btn primary as-big" id="ar3Auto">Auto-rig ▸</button>
+        <button class="btn primary as-big" id="ar3Auto">Auto-rig ▸</button> <button class="btn" id="ar3EditParts" title="Move, turn, scale or replace a part, or add an image for a missing part">Edit parts</button>
         <p class="muted ar3-small">${ART.parts.length} parts, rig type ${AR3.report ? (AR3.report.family === "B" ? "controller biped" : "game biped") : "?"} (change it under Advanced).</p>`;
     }
     if (s === 2) {
       const q = Q.search.toLowerCase(), list = all().filter(e => !q || (e.name + " " + (e.tags || "")).toLowerCase().includes(q)), e = byId(Q.focus) || list[0], o = e && optOf(e.id);
       return `<h3>Animations <small class="muted">${Q.sel.size} selected</small></h3>
+        <div class="ar3-packs">${packs().map(k => `<span class="ar3-pack"><button class="btn" data-pack="${k.id}" title="Select: ${esc(k.ids.map(id => (byId(id) || {}).name).filter(Boolean).join(", "))}">${esc(k.name)}</button>${k.kind === "pack" ? `<button class="ico" data-unpack="${k.id}" aria-label="Remove pack ${esc(k.name)}">✕</button>` : ""}</span>`).join("")}
+          <button class="btn" id="ar3PackSave"${Q.sel.size ? "" : " disabled"} title="Save the selected animations as your own pack">＋ Pack</button></div>
         <input id="ar3Q" class="field ar3-search" placeholder="Search: walk, wave, happy…" value="${esc(Q.search)}">
         <div class="ar3-grid">${list.map(x => `<div class="ar3-card${x.id === Q.focus ? " on" : ""}" data-focus="${x.id}"><canvas data-prev="${x.id}" width="120" height="140"></canvas>
           <label class="ar3-ck"><input type="checkbox" data-pick="${x.id}"${Q.sel.has(x.id) ? " checked" : ""}> ${esc(x.name)}</label>${x.user ? `<button class="ico ar3-del" data-del="${x.id}" title="Remove from my animations" aria-label="Remove ${esc(x.name)}">✕</button>` : ""}</div>`).join("") || `<p class="muted">Nothing matches.</p>`}</div>
@@ -21864,7 +22063,7 @@ body.sk #verBtn { color: #aaa; } body.sk #verBtn:hover { color: #e8e8e8; backgro
           ${e.feet || e.travelL ? slider("stride", "Stride", .5, 1.6, .05, o.stride, v => (+v).toFixed(2) + "×") : ""}
           ${slider("trimA", "Trim start", 0, .9, .01, o.trimA, v => Math.round(v * 100) + "%")}${slider("trimB", "Trim end", .1, 1, .01, o.trimB, v => Math.round(v * 100) + "%")}
           <div class="ar3-row2">${e.travelL ? `<label><input type="checkbox" data-optc="inPlace"${o.inPlace ? " checked" : ""}> In place</label>` : ""}<label><input type="checkbox" data-optc="mirror"${o.mirror ? " checked" : ""}> Mirror</label><a href="#" id="ar3OptReset">Reset</a></div></div>` : ""}
-        <details class="ar3-mine"><summary>Add my animations to the library</summary><p class="muted ar3-small">They stay in this browser and retarget like the others (by bone names and leg length).</p>
+        <details class="ar3-mine"><summary>Add my animations to the library</summary><p class="muted ar3-small">They retarget like the others (by bone names and leg length). ${cloud() ? `Saved in your account, so they are there on every device you sign in on.` : window.AIA_AUTH && window.AIA_AUTH.enabled ? "Sign in to keep them in your account." : "Kept in this browser."}${Q.cloudErr ? ` <span style="color:#e8c33f">Account: ${esc(Q.cloudErr)}</span>` : ""}</p>
           <button class="btn" id="ar3AddJson">From a Spine JSON file…</button> <button class="btn" id="ar3AddProj"${doc && doc.anims && doc.anims.length ? "" : " disabled"}>From the open project</button><input type="file" id="ar3JsonIn" accept=".json,application/json" hidden></details>
         <button class="btn primary" data-q="3"${Q.sel.size ? "" : " disabled"}>Next: download</button>`;
     }
@@ -21885,15 +22084,23 @@ body.sk #verBtn { color: #aaa; } body.sk #verBtn:hover { color: #e8e8e8; backgro
     const take = async e => { const fs = [...e.target.files]; e.target.value = ""; if (fs.length) await _.takeFiles(fs); };
     on("#ar3Dir", "onchange", take); on("#ar3Files", "onchange", take);
     on("#ar3Name", "onchange", e => { AR3.name = e.target.value.trim() || "new_character"; });
+    on("#ar3BatchPick", "onclick", () => $("#ar3Batch").click());
+    on("#ar3Batch", "onchange", async e => { const g = groupFiles([...e.target.files]); e.target.value = ""; if (!g.length) { toast("No character folders with images found there"); return; } await batch(g); AR3.qstep = 0; _.panel(); });
+    on("#ar3BatchDown", "onclick", () => saveFile("characters.zip", BATCH.zip));
     const drop = p.querySelector("#ar3Drop"); if (drop) { drop.ondragover = e => { e.preventDefault(); drop.classList.add("over"); }; drop.ondragleave = () => drop.classList.remove("over"); drop.ondrop = async e => { e.preventDefault(); drop.classList.remove("over"); const fs = await dropFiles(e.dataTransfer); if (fs.length) await _.takeFiles(fs); }; }
     p.querySelectorAll("[data-joint]").forEach(b => b.onclick = () => { AR3.sel = b.dataset.joint; _.panel(); _.kick(); });
     on("#ar3Mirror", "onchange", e => { AR3.mirror = e.target.checked; });
     on("#ar3Reset", "onclick", e => { e.preventDefault(); delete AR3.joints[AR3.sel]; _.build(); _.panel(); _.kick(); });
     on("#ar3Auto", "onclick", () => autoRig());
+    on("#ar3EditParts", "onclick", () => { AR3.mode = "advanced"; AR3.step = 1; AR3.pose = "rest"; AR3.sel = null; _.panel(); _.kick(); });
     on("#ar3Q", "oninput", e => { Q.search = e.target.value; const pos = e.target.selectionStart; _.panel(); const n = $("#ar3Q"); if (n) { n.focus(); n.setSelectionRange(pos, pos); } });
     p.querySelectorAll("[data-focus]").forEach(c => c.onclick = e => { if (e.target.closest("input,button,label")) return; focus(c.dataset.focus); });
     p.querySelectorAll("[data-pick]").forEach(c => c.onchange = () => { if (c.checked) Q.sel.add(c.dataset.pick); else Q.sel.delete(c.dataset.pick); focus(c.dataset.pick); });
-    p.querySelectorAll("[data-del]").forEach(b => b.onclick = async e => { e.stopPropagation(); await dbDel(b.dataset.del); Q.sel.delete(b.dataset.del); await loadUser(); addLib(); _.panel(); });
+    p.querySelectorAll("[data-del]").forEach(b => b.onclick = async e => { e.stopPropagation(); await removeUser(b.dataset.del); _.panel(); });
+    p.querySelectorAll("[data-pack]").forEach(b => b.onclick = () => { const k = packs().find(x => x.id === b.dataset.pack); if (!k) return; Q.sel = new Set(k.ids.filter(id => byId(id))); if (Q.sel.size) focus([...Q.sel][0]); else _.panel(); });
+    p.querySelectorAll("[data-unpack]").forEach(b => b.onclick = async () => { await removeUser(b.dataset.unpack); _.panel(); });
+    on("#ar3PackSave", "onclick", () => { const box = document.createElement("div"); box.className = "ar3-packname"; box.innerHTML = `<input class="field" id="ar3PackName" placeholder="Pack name" maxlength="40"> <button class="btn primary" id="ar3PackOk">Save</button>`; p.querySelector(".ar3-packs").after(box);
+      const inp = $("#ar3PackName"); inp.focus(); const ok = async () => { const n = inp.value.trim(); if (!n) return; await savePack(n, Q.sel); toast(`Pack "${n}" saved`); _.panel(); }; $("#ar3PackOk").onclick = ok; inp.onkeydown = e => { if (e.key === "Enter") ok(); }; });
     p.querySelectorAll("[data-opt]").forEach(r => r.oninput = () => { optOf(Q.focus)[r.dataset.opt] = +r.value; if (r.dataset.opt === "trimA" || r.dataset.opt === "trimB") { const o = optOf(Q.focus); if (o.trimB - o.trimA < .1) { if (r.dataset.opt === "trimA") o.trimB = Math.min(1, o.trimA + .1); else o.trimA = Math.max(0, o.trimB - .1); } } refocus(); r.nextElementSibling.textContent = r.dataset.opt === "speed" || r.dataset.opt === "stride" ? (+r.value).toFixed(2) + "×" : r.dataset.opt === "arms" ? (r.value > 0 ? "+" : "") + r.value + "°" : Math.round(r.value * 100) + "%"; });
     p.querySelectorAll("[data-opt]").forEach(r => r.onchange = () => _.panel());
     p.querySelectorAll("[data-optc]").forEach(c => c.onchange = () => { optOf(Q.focus)[c.dataset.optc] = c.checked; refocus(); _.panel(); });
@@ -21908,8 +22115,8 @@ body.sk #verBtn { color: #aaa; } body.sk #verBtn:hover { color: #e8e8e8; backgro
     if (AR3.qstep === 2) startPreviews();
   };
   function go(i) { if (i > 0 && !AR3.built) return; if (i > 1 && !Q.libOn) return; AR3.qstep = i; AR3.sel = null; AR3.pose = i >= 2 ? "lib:" + Q.focus : "rest"; AR3.t = 0; AR3.playing = true; _.panel(); _.kick(); }
-  function focus(id) { Q.focus = id; AR3.pose = "lib:" + id; AR3.t = 0; AR3.playing = true; _.panel(); _.kick(); }
-  function refocus() { const e = byId(Q.focus); if (!e || !AR3.doc) return; const i = AR3.doc.anims.findIndex(a => a.name === "lib:" + e.id), a = docAnim(e, gen(e)); if (i >= 0) AR3.doc.anims[i] = a; else AR3.doc.anims.push(a); _.kick(); }
+  function focus(id) { Q.focus = id; ensure(id); AR3.pose = "lib:" + id; AR3.t = 0; AR3.playing = true; _.panel(); _.kick(); }
+  function refocus() { ensure(Q.focus); _.kick(); }
   /* a dropped folder -> files with their relative paths (so "images/front" is found like with the folder picker) */
   async function dropFiles(dt) {
     const out = [], walk = async (en, path) => { if (en.isFile) { const f = await new Promise((res, rej) => en.file(res, rej)); Object.defineProperty(f, "webkitRelativePath", { value: path + f.name }); out.push(f); } else if (en.isDirectory) { const r = en.createReader(); let batch; do { batch = await new Promise((res, rej) => r.readEntries(res, rej)); for (const c of batch) await walk(c, path + en.name + "/"); } while (batch.length); } };
@@ -21926,7 +22133,7 @@ body.sk #verBtn { color: #aaa; } body.sk #verBtn:hover { color: #e8e8e8; backgro
     const t = (ts - pt0) / 1000, e0 = _.bounds(), vh = innerHeight;
     document.querySelectorAll("#ar3Panel canvas[data-prev]").forEach(c => {
       const r = c.getBoundingClientRect(); if (r.bottom < 0 || r.top > vh || !r.width) return;
-      const a = AR3.doc.anims.find(x => x.name === "lib:" + c.dataset.prev); if (!a) return;
+      const a = ensure(c.dataset.prev); if (!a) return;
       const T = a.libDur || animDuration(a) || 1, tt = t % (T + .35), W = _.worldAt(a, Math.min(tt, T)), g = c.getContext("2d"), z = Math.min(c.width / e0.w, c.height / e0.h) * .95;
       g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, c.width, c.height);
       g.setTransform(z, 0, 0, -z, c.width / 2 - (e0.x + e0.w / 2) * z, c.height / 2 + (e0.y + e0.h / 2) * z); _.drawRig(g, W, a, Math.min(tt, T));
@@ -21966,7 +22173,7 @@ body.sk #verBtn { color: #aaa; } body.sk #verBtn:hover { color: #e8e8e8; backgro
 #ar3 .ar3-card canvas{width:100%;height:auto;display:block;background:#15181d;border-radius:5px}#ar3 .ar3-ck{display:flex;gap:4px;align-items:center;font-size:12px;margin-top:3px}
 #ar3 .ar3-del{position:absolute;top:4px;right:4px;background:var(--raise);border-radius:5px;width:20px;height:20px;font-size:11px}
 #ar3 .ar3-opts{background:var(--panel-2);border-radius:8px;padding:8px;margin:10px 0}#ar3 .ar3-sl{display:grid;grid-template-columns:86px 1fr 48px;gap:6px;align-items:center;font-size:12px;margin:5px 0}#ar3 .ar3-sl output{text-align:right;color:var(--muted)}
-#ar3 .ar3-mine{margin:8px 0}#ar3 .ar3-fmt{display:flex;flex-direction:column;gap:6px;margin:8px 0}#ar3 .ar3-f{border:1px solid var(--line);border-radius:8px;padding:7px 9px}#ar3 .ar3-f.off{opacity:.5}`;
+#ar3 .ar3-packs{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0}#ar3 .ar3-pack{display:inline-flex;align-items:center;gap:1px}#ar3 .ar3-pack .ico{width:18px;height:18px;font-size:10px}#ar3 .ar3-packname{display:flex;gap:4px;margin:4px 0}#ar3 .ar3-packname .field{flex:1}#ar3 .ar3-mine{margin:8px 0}#ar3 .ar3-batch{margin-top:8px}#ar3 .ar3-tab{width:100%;border-collapse:collapse;font-size:11.5px;margin:6px 0}#ar3 .ar3-tab td,#ar3 .ar3-tab th{border-bottom:1px solid var(--line);padding:3px 4px;text-align:left;vertical-align:top}#ar3 .ar3-fmt{display:flex;flex-direction:column;gap:6px;margin:8px 0}#ar3 .ar3-f{border:1px solid var(--line);border-radius:8px;padding:7px 9px}#ar3 .ar3-f.off{opacity:.5}`;
   document.head.appendChild(css);
 
   /* ---------- window.AIA (quick path + library) ---------- */
@@ -21978,12 +22185,23 @@ body.sk #verBtn { color: #aaa; } body.sk #verBtn:hover { color: #e8e8e8; backgro
     autoRig: () => autoRig(),
     library: lib,
     select: ids => { Q.sel = new Set((ids || []).filter(id => byId(id))); _.panel(); return lib().filter(e => e.selected).map(e => e.id); },
-    animOptions: (id, o) => { if (!byId(id)) throw new Error("No animation " + id); Object.assign(optOf(id), o || {}); if (Q.focus === id) refocus(); else if (Q.libOn) addLib(); _.panel(); return optOf(id); },
+    animOptions: (id, o) => { if (!byId(id)) throw new Error("No animation " + id); Object.assign(optOf(id), o || {}); if (Q.libOn) ensure(id); _.kick(); _.panel(); return optOf(id); },
     focus: id => { if (!byId(id)) throw new Error("No animation " + id); focus(id); return { focus: id }; },
     addAnimationsJSON: async (text, name) => ({ added: await addFromJSONText(text, name) }),
     addAnimationsFromProject: async () => ({ added: await addFromProject() }),
-    removeAnimation: async id => { await dbDel(id); Q.sel.delete(id); await loadUser(); if (Q.libOn) addLib(); return lib().length; },
+    removeAnimation: async id => { await removeUser(id); return lib().length; },
+    packs: () => packs().map(k => ({ id: k.id, name: k.name, ids: k.ids, mine: k.kind === "pack" })),
+    selectPack: id => { const k = packs().find(x => x.id === id); if (!k) throw new Error("No pack " + id); Q.sel = new Set(k.ids.filter(i => byId(i))); _.panel(); return [...Q.sel]; },
+    savePack: async (name, ids) => { const x = await savePack(name, ids || [...Q.sel]); _.panel(); return { id: x.id, name: x.name, ids: x.ids }; },
+    removePack: async id => { await removeUser(id); _.panel(); return packs().length; },
+    footSlide: id => { const e = byId(id); if (!e) throw new Error("No animation " + id); return footSlide(e); },
+    handsCheck: id => { const e = byId(id); if (!e) throw new Error("No animation " + id); const g = gen(e); return { solvedKeys: g.handsSolved || 0 }; },
+    libraryWhere: () => ({ where: Q.where || "browser", error: Q.cloudErr || null }),
     download: fmt => download(fmt || "json"),
+    /* groups: [{ name, list: [{ name, url, path }] }] (paths like "images/front/head.png") */
+    batchUrls: async groups => { const gs = []; for (const g of groups) { const files = []; for (const x of g.list) { const b = await (await fetch(x.url)).blob(), f = new File([b], x.name, { type: "image/png" }); Object.defineProperty(f, "webkitRelativePath", { value: x.path || x.name }); files.push(f); } gs.push({ name: g.name, files }); } return await batch(gs); },
+    batchReport: () => BATCH.rows,
+    batchZipBase64: async () => { if (!BATCH.zip) throw new Error("No batch yet"); const b = new Uint8Array(await BATCH.zip.arrayBuffer()); let s = ""; for (let i = 0; i < b.length; i += 32768) s += String.fromCharCode.apply(null, b.subarray(i, i + 32768)); return btoa(s); },
     spineBase64: async () => { const b = await spineBytes(); let s = ""; for (let i = 0; i < b.length; i += 32768) s += String.fromCharCode.apply(null, b.subarray(i, i + 32768)); return btoa(s); },
   });
   loadUser();
