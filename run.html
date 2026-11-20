@@ -12982,7 +12982,7 @@ const SPF = (() => {
   const sp = s => s.split(' ');
   // skeleton
   def('C0b', [0x0e, 0x1e, 0x04, 0x2b, 0x06, 0x30, 0x20, 0x01, 0x07, 0x22, 0x26, 0x10, 0x1a, 0x31, 0x1d, 0x25, 0x24, 0x03, 0x02, 0x28, 0x08, 0x2c, 0x29, 0x00, 0x0d, 0x32, 0x1b, 0x2a, 0x35, 0x1f, 0x21, 0x0a, 0x33, 0x17, 0x1c, 0x2e, 0x16, 0x18, 0x34, 0x2f, 0x2d, 0x23, 0x7e],
-    sp('o o o o o b o s o s o o o o o o o s b o o o o v o b o b bo o o o o o o f o kf b b o b b'));
+    sp('o o o o o b o s o s o o o o o o o s b o o o o v o b o b bo o om o o o o f o kf b b o b b'));
   // bone
   def('C0c', [0x02, 0x03, 0x1b, 0x1c, 0x01, 0x1f, 0x09, 0x17, 0x22, 0x21, 0x1d, 0x11, 0x19, 0x0d, 0x0a, 0x00, 0x1e, 0x0c, 0x0b, 0x0e, 0x7e],
     sp('b m:c e s s o f f f f b o f f f m:b b f f f b'));
@@ -12991,13 +12991,20 @@ const SPF = (() => {
     sp('m:b b o o f o b s o e b m:c e o b'));
   // region
   def('C2b', [0x0f, 0x0a, 0x06, 0x0d, 0x08, 0x0b, 0x07, 0x09, 0x0c, 0x0e, 0x05, 0x01, 0x21, 0x20, 0x23, 0x00, 0x04],
-    sp('b f f s f f f f f o b s b b b m:d o'));
+    sp('b f f s f f f f f o b s b m:22 b m:d m:2c')); // 0x20: the skin the attachment belongs to (empty for the default skin)
   // mesh
-  def('C2e', [0x0e, 0x0c, 0x1c, 0x1e, 0x25, 0x13, 0x15, 0x07, 0x05, 0x01, 0x21, 0x20, 0x23, 0x00, 0x04, 0x10, 0x11, 0x08, 0x0d, 0x1a, 0x1b, 0x22, 0x24, 0x1f, 0x14], sp('s o o b z f f z b s b b b m:d o f f o o o b o o o f'));
+  def('C2e', [0x0e, 0x0c, 0x1c, 0x1e, 0x25, 0x13, 0x15, 0x07, 0x05, 0x01, 0x21, 0x20, 0x23, 0x00, 0x04, 0x10, 0x11, 0x08, 0x0d, 0x1a, 0x1b, 0x22, 0x24, 0x1f, 0x14], sp('s o o b z f f z b s b m:22 b m:d m:2c f f o o o b o o o f'));
+  // skin placeholder (Spine 4.x): a named place in a slot that each skin fills with its own attachment; no geometry of its own.
+  // Attachments point to their placeholder (0x04) and to their skin (0x20); both are empty for the default skin.
+  def('C2c', [0x7d, 0x05, 0x01, 0x21, 0x20, 0x23, 0x00, 0x04], sp('b b s b m:22 b m:d m:2c'));
   // bounding box
-  def('C34', [0x1c, 0x1f, 0x14, 0x08, 0x1e, 0x25, 0x13, 0x15, 0x07, 0x05, 0x01, 0x21, 0x20, 0x23, 0x00, 0x04], sp('o o f o b z f f z b s b b b m:d o'));
+  def('C34', [0x1c, 0x1f, 0x14, 0x08, 0x1e, 0x25, 0x13, 0x15, 0x07, 0x05, 0x01, 0x21, 0x20, 0x23, 0x00, 0x04], sp('o o f o b z f f z b s b m:22 b m:d m:2c'));
+  // point: x, y, rotation, colour
+  def('C53', [0x06, 0x09, 0x08, 0x07, 0x05, 0x01, 0x21, 0x20, 0x23, 0x00, 0x04], sp('f o f f b s b m:22 b m:d m:2c'));
+  // path: lengths, closed, constant speed, then the bounding box fields
+  def('C45', [0x0f, 0x0c, 0x0d, 0x1c, 0x1f, 0x14, 0x08, 0x1e, 0x25, 0x13, 0x15, 0x07, 0x05, 0x01, 0x21, 0x20, 0x23, 0x00, 0x04], sp('kf b b o o f o b z f f z b s b m:22 b m:d m:2c'));
   // clipping: end slot, convex, inverse, then the bounding box fields
-  def('C54', [0x0c, 0x0d, 0x0e, 0x1c, 0x1f, 0x14, 0x08, 0x1e, 0x25, 0x13, 0x15, 0x07, 0x05, 0x01, 0x21, 0x20, 0x23, 0x00, 0x04], sp('m:d b b o o f o b z f f z b s b b b m:d o'));
+  def('C54', [0x0c, 0x0d, 0x0e, 0x1c, 0x1f, 0x14, 0x08, 0x1e, 0x25, 0x13, 0x15, 0x07, 0x05, 0x01, 0x21, 0x20, 0x23, 0x00, 0x04], sp('m:d b b o o f o b z f f z b s b m:22 b m:d m:2c'));
   def('C35', [0x02, 0x01, 0x00], sp('o o o')); def('C47', [0x02, 0x01, 0x00], sp('o o o')); def('C36', [0x00, 0x01], sp('o o'));
   // folder
   def('C6c', [0x01, 0x06, 0x05, 0x00, 0x02, 0x03], sp('s o o b m:b o'));
@@ -13010,7 +13017,11 @@ const SPF = (() => {
   def('C38', ...IK);
   def('C41', [0x15, 0x07, 0x1a, 0x1c, 0x13, 0x17, 0x0b, 0x0a, 0x0f, 0x08, 0x10, 0x05, 0x1d, 0x1b, 0x1e, 0x0d, 0x03, 0x11, 0x04, 0x06, 0x0c, 0x1f, 0x0e, 0x09, 0x18, 0x19, 0x12, 0x01, 0x16, 0x22, 0x20, 0x00],
     sp('b f f b o f f f b f f f o b b f m:c f f f f oa f f f f f s o b o m:b'));
-  def('C22', [0x1f, 0x12, 0x01, 0x16, 0x22, 0x20, 0x00], sp('oa f s o b o m:b'));
+  // slider constraint (Spine 4.3): drives an animation (0x02) from a bone property (0x0b)
+  def('C93', [0x05, 0x0f, 0x06, 0x0e, 0x0b, 0x0c, 0x02, 0x04, 0x09, 0x08, 0x07, 0x0d, 0x0a, 0x01, 0x16, 0x22, 0x20, 0x00], sp('f f f f o f m:12 f b b f b b s o b o m:b'));
+  // path constraint: target slot (0x03), bones (0x02), modes (enums), position / spacing / mixes
+  def('C48', [0x09, 0x0a, 0x03, 0x0e, 0x0f, 0x08, 0x05, 0x06, 0x10, 0x18, 0x0b, 0x07, 0x04, 0x02, 0x17, 0x0c, 0x0d, 0x01, 0x16, 0x22, 0x20, 0x00], sp('f f m:d e e f f f e f b f f o f f f s o b o m:b'));
+  def('C22', [0x1f, 0x12, 0x01, 0x16, 0x22, 0x20, 0x00, 0x04, 0x02, 0x07, 0x06, 0x08, 0x05, 0x7e], sp('oa f s o b o m:b v o o o o o o')); // also skins (Spine 4.x): 0x02 their attachments, 0x08 colour, 0x05 folder
   def('C79', [0x18, 0x0d, 0x1c, 0x08, 0x11, 0x19, 0x09, 0x1f, 0x17, 0x03, 0x0b, 0x0e, 0x13, 0x14, 0x1b, 0x05, 0x21, 0x1a, 0x0c, 0x07, 0x04, 0x15, 0x10, 0x0a, 0x06, 0x1d, 0x12, 0x1e, 0x23, 0x0f, 0x01, 0x16, 0x22, 0x20, 0x00],
     sp('f f b f f b f b f m:c f f f f b f f b f f f f f f f b f b e f s o b o m:b'));
   def('C27', [0x00, 0x01], sp('m:d z'));
@@ -13043,6 +13054,7 @@ const SPF = (() => {
     f32(p, strict) {
       if (p + 4 > this.b.length) throw new Bad('eof');
       const v = this.dv.getFloat32(p);
+      if (Number.isNaN(v) && !strict) return [v, p + 4]; // Spine stores NaN for some unset values (physics); allowed where the field is known
       if (!isFinite(v) || (strict && !(v === 0 || (Math.abs(v) > 1e-9 && Math.abs(v) < 1e9)))) throw new Bad('float');
       return [v, p + 4];
     }
@@ -13096,6 +13108,7 @@ const SPF = (() => {
         case 'kf': return this.robj(p, 'KFA', 'V');
         case 'do': return this.robj(p, 'A', 'V');
         case 'mx': return this.robj(p, 'T:?' + key, 'M');
+        case 'om': { const sn = this.snap(); try { return this.cobj(p); } catch (e) { if (!(e instanceof Bad)) throw e; this.undo(sn); return this.robj(p, 'T:?' + key, 'M'); } } // an object, or (Spine 4.3) a reference without its class
       }
       if (t.startsWith('m:')) return this.robj(p, 'T:C' + t.slice(2).padStart(2, '0'), 'M');
       if (t.startsWith('t:')) return this.robj(p, 'T:' + t.slice(2), 'M');
@@ -13116,7 +13129,7 @@ const SPF = (() => {
         const sn = this.snap();
         try { [v, q] = this.body(q, kind, c); }
         catch (e) {
-          if (!(e instanceof Bad)) throw e;
+          if (!(e instanceof Bad) || (typeof window !== 'undefined' && window.SPF_STRICT)) throw e;
           this.undo(sn);
           this.warn.push('An animation could not be read and was skipped (' + (e.inner || e.message).slice(0, 120) + ')');
           if (this.debug) this.warn.push('  at ' + H(this.far || 0) + ' ' + (this.farKey || ''));
@@ -13333,6 +13346,8 @@ const SPF = (() => {
       this.warn.push('String table not calibrated: some names may be missing.');
     }
     fpath(f) { const parts = []; let g = 0; while (f && typeof f === 'object' && g++ < 64) { const n = this.name(f); if (n) parts.push(n); f = this.m(f[3]); } return parts.reverse().join('/'); }
+    attKey(a) { let so = null, ph = null; try { so = a[0x20] ? this.m(a[0x20]) : null; ph = a[0x04] ? this.m(a[0x04]) : null; } catch (x) {} return [so && typeof so === 'object' ? this.fname(so, 0x05) : 'default', (ph && typeof ph === 'object' && this.name(ph)) || this.name(a)]; } // [skin, key in the skin]
+    evName(e) { const n = typeof e[2] === 'string' ? e[2] : this.v(e[2]); let f = null; try { f = this.m(e[0x0a]); } catch (x) {} const p = f && typeof f === 'object' && f.$c === 0x6c ? this.fpath(f) : ''; return (p ? p + '/' : '') + n; } // events in folders (Spine 4.x) are named by their path
     fname(o, tag) { if (!o) return null; const p = this.fpath(this.m(o[tag == null ? 0x20 : tag])); const n = this.name(o); return (p ? p + '/' : '') + n; }
     run() {
       this.calib();
@@ -13362,23 +13377,32 @@ const SPF = (() => {
         const bl = this.v(sl[0x07]); if (typeof bl === 'number' && bl > 1) d.blend = ['normal', 'additive', 'multiply', 'screen'][bl - 1] || 'normal';
         this.sn.set(sl, d.name); return d;
       });
-      // skins: every attachment of the project is in skeleton[6]; extra skins are not split out yet
-      const skin = {};
+      // skins: every attachment of the project is in skeleton[6]. An attachment of another skin points to its skin (0x20)
+      // and to the skin placeholder it fills (0x04); in the skin it is keyed by the placeholder's name.
+      const skin = {}, skins = new Map(), skinOf = new Map();
+      for (const x of this.a(sk[0x08])) { const s = this.m(x); if (s && typeof s === 'object') skins.set(s, {}); }
       for (const x of this.a(sk[0x06])) {
         const a = this.m(x); if (!a || typeof a !== 'object') continue;
+        if ((a.$c || (x && x.$c)) === 0x2c) continue; // skin placeholders hold no image: the skins' attachments fill them
         const sl = this.m(a[0x00]); if (!sl) continue;
         const sn = this.sn.get(sl) || this.name(sl);
         if (this.noex.has(a) && !this.keepNoExport) continue;
-        const ad = (skin[sn] || (skin[sn] = {}))[this.name(a)] = this.att(a, a.$c || (x && x.$c), sl); if (this.noex.has(a)) ad.export = false;
+        const so = a[0x20] ? this.m(a[0x20]) : null, ph = a[0x04] ? this.m(a[0x04]) : null;
+        let tgt = skin; if (so && typeof so === 'object') { if (!skins.has(so)) skins.set(so, {}); tgt = skins.get(so); }
+        const own = this.name(a), key = (ph && typeof ph === 'object' && this.name(ph)) || own;
+        const ad = (tgt[sn] || (tgt[sn] = {}))[key] = this.att(a, a.$c || (x && x.$c), sl); if (this.noex.has(a)) ad.export = false;
+        if (key !== own) ad.name = own;
       }
       out.skins = [{ name: 'default', attachments: skin }];
+      for (const [s, atts] of skins) out.skins.push({ name: this.fname(s, 0x05), attachments: atts });
       // constraints
       const cons = [];
       for (const x of this.a(sk[0x10])) {
         const c = this.m(x); if (!c) continue;
         const d = { type: 'ik', name: this.fname(c), bones: this.a(c[0x02]).map(bb => this.name(this.m(bb))), target: this.name(this.m(c[0x03])) };
-        if (num(c[0x06], 1)) d.mix = c[0x06]; if (num(c[0x0e], 0)) d.softness = c[0x0e];
-        if (c[0x10] === false) d.bendPositive = false; if (c[0x0c]) d.compress = true; if (c[0x0a]) d.stretch = true;
+        // the setup values (checked against Spine's JSON export); 0x06 / 0x0a / 0x0c hold the editor's current pose, which can differ
+        if (num(c[0x05], 1)) d.mix = c[0x05]; if (num(c[0x0e], 0)) d.softness = c[0x0e];
+        if (c[0x10] === false) d.bendPositive = false; if (c[0x0b]) d.compress = true; if (c[0x09]) d.stretch = true;
         cons.push(d);
       }
       for (const x of this.a(sk[0x16])) {
@@ -13392,6 +13416,7 @@ const SPF = (() => {
           const to = {}; for (const [tc, off, mx, sc] of P.to) { const e = {}; if (off) e.offset = off; if (mx !== 1) e.max = mx; if (Math.abs(sc - 1) > 1e-6) e.scale = sc; to[PN[tc] || ('p' + tc)] = e; }
           props[PN[pr.$c] || ('p' + pr.$c)] = P.offset ? { offset: P.offset, to } : { to };
         }
+        if (props.rotate && num(c[0x0e], 0)) d.rotation = c[0x0e]; // the rotation offset is written only when rotation is mapped
         if (Object.keys(props).length) d.properties = props;
         if (num(c[0x04], 1)) d.mixX = c[0x04];
         if (c[0x1b] === true) d.localSource = true; if (c[0x1c] === true) d.localTarget = true; if (c[0x1e] === true) d.clamp = true;
@@ -13405,12 +13430,31 @@ const SPF = (() => {
         if (c[0x04] > 0 && Math.abs(1 / c[0x04] - 60) > 1e-3) d.fps = Math.round(1 / c[0x04] * 1000) / 1000;
         cons.push(d);
       }
+      // path constraints (class 0x48; the skeleton list holding them is found by class). Fields mapped against Spine's JSON export.
+      let pathTag = null;
+      for (const t of Object.keys(sk)) { let arr = null; try { arr = this.a(sk[t]); } catch (e) {} const c0 = arr && arr.length ? this.m(arr[0]) : null; if (c0 && typeof c0 === 'object' && c0.$c === 0x48) { pathTag = +t; break; } }
+      if (pathTag != null) for (const x of this.a(sk[pathTag])) {
+        const c = this.m(x); if (!c || typeof c !== 'object') continue;
+        const tsl = this.m(c[0x03]);
+        const d = { type: 'path', name: this.fname(c), bones: this.a(c[0x02]).map(bb => this.name(this.m(bb))), slot: tsl && typeof tsl === 'object' ? (this.sn.get(tsl) || this.name(tsl)) : null };
+        const en = (v, names) => { const k = typeof v === 'number' ? v : this.v(v); return typeof k === 'number' ? names[k - 1] : undefined; };
+        const pm = en(c[0x10], ['fixed', 'percent']), sm = en(c[0x0e], ['length', 'fixed', 'percent', 'proportional']), rm = en(c[0x0f], ['tangent', 'chain', 'chainScale']);
+        if (pm && pm !== 'percent') d.positionMode = pm; if (sm && sm !== 'length') d.spacingMode = sm; if (rm && rm !== 'tangent') d.rotateMode = rm;
+        if (num(c[0x0a], 0)) d.rotation = c[0x0a]; if (num(c[0x04], 0)) d.position = c[0x04]; if (num(c[0x0c], 0)) d.spacing = c[0x0c];
+        if (num(c[0x08], 1)) d.mixRotate = c[0x08]; if (num(c[0x06], 1)) d.mixX = c[0x06]; if (typeof c[0x17] === 'number' && Math.abs(c[0x17] - (c[0x06] ?? 1)) > 1e-6) d.mixY = c[0x17];
+        cons.push(d); (this.pathRaw || (this.pathRaw = [])).push(c);
+      }
+      // slider constraints (Spine 4.3): name and the animation they drive; their other settings are not mapped yet
+      for (const x of this.a(sk[0x31])) {
+        const c = this.m(x); if (!c || typeof c !== 'object') continue;
+        const an = this.m(c[0x02]); cons.push({ type: 'slider', name: this.fname(c), animation: an && typeof an === 'object' ? this.fname(an, 0x07) : null });
+      }
       // Spine applies constraints in the order of the tree's Constraints node, not grouped by type. The project keeps that order in
       // folder objects (class 0x6c): every constraint points to its folder (0x20), each folder to its parent (0x03), and a folder lists
       // its children (0x05) last-first. Depth-first over the folders, children reversed, gives the runtime order.
       try {
         const rawOf = new Map(); let ci = 0;
-        for (const tag of [0x10, 0x16, 0x29]) for (const x of this.a(sk[tag])) { const c = this.m(x); if (!c) continue; rawOf.set(c, cons[ci++]); }
+        for (const tag of [0x10, 0x16, 0x29, ...(pathTag != null ? [pathTag] : []), 0x31]) for (const x of this.a(sk[tag])) { const c = this.m(x); if (!c) continue; rawOf.set(c, cons[ci++]); }
         const fo = c => { let f = null; try { f = this.m(c[0x20]); } catch (e) {} if (!f) try { f = this.o(c[0x20]); } catch (e) {} return f && typeof f === 'object' && f.$c === 0x6c ? f : null; };
         let root = null; for (const c of rawOf.keys()) { let f = fo(c); for (let g = 0; f && g < 64; g++) { root = f; let p = null; try { p = this.m(f[0x03]); } catch (e) {} f = p && p.$c === 0x6c ? p : null; } if (root) break; }
         if (root && ci === cons.length) {
@@ -13429,7 +13473,7 @@ const SPF = (() => {
         const e = this.m(x); if (!e || typeof e !== 'object') continue;
         const d = {}; if (e[0x03]) d.int = e[0x03]; if (e[0x04]) d.float = e[0x04]; const st = this.v(e[0x05]); if (st) d.string = st;
         const au = this.v(e[0x06]); if (au) { d.audio = au; if (typeof e[0x08] === 'number' && e[0x08] !== 1) d.volume = e[0x08]; if (e[0x09]) d.balance = e[0x09]; }
-        out.events[typeof e[2] === 'string' ? e[2] : this.v(e[2])] = d;
+        out.events[this.evName(e)] = d;
       }
       // animations
       out.animations = {};
@@ -13470,7 +13514,8 @@ const SPF = (() => {
       if (cls === 0x2e && a[0x1a]) {
         // linked mesh: shares the parent's vertices, uvs and triangles
         const par = this.m(a[0x1a]);
-        const d = { type: 'linkedmesh', source: this.name(par) };
+        const [psk, pkey] = par && typeof par === 'object' ? this.attKey(par) : ['default', null];
+        const d = { type: 'linkedmesh', source: pkey }; if (psk !== 'default') d.skin = psk; // the parent may be in another skin
         if (a[0x1b] === false) d.timelines = false;
         if (a[0x10] != null) d.width = a[0x10]; if (a[0x11] != null) d.height = a[0x11];
         const p = this.v(a[0x0e]); if (p) d.path = p;
@@ -13490,6 +13535,18 @@ const SPF = (() => {
         const [vs] = this.verts(a[0x1c], sl, a[0x1e]);
         const d = { type: 'boundingbox', vertexCount: (a[0x07] || 0) / 2, vertices: vs };
         const c = col(a[0x1f]); if (c && c !== '60f000ff') d.color = c;
+        return d;
+      }
+      if (cls === 0x53) {
+        const d = { type: 'point' }; if (a[0x06]) d.x = a[0x06]; if (a[0x07]) d.y = a[0x07]; if (a[0x08]) d.rotation = a[0x08];
+        const c = col(a[0x09]); if (c && c !== 'f1f100ff') d.color = c;
+        return d;
+      }
+      if (cls === 0x45) {
+        const [vs] = this.verts(a[0x1c], sl, a[0x1e]);
+        const d = { type: 'path' }; if (a[0x0c]) d.closed = true; if (a[0x0d] === false) d.constantSpeed = false;
+        d.lengths = this.o(a[0x0f]) || []; d.vertexCount = (a[0x07] || 0) / 2; d.vertices = vs;
+        const c = col(a[0x1f]); if (c && c !== 'ff7f00ff') d.color = c;
         return d;
       }
       if (cls === 0x54) {
@@ -13590,7 +13647,7 @@ const SPF = (() => {
             (out.transform || (out.transform = {}))[this.fname(tc)] = ks; this.mark(tr, ['transform', this.fname(tc)]);
           } else if (A === 12) {
             this.mark(tr, ['events']); out.events = (out.events || []).concat(fr.map(f => {
-              const ek = this.o(f.v), ed = ek && this.m(ek[0x01]); const k = {}; if (f.t) k.time = T(f.t); k.name = ed ? (typeof ed[2] === 'string' ? ed[2] : this.v(ed[2])) : '?';
+              const ek = this.o(f.v), ed = ek && this.m(ek[0x01]); const k = {}; if (f.t) k.time = T(f.t); k.name = ed ? this.evName(ed) : '?';
               if (ek && ed) {
                 // a key writes the values that differ from its event's own
                 if (ek[0x02] && ek[0x02] !== (ed[0x03] || 0)) k.int = ek[0x02];
@@ -13619,8 +13676,8 @@ const SPF = (() => {
               }
               return k;
             });
-            const s1 = out.attachments || (out.attachments = {}), s2 = s1.default || (s1.default = {}), s3 = s2[this.sn.get(sl) || '?'] || (s2[this.sn.get(sl) || '?'] = {});
-            s3[this.name(at)] = { deform: ks }; this.mark(tr, ['attachments', 'default', this.sn.get(sl) || '?', this.name(at), 'deform']);
+            const [skN, atN] = this.attKey(at), s1 = out.attachments || (out.attachments = {}), s2 = s1[skN] || (s1[skN] = {}), s3 = s2[this.sn.get(sl) || '?'] || (s2[this.sn.get(sl) || '?'] = {});
+            s3[atN] = { deform: ks }; this.mark(tr, ['attachments', skN, this.sn.get(sl) || '?', atN, 'deform']);
           } else if (A === 42) {
             // draw order folder keys: the folder's slots (draw order) and keys like drawOrder's
             const fo = this.m(tr.tail); if (!fo) continue;
@@ -17756,7 +17813,7 @@ if (typeof window !== "undefined" && typeof st !== "undefined" && typeof cv !== 
   let lastK = ""; setInterval(() => { const ms = selMesh(); if (!on()) WT.binding = false; const k = [JSON.stringify(st.sel), st.mode, st.meshMode, ms ? wtNb(ms.m) : -1, selVerts().join(","), undoS.length, WT.binding].join("|"); if (k !== lastK) { lastK = k; wtPanelRefresh(); } }, 300);
 })();
 
-</script><script>window.AIA_VERSION = {"version": "1.20.3", "built": "2026-11-19 20:29", "changelog": [{"version": "1.20.3", "date": "2026-11-19", "items": ["Import works on any PC; clear errors for missing images / unsupported versions", "Open Project on the website: pick the .spine file itself or the whole folder"]}, {"version": "1.20.2", "date": "2026-11-19", "items": ["Save mesh and weights edits to .spine (vertices, UVs, triangles, edges, weights, region to mesh)"]}, {"version": "1.20.1", "date": "2026-11-19", "items": ["Spine-style key buttons on transform rows"]}, {"version": "1.20.0", "date": "2026-11-19", "items": ["Animation views rebuilt to match Spine (Curves, Ghosting, Playback, Timeline, Audio)", "Spine-style transform handles: translate / scale arrows, rotate ring, shear lines, in World / Local / Parent; drag an axis to move or scale along it", "Bone properties like Spine (inherit, length, select, name, icon, colour; New, Parent, Split, Skin) and a breadcrumb of the selected bone"]}, {"version": "1.19.3", "date": "2026-11-19", "items": ["Tint black: the viewport draws the dark colour, and tint black keys (Color view, Dark tab in Animate) show in the dopesheet and go to JSON and binary"]}, {"version": "1.19.2", "date": "2026-11-19", "items": ["Mix preview blends slot colours, mesh deforms and constraint mixes too, like Spine"]}, {"version": "1.19.1", "date": "2026-11-19", "items": ["Audio tracks and mix times are saved with the project (.aia.json and autosave) and come back when it is opened", "JSON export writes the audio folder when events use sounds"]}, {"version": "1.19.0", "date": "2026-11-19", "items": ["Save saves .spine in the opened file's version (PC: <name>_ai.spine next to it; website: a download); edits .spine cannot hold yet are saved as JSON with a notice", "Main menu on the logo: New / Open / Recent / Save / Save As / Package Project, New Skeleton, Import Project / Data / PSD, Export, Texture Packer, Texture Unpacker, Settings", "Spine version of the opened file next to the logo", "Exports are named skeleton.json / .skel / .atlas / .png, like Spine", "The envelope opens What's new; the version text is information only"]}, {"version": "1.18.1", "date": "2026-11-19", "items": ["Graph colours match Spine"]}, {"version": "1.18.0", "date": "2026-11-19", "items": ["Curves, Ghosting, Playback, Timeline and Audio views (Alt+V, Alt+H, Alt+P, Alt+L, Alt+U)", "View shortcuts: a view behind another tab comes to the front; pressed again it closes"]}, {"version": "1.17.2", "date": "2026-11-19", "items": ["Cleaner look: one neutral dark theme with one accent blue, Spine-like tree (search in the toolbar, compact rows, visibility column, short attachment names, constraint folders), tidy panel headers and toolbars"]}, {"version": "1.17.1", "date": "2026-11-19", "items": ["Legs fixed: constraints run in the project's own order (as Spine does), and the two-bone IK matches Spine's runtime exactly", "Graph colours like Spine (rotate sky blue, X green, Y blue), square keys, frame dots, Spine's Graph toolbar with Shift, Offset, copy / paste, Swap and Average (all)"]}, {"version": "1.17.0", "date": "2026-11-19", "items": ["Views menu laid out like Spine's, with icons and Alt shortcuts; open views are greyed and checked", "New views: Color (slot, dark tint, bone, skin, attachment colours and colour keys), Skins, Outline, Metrics, Problems; Animations view with folders and export flags", "Mesh Tools and Weights views", "Save as .spine says which mesh or attachment edit it cannot write yet"]}, {"version": "1.16.1", "date": "2026-11-19", "items": ["Preview opens fitted to the whole animation"]}, {"version": "1.16.0", "date": "2026-11-19", "items": ["Save as .spine in the same Spine version (Project > Save as .spine, Ctrl+Shift+S, or Export > Spine)", "Export of a project opened from .spine keeps its own Spine version, bone order, mesh weights, curves and the parts the editor does not show", "Preview zoom and pan fixed (wheel, drag, + / -, fit)"]}, {"version": "1.15.1", "date": "2026-11-19", "items": ["Removed project-specific names"]}, {"version": "1.15.0", "date": "2026-11-19", "items": ["Version number in the top-right corner; click it to see what changed", "A dot on the version shows there is news you have not read yet"]}, {"version": "1.14.0", "date": "2026-11-19", "items": ["Auto-rig has a second rig template (Template B, controller biped) with leg and shoulder controllers", "Rig template choice in the auto-rig wizard: Auto, A or B (Auto shows what it picked)"]}, {"version": "1.13.0", "date": "2026-11-19", "items": ["Selected bones are drawn in cyan like Spine", "Graph: Repeat shows the curves before and after the animation; X / Y splits channels", "Skins can have a colour and live in folders (name with a slash)", "Bones and slots can be selected together with Ctrl+click", "Dopesheet toolbar stays in one row and never scrolls sideways"]}, {"version": "1.12.0", "date": "2026-11-19", "items": ["Export: Polygons packing for images used only by meshes", "Export: audio track for AVI, MOV and WEBM videos (file or event sounds)", "Export check box on attachments, constraints, animations, skins and events"]}, {"version": "1.11.1", "date": "2026-11-19", "items": ["Fixed the folder import that hung on some rigs (overlapping draw-order keys)", "A failed import now shows a message instead of hanging"]}, {"version": "1.11.0", "date": "2026-11-19", "items": ["Opening .spine files reads weighted mesh deform keys, clipping, events and draw-order folders", "Inherit keys, export flags and more constraint settings are read from .spine files"]}, {"version": "1.10.0", "date": "2026-11-18", "items": ["Open .spine project files directly, without Spine installed", "Find works across your Spine projects without Spine"]}, {"version": "1.9.0", "date": "2026-11-18", "items": ["Import uses the original images from the images folder (sharper than the packed atlas)", "Sharper viewport on high-resolution screens"]}, {"version": "1.8.0", "date": "2026-11-18", "items": ["New Export dialog like Spine 4.3: JSON, Binary, HTML, images, video and texture packer", "Save and load export settings, preview before exporting"]}, {"version": "1.7.0", "date": "2026-11-18", "items": ["Dopesheet like Spine 4.3: zoom, pan, rows and keys", "Dopesheet: X / Y, colour, inherit and sequence keys, row reorder and Sync"]}, {"version": "1.6.0", "date": "2026-11-18", "items": ["Bones in the viewport are drawn like Spine 4.3", "Skin bones and skin constraints like Spine 4.3"]}, {"version": "1.5.0", "date": "2026-11-18", "items": ["Number fields: drag left or right to change the value (no spinner arrows)"]}, {"version": "1.4.0", "date": "2026-11-18", "items": ["Select several bones, slots and images at once like Spine", "Dopesheet key editing: move, duplicate (Ctrl+Shift+drag), Alt and Ctrl+Alt drag", "Dopesheet toolbar in one row with Shift, Offset and Adjust", "Graph view: curve editor with Bezier handles, presets and handle modes", "Skins like Spine"]}, {"version": "1.3.1", "date": "2026-11-17", "items": ["Fixed the bone rotate, move and scale tools", "Big rigs play and edit faster"]}, {"version": "1.3.0", "date": "2026-11-17", "items": ["Compensate buttons like Spine (move a parent without moving its children or images)"]}, {"version": "1.2.1", "date": "2026-11-17", "items": ["Tool palette buttons respond at once again", "Fixed a slowdown after the hotkeys update"]}, {"version": "1.2.0", "date": "2026-11-17", "items": ["Spine hotkeys for tools, modes, frames, keys and playback", "Interface closer to Spine"]}, {"version": "1.1.0", "date": "2026-11-17", "items": ["Auto-rig places bones from a template learned from a sample rig"]}, {"version": "1.0.0", "date": "2026-11-17", "items": ["First web version of AI_animation, with an English interface", "Runs in the browser on PC and phone; work is saved in your browser"]}]};</script><script>
+</script><script>window.AIA_VERSION = {"version": "1.20.4", "built": "2026-11-20 11:27", "changelog": [{"version": "1.20.4", "date": "2026-11-20", "items": ["Open more Spine 4.3 projects: extra skins, skin placeholders, slider constraints, path and point attachments, path constraints", "Spine projects open with the right IK settings (mix, stretch, compress) and physics", "Event names keep their folder path"]}, {"version": "1.20.3", "date": "2026-11-19", "items": ["Import works on any PC; clear errors for missing images / unsupported versions", "Open Project on the website: pick the .spine file itself or the whole folder"]}, {"version": "1.20.2", "date": "2026-11-19", "items": ["Save mesh and weights edits to .spine (vertices, UVs, triangles, edges, weights, region to mesh)"]}, {"version": "1.20.1", "date": "2026-11-19", "items": ["Spine-style key buttons on transform rows"]}, {"version": "1.20.0", "date": "2026-11-19", "items": ["Animation views rebuilt to match Spine (Curves, Ghosting, Playback, Timeline, Audio)", "Spine-style transform handles: translate / scale arrows, rotate ring, shear lines, in World / Local / Parent; drag an axis to move or scale along it", "Bone properties like Spine (inherit, length, select, name, icon, colour; New, Parent, Split, Skin) and a breadcrumb of the selected bone"]}, {"version": "1.19.3", "date": "2026-11-19", "items": ["Tint black: the viewport draws the dark colour, and tint black keys (Color view, Dark tab in Animate) show in the dopesheet and go to JSON and binary"]}, {"version": "1.19.2", "date": "2026-11-19", "items": ["Mix preview blends slot colours, mesh deforms and constraint mixes too, like Spine"]}, {"version": "1.19.1", "date": "2026-11-19", "items": ["Audio tracks and mix times are saved with the project (.aia.json and autosave) and come back when it is opened", "JSON export writes the audio folder when events use sounds"]}, {"version": "1.19.0", "date": "2026-11-19", "items": ["Save saves .spine in the opened file's version (PC: <name>_ai.spine next to it; website: a download); edits .spine cannot hold yet are saved as JSON with a notice", "Main menu on the logo: New / Open / Recent / Save / Save As / Package Project, New Skeleton, Import Project / Data / PSD, Export, Texture Packer, Texture Unpacker, Settings", "Spine version of the opened file next to the logo", "Exports are named skeleton.json / .skel / .atlas / .png, like Spine", "The envelope opens What's new; the version text is information only"]}, {"version": "1.18.1", "date": "2026-11-19", "items": ["Graph colours match Spine"]}, {"version": "1.18.0", "date": "2026-11-19", "items": ["Curves, Ghosting, Playback, Timeline and Audio views (Alt+V, Alt+H, Alt+P, Alt+L, Alt+U)", "View shortcuts: a view behind another tab comes to the front; pressed again it closes"]}, {"version": "1.17.2", "date": "2026-11-19", "items": ["Cleaner look: one neutral dark theme with one accent blue, Spine-like tree (search in the toolbar, compact rows, visibility column, short attachment names, constraint folders), tidy panel headers and toolbars"]}, {"version": "1.17.1", "date": "2026-11-19", "items": ["Legs fixed: constraints run in the project's own order (as Spine does), and the two-bone IK matches Spine's runtime exactly", "Graph colours like Spine (rotate sky blue, X green, Y blue), square keys, frame dots, Spine's Graph toolbar with Shift, Offset, copy / paste, Swap and Average (all)"]}, {"version": "1.17.0", "date": "2026-11-19", "items": ["Views menu laid out like Spine's, with icons and Alt shortcuts; open views are greyed and checked", "New views: Color (slot, dark tint, bone, skin, attachment colours and colour keys), Skins, Outline, Metrics, Problems; Animations view with folders and export flags", "Mesh Tools and Weights views", "Save as .spine says which mesh or attachment edit it cannot write yet"]}, {"version": "1.16.1", "date": "2026-11-19", "items": ["Preview opens fitted to the whole animation"]}, {"version": "1.16.0", "date": "2026-11-19", "items": ["Save as .spine in the same Spine version (Project > Save as .spine, Ctrl+Shift+S, or Export > Spine)", "Export of a project opened from .spine keeps its own Spine version, bone order, mesh weights, curves and the parts the editor does not show", "Preview zoom and pan fixed (wheel, drag, + / -, fit)"]}, {"version": "1.15.1", "date": "2026-11-19", "items": ["Removed project-specific names"]}, {"version": "1.15.0", "date": "2026-11-19", "items": ["Version number in the top-right corner; click it to see what changed", "A dot on the version shows there is news you have not read yet"]}, {"version": "1.14.0", "date": "2026-11-19", "items": ["Auto-rig has a second rig template (Template B, controller biped) with leg and shoulder controllers", "Rig template choice in the auto-rig wizard: Auto, A or B (Auto shows what it picked)"]}, {"version": "1.13.0", "date": "2026-11-19", "items": ["Selected bones are drawn in cyan like Spine", "Graph: Repeat shows the curves before and after the animation; X / Y splits channels", "Skins can have a colour and live in folders (name with a slash)", "Bones and slots can be selected together with Ctrl+click", "Dopesheet toolbar stays in one row and never scrolls sideways"]}, {"version": "1.12.0", "date": "2026-11-19", "items": ["Export: Polygons packing for images used only by meshes", "Export: audio track for AVI, MOV and WEBM videos (file or event sounds)", "Export check box on attachments, constraints, animations, skins and events"]}, {"version": "1.11.1", "date": "2026-11-19", "items": ["Fixed the folder import that hung on some rigs (overlapping draw-order keys)", "A failed import now shows a message instead of hanging"]}, {"version": "1.11.0", "date": "2026-11-19", "items": ["Opening .spine files reads weighted mesh deform keys, clipping, events and draw-order folders", "Inherit keys, export flags and more constraint settings are read from .spine files"]}, {"version": "1.10.0", "date": "2026-11-18", "items": ["Open .spine project files directly, without Spine installed", "Find works across your Spine projects without Spine"]}, {"version": "1.9.0", "date": "2026-11-18", "items": ["Import uses the original images from the images folder (sharper than the packed atlas)", "Sharper viewport on high-resolution screens"]}, {"version": "1.8.0", "date": "2026-11-18", "items": ["New Export dialog like Spine 4.3: JSON, Binary, HTML, images, video and texture packer", "Save and load export settings, preview before exporting"]}, {"version": "1.7.0", "date": "2026-11-18", "items": ["Dopesheet like Spine 4.3: zoom, pan, rows and keys", "Dopesheet: X / Y, colour, inherit and sequence keys, row reorder and Sync"]}, {"version": "1.6.0", "date": "2026-11-18", "items": ["Bones in the viewport are drawn like Spine 4.3", "Skin bones and skin constraints like Spine 4.3"]}, {"version": "1.5.0", "date": "2026-11-18", "items": ["Number fields: drag left or right to change the value (no spinner arrows)"]}, {"version": "1.4.0", "date": "2026-11-18", "items": ["Select several bones, slots and images at once like Spine", "Dopesheet key editing: move, duplicate (Ctrl+Shift+drag), Alt and Ctrl+Alt drag", "Dopesheet toolbar in one row with Shift, Offset and Adjust", "Graph view: curve editor with Bezier handles, presets and handle modes", "Skins like Spine"]}, {"version": "1.3.1", "date": "2026-11-17", "items": ["Fixed the bone rotate, move and scale tools", "Big rigs play and edit faster"]}, {"version": "1.3.0", "date": "2026-11-17", "items": ["Compensate buttons like Spine (move a parent without moving its children or images)"]}, {"version": "1.2.1", "date": "2026-11-17", "items": ["Tool palette buttons respond at once again", "Fixed a slowdown after the hotkeys update"]}, {"version": "1.2.0", "date": "2026-11-17", "items": ["Spine hotkeys for tools, modes, frames, keys and playback", "Interface closer to Spine"]}, {"version": "1.1.0", "date": "2026-11-17", "items": ["Auto-rig places bones from a template learned from a sample rig"]}, {"version": "1.0.0", "date": "2026-11-17", "items": ["First web version of AI_animation, with an English interface", "Runs in the browser on PC and phone; work is saved in your browser"]}]};</script><script>
 /* Version label (top-right of the header) and the "What's new" dialog.
    build.py puts window.AIA_VERSION = {version, built, changelog} in front of this file; CHANGELOG.json is the source.
    Unbuilt page (ai_animation.html from a server): falls back to fetching CHANGELOG.json. */
