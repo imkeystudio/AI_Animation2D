@@ -13240,7 +13240,7 @@ const SPF = (() => {
   class R {
     constructor(b) {
       this.b = b; this.dv = new DataView(b.buffer, b.byteOffset, b.byteLength);
-      this.M = []; this.V = []; this.tape = null; this.warn = []; this.learn = {}; this.guessT = Object.assign({}, TRK); this.steps = 0; this.t0 = performance.now();
+      this.S = S; this.M = []; this.V = []; this.tape = null; this.warn = []; this.learn = {}; this.guessT = Object.assign({}, TRK); this.steps = 0; this.t0 = performance.now();
     }
     var(p) {
       let r = 0, sh = 0;
@@ -13281,8 +13281,8 @@ const SPF = (() => {
       let s = ''; for (let i = st; i < p; i++) s += String.fromCharCode(b[i]);
       return [s + String.fromCharCode(c), p + 1];
     }
-    snap() { return [this.M.length, this.V.length, this.tape ? this.tape.length : 0]; }
-    undo(s) { this.M.length = s[0]; this.V.length = s[1]; if (this.tape) this.tape.length = s[2]; }
+    snap() { return [this.M.length, this.V.length, this.tape ? this.tape.length : 0, this.vrefs ? this.vrefs.length : 0]; }
+    undo(s) { this.M.length = s[0]; this.V.length = s[1]; if (this.vrefs) this.vrefs.length = s[3]; if (this.calibI != null && this.calibI >= s[1]) this.calibI = null; if (this.tape) this.tape.length = s[2]; }
     /* the tape (writer): every object definition (d) and back-reference (r) in stream order, with byte positions */
     tdef(t, p) { if (this.tape) this.tape.push({ k: 'd', t, i: (t === 'V' ? this.V : this.M).length - 1, p }); }
     tref(t, id, a, b) { if (this.tape) this.tape.push({ k: 'r', t, id, a, b }); }
@@ -13299,31 +13299,46 @@ const SPF = (() => {
           const [m, q] = this.var(p);
           if (m === 0) return [null, q];
           if (m === 1) { const [t2, i] = this.newObj('V', p); const r = this.kstr(q); t2[i] = r[0]; return r; }
-          this.tref('V', m - 2, p, q); return [{ $v: m - 2 }, q];
+          this.tref('V', m - 2, p, q); if (this.vrefs) this.vrefs.push([m - 2, 's']); return [{ $v: m - 2 }, q];
         }
         case 'o': return this.cobj(p);
+        case 'fa0': { // 4.2: a float[] written as class + marker only (empty, no length)
+          let c, m, q; [c, q] = this.var(p); if (c !== 0x11) throw new Bad('fa0'); const mp = q; [m, q] = this.var(q);
+          if (m === 1) { const [tb, i] = this.newObj('V', p); tb[i] = []; } else if (m >= 2) this.tref('V', m - 2, mp, q); else throw new Bad('fa0 null');
+          return [[], q]; }
         case 'bo': return b[p] <= 1 ? [b[p] === 1, p + 1] : this.cobj(p); // a bool (0 / 1) or an object
         case 'e': return this.robj(p, 'E', 'V');
         case 'oa': return this.robj(p, 'OA', 'V');
         case 'kf': return this.robj(p, 'KFA', 'V');
         case 'do': return this.robj(p, 'A', 'V');
-        case 'mx': return this.robj(p, 'T:?' + key, 'M');
+        case 'mx': {
+          // 4.2: an object defined here without its class (a timeline's bone / slot / constraint): try the known classes
+          if ((this.v42 || this.late) && b[p] === 1) {
+            for (const c of [0x0c, 0x0d, 0x38, 0x41, 0x79, 0x48, 0x2e, 0x2b, 0x34, 0x54, 0x45, 0x53, 0x12, 0x6c, 0x22]) {
+              const sn = this.snap();
+              try { const r = this.robj(p, 'T:C' + H(c).padStart(2, '0'), 'M'); if (r[0] && typeof r[0] === 'object') r[0].$c = c; return r; }
+              catch (e) { if (!(e instanceof Bad)) throw e; this.undo(sn); }
+            }
+          }
+          return this.robj(p, 'T:?' + key, 'M');
+        }
         case 'om': { const sn = this.snap(); try { return this.cobj(p); } catch (e) { if (!(e instanceof Bad)) throw e; this.undo(sn); return this.robj(p, 'T:?' + key, 'M'); } } // an object, or (Spine 4.3) a reference without its class
       }
       if (t.startsWith('m:')) return this.robj(p, 'T:C' + t.slice(2).padStart(2, '0'), 'M');
       if (t.startsWith('t:')) return this.robj(p, 'T:' + t.slice(2), 'M');
       throw new Bad('type ' + t);
     }
-    fixedKey(key) { const i = key.lastIndexOf('|'); const s = S[key.slice(0, i)]; return !!(s && (+key.slice(i + 1)) in s); }
+    fixedKey(key) { const i = key.lastIndexOf('|'); const s = this.S[key.slice(0, i)]; return !!(s && (+key.slice(i + 1)) in s); }
     cobj(p) {
       let [c, q] = this.var(p);
       if (c === 0) return [null, q];
       if (c === 1 || c > 600) throw new Bad('class ' + H(c) + ' at ' + H(p));
       let m; const mp = q; [m, q] = this.var(q);
       if (m === 0) throw new Bad('null after class');
-      if (m >= 2) { this.tref(VALCLS.has(c) ? 'V' : 'M', m - 2, mp, q); return [{ $r: m - 2, $c: c }, q]; }
-      const [tb, i] = this.newObj(VALCLS.has(c) ? 'V' : 'M', p);
-      const kind = BODY[c] || 'T:C' + H(c).padStart(2, '0');
+      const isV = VALCLS.has(c); // 4.2: class 0x70 (a timeline's type, an enum value) is a model object
+      if (m >= 2) { this.tref(isV ? 'V' : 'M', m - 2, mp, q); return [{ $r: m - 2, $c: c }, q]; }
+      const [tb, i] = this.newObj(isV ? 'V' : 'M', p);
+      const kind = BODY[c] || (this.v42 && c === 0x70 ? 'E' : 'T:C' + H(c).padStart(2, '0'));
       let v;
       if (c === 0x12) {
         const sn = this.snap();
@@ -13344,9 +13359,10 @@ const SPF = (() => {
     robj(p, kind, table) {
       let [m, q] = this.var(p);
       if (m === 0) return [null, q];
-      if (m >= 2) { this.tref(table === 'V' ? 'V' : 'M', m - 2, p, q); return [{ $r: m - 2, $t: table }, q]; }
+      if (m >= 2) { this.tref(table === 'V' ? 'V' : 'M', m - 2, p, q); if (this.vrefs && kind === 'E') this.vrefs.push([m - 2, 'e']); return [{ $r: m - 2, $t: table }, q]; }
       const [tb, i] = this.newObj(table, p);
       let v; [v, q] = this.body(q, kind);
+      if ((this.v42 || this.late) && v && typeof v === 'object' && !Array.isArray(v) && kind.startsWith('T:C')) v.$c = parseInt(kind.slice(3), 16); // 4.2: objects defined without class keep it
       tb[i] = v; return [v, q];
     }
     find(pat, from) {
@@ -13386,6 +13402,8 @@ const SPF = (() => {
       const out = {}; const sn = this.snap();
       if (this.tape) Object.defineProperty(out, '$fp', { value: {}, enumerable: false }); // field byte positions (writer)
       const q = this.frec(p, n, sch, out);
+      const ren = this.REN && this.REN[sch];
+      if (ren) return [renameTags(out, ren), q];
       return [out, q];
     }
     frec(p, n, sch, out) {
@@ -13394,16 +13412,19 @@ const SPF = (() => {
       const [tag, q] = this.var(p);
       if (tag in out || tag > 300) throw new Bad('tag ' + H(tag) + ' at ' + H(p));
       const key = sch + '|' + tag;
-      const fx = S[sch] && S[sch][tag];
-      const cands = fx ? [fx] : (this.learn[key] ? [this.learn[key]] : FT);
+      const fx = this.S[sch] && this.S[sch][tag];
+      if (!fx && this.noGuess) { if (q >= (this.far || 0)) { this.far = q; this.farKey = key + ' unknown tag'; } throw new Bad('unknown tag ' + key); }
+      const cands = fx ? (this.soft ? [fx, ...FT.filter(x => x !== fx)] : [fx]) : (this.learn[key] ? [this.learn[key]] : FT);
       let err = null;
       for (const t of cands) {
         const sn = this.snap();
         try {
           const [v, e] = this.value(q, t, key);
           out[tag] = v; if (out.$fp) out.$fp[tag] = [q, e, t];
+          if ((this.v42 || this.late) && this.calibI == null && sch === 'C0c' && tag === (this.v42 ? 0x20 : 0x1b) && typeof v === 'number') this.calibI = this.V.length - 1;
           const r = this.frec(e, n - 1, sch, out);
           if (!fx && !this.learn[key]) this.learn[key] = t;
+          if (this.soft && fx && t !== fx) (this.softUse || (this.softUse = {}))[key + ' ' + fx + '->' + t] = 1;
           return r;
         } catch (ex) {
           if (!(ex instanceof Bad) && !(ex instanceof RangeError)) throw ex;
@@ -13416,17 +13437,20 @@ const SPF = (() => {
     frame(q) {
       let c, m; [c, q] = this.var(q); [m, q] = this.var(q);
       if (c !== 133 || m !== 1) throw new Bad('frame ' + c + ' at ' + H(q));
-      this.M.push('frame'); this.tdef('M', q); return q;
+      this.M.push('frame'); this.tdef('M', q);
+      if (this.v42) { q = this.ref42(q); q = this.ref42(q); } // Spine 4.2: each key refers to its timeline and its track
+      return q;
     }
+    ref42(q) { const [m, e] = this.var(q); if (m < 2) throw new Bad('ref ' + m + ' at ' + H(q)); this.tref('M', m - 2, q, e); this.lastRef = m - 2; return e; }
     track(p) {
       const b = this.b; let A, B, n, q;
-      let nA; [A, q] = this.var(p); [B, q] = this.var(q); nA = q; [n, q] = this.var(q);
+      let nA; q = this.v42 ? this.ref42(p) : p; /* 4.2: the track refers to its timeline first */ const tl42 = this.v42 ? this.lastRef : -1, mi42 = this.M.length - 1; [A, q] = this.var(q); [B, q] = this.var(q); nA = q; [n, q] = this.var(q);
       if (B === 1) { this.V.push('frames'); this.tdef('V', p); } else if (this.tape) this.odd = (this.odd || 0) + 1;
       const fr = []; let tail = null, t, u, v;
       // byte positions for the writer: count varint, frame starts, end of the frames, end of the track
       const pos = this.tape ? { p, nA, nB: q, fs: [], fe: 0, end: 0 } : null;
       const head = () => { if (pos) pos.fs.push(q); q = this.frame(q); [t, q] = this.f32(q); u = b[q++]; };
-      const done = (o, qq) => { if (pos) { pos.end = qq; o.$pos = pos; } return [o, qq]; };
+      const done = (o, qq) => { if (pos) { pos.end = qq; o.$pos = pos; } if (this.v42 && this.debug) { o.tl42 = tl42; o.mi42 = mi42; } return [o, qq]; };
       if (A === 12 || A === 42 || A === 13) {
         for (let i = 0; i < n; i++) { head(); [v, q] = this.robj(q, A === 12 ? 'T:EK' : A === 13 ? 'A' : 'T:K42', A === 13 ? 'V' : (A === 42 ? 'V' : 'M')); fr.push({ t, u, v }); }
         if (pos) pos.fe = q;
@@ -13442,8 +13466,12 @@ const SPF = (() => {
       if (A === 6) {
         let prev = 0;
         for (let i = 0; i < n; i++) {
-          head(); let h = null;
-          if (u === 1 || prev === 1) { h = []; for (let k = 0; k < 5; k++) { let x; [x, q] = this.f32(q); h.push(x); } }
+          let h = null;
+          if (this.v42) { // 4.2: the handles always come before the curve byte
+            if (pos) pos.fs.push(q); q = this.frame(q); [t, q] = this.f32(q);
+            h = []; for (let k = 0; k < 5; k++) { let x; [x, q] = this.f32(q); h.push(x); } u = b[q++];
+          } else head();
+          if (!this.v42 && (u === 1 || prev === 1)) { h = []; for (let k = 0; k < 5; k++) { let x; [x, q] = this.f32(q); h.push(x); } }
           prev = u;
           let one, L, k; [one, q] = this.var(q); if (one === 1) { this.M.push('dv'); this.tdef('M', q); } else if (this.tape) this.odd = (this.odd || 0) + 1;
           [L, q] = this.var(q); [k, q] = this.var(q);
@@ -13471,12 +13499,15 @@ const SPF = (() => {
           let cc, mm; [cc, qq] = this.var(qq); [mm, qq] = this.var(qq);
           if (cc !== 133 || mm !== 1) throw new Bad('frame');
           if (!check) { this.M.push('frame'); this.tdef('M', qq); }
+          if (this.v42) { qq = this.ref42(qq); qq = this.ref42(qq); }
           const vals = []; let tt; [tt, qq] = this.f32(qq);
           for (let j = 0; j < k; j++) { let x; [x, qq] = this.f32(qq); vals.push(x); }
+          let h = null;
+          // Spine 4.2 stores every key's bezier handles (per channel: left x/y, right x/y, flag) before the curve byte
+          if (this.v42) { h = []; for (let j = 0; j < 5 * c; j++) { let x; [x, qq] = this.f32(qq); h.push(x); } }
           const cu = b[qq++]; if (cu > 2) throw new Bad('curve');
           if (check && !(tt >= 0 && tt < 1e6)) throw new Bad('time');
-          let h = null;
-          if (cu === 1 || prev === 1) { h = []; for (let j = 0; j < 5 * c; j++) { let x; [x, qq] = this.f32(qq); h.push(x); } }
+          if (!this.v42 && (cu === 1 || prev === 1)) { h = []; for (let j = 0; j < 5 * c; j++) { let x; [x, qq] = this.f32(qq); h.push(x); } }
           prev = cu; out.push({ t: tt, vals, u: cu, h });
         }
         let tv = null; if (pos && !check) pos.fe = qq;
@@ -13519,6 +13550,47 @@ const SPF = (() => {
   // tails of value tracks reuse the class schemas
   S.TAIL4 = S.C0d; S.TAIL7 = S.C38; S.TAIL8 = S.C41; S.TAILC0d = S.C0d; S.C23 = S.ED; S.TAIL12 = S.ED;
 
+  /* ---------- Spine 4.2 schemas (same classes, other field tags) ---------- */
+  // Spine 4.2 writes the same classes as 4.3 with some fields added, removed or of another type: start from the 4.3 schemas
+  // and override per class (learned from 4.2 projects against Spine 4.2 CLI JSON exports, the CLI being only the test oracle).
+  const S42 = {}; for (const k in S) S42[k] = Object.assign({}, S[k]);
+  const def42 = (k, tags, types) => { const o = S42[k] || (S42[k] = {}); tags.forEach((t, i) => { if (types[i] === '-') delete o[t]; else o[t] = types[i]; }); };
+  // skeleton: 0x18 bounds as float[], 0x2d / 0x24 objects, 0x2e a float
+  def42('C0b', [0x18, 0x2d, 0x24, 0x2e], sp('kf o o f'));
+  // bone: 0x20 a second enum, more floats (editor pose next to the setup values)
+  def42('C0c', [0x20, 0x07, 0x1a, 0x06, 0x04, 0x18, 0x08, 0x05, 0x21, 0x22], sp('e f f f f f f f - -'));
+  // slot: two more colours (0x0a, 0x04)
+  def42('C0d', [0x0a, 0x04], sp('o o'));
+  // bounding box: a float[] (0x12) and more floats; its vertices object (0x35) holds a float[] (0x03) and refers back to the
+  // attachment in 0x34 (a reference without class); mesh vertices (0x47) hold the float[] in 0x03 too
+  def42('C34', [0x12, 0x09, 0x0a, 0x0b], sp('o f f f'));
+  def42('C35', [0x03], sp('fa0'));
+  def42('C2e', [0x12, 0x0b, 0x09, 0x0a], sp('o f f f'));
+  def42('C41', [0x14], sp('b'));
+  // timeline: 0x00 refers to its animation, 0x06 a flag (the type enum 0x07 of 4.3 is not stored)
+  def42('C13', [0x00, 0x06], sp('mx o'));
+  def42('C47', [0x03], sp('o'));
+  def42('C38', [0x0d], sp('b'));
+  // 4.2 tag -> the 4.3 tag of the same field, so the converter reads both versions alike; a 4.2-only field whose number a 4.3 field
+  // takes is kept under 0x1000 + its tag. Field byte positions ($fp) move with their field and keep the stored tag as a 4th item.
+  const REN42 = {
+    C0c: { 0x20: 0x1b },
+  };
+  const cmpBase = (a, b) => { a = String(a).slice(String(a).lastIndexOf('/') + 1); b = String(b).slice(String(b).lastIndexOf('/') + 1); return a < b ? -1 : a > b ? 1 : 0; };
+  function renameTags(o, ren) {
+    const tg = ren.$t || (ren.$t = new Set(Object.values(ren))), out = {}, fp = o.$fp ? {} : null;
+    if (fp) Object.defineProperty(out, '$fp', { value: fp, enumerable: false });
+    for (const k of Object.keys(o)) { const t = +k, nt = t in ren ? ren[t] : (tg.has(t) ? 0x1000 + t : t); out[nt] = o[k]; if (fp && o.$fp[k]) fp[nt] = [...o.$fp[k].slice(0, 3), t]; }
+    return out;
+  }
+  // track types: inherit keys have no curve handles; physics constraint keys end with the constraint (no class)
+  const TRK42 = Object.assign({}, TRK, { 39: [3, 0, ''] });
+  // 4.2: 16-19 scale / shear X / Y, 20 rgb (+ dark), 21 alpha (their tail is the slot), 9-11 path position / spacing / mix and
+  // 23-29 physics inertia ... mix (their tail is the constraint, written without class)
+  Object.assign(TRK42, { 16: [1, 1, ''], 17: [1, 1, ''], 18: [1, 1, ''], 19: [1, 1, ''], 20: [6, 6, 'C0d'], 21: [1, 1, 'C0d'], 9: [1, 1, 'r'], 10: [1, 1, 'r'], 11: [3, 3, 'r'] });
+  for (const a of [9, 10, 11]) S42['TAIL' + a] = S42.C48;
+  for (const a of [23, 24, 25, 26, 27, 28, 29]) { TRK42[a] = [1, 1, 'r']; S42['TAIL' + a] = S42.C79; }
+
   /* ---------- tree -> Spine JSON ---------- */
   class Conv {
     constructor(r, sk, ver) { this.r = r; this.sk = sk; this.ver = ver; this.warn = r.warn; this.vbase = null; }
@@ -13534,12 +13606,28 @@ const SPF = (() => {
     name(o) { if (!o || typeof o !== 'object') return null; const n = o[1]; return typeof n === 'string' ? n : this.v(n); }
     calib() {
       const bones = this.a(this.sk[0x04]).map(x => this.m(x) || this.o(x)); // bones may be references (defined earlier, e.g. inside a folder tree)
+      if ((this.r.v42 || this.r.late) && this.r.calibI != null) { // 4.2 / 4.3.25+: bones are defined where first used; the earliest inherit value any bone refers to is the first one read
+        let lo = Infinity; for (const b of bones) { const r = b && b[0x1b]; if (r && typeof r === 'object' && '$r' in r) lo = Math.min(lo, r.$r); }
+        if (lo < Infinity) { this.vbase = lo - this.r.calibI; return; }
+      }
+      if (this.r.v42 && this.r.vrefs && this.r.vrefs.length) {
+        // 4.2: the offset between value-table references and the table is the one under which string references meet strings
+        // and enum references meet numbers (checked over up to 400 references)
+        const R = this.r.vrefs, step = Math.max(1, Math.floor(R.length / 400)), smp = []; for (let i = 0; i < R.length; i += step) smp.push(R[i]);
+        let lo = Infinity, hi = -Infinity; for (const [id] of smp) { lo = Math.min(lo, id); hi = Math.max(hi, id); }
+        const V = this.r.V; let best = null, bs = -1;
+        for (let vb = Math.max(hi - V.length + 1, 0); vb <= lo; vb++) {
+          let s = 0; for (const [id, k] of smp) { const v = V[id - vb]; if (k === 's' ? typeof v === 'string' : typeof v === 'number') s++; }
+          if (s > bs) { bs = s; best = vb; }
+        }
+        if (best != null && bs >= smp.length * 0.9) { this.vbase = best; return; }
+      }
       const e0 = bones[0] && bones[0][0x1b];
       for (let i = 1; i < bones.length; i++) {
         const r = bones[i][0x1b];
         if (r && typeof r === 'object' && '$r' in r && typeof e0 === 'number') {
           const idx = this.r.V.indexOf(e0); // enum value object of bone 0 (first number in the table)
-          const first = this.r.V.findIndex(x => typeof x === 'number');
+          const first = this.r.calibI != null ? this.r.calibI : this.r.V.findIndex(x => typeof x === 'number'); // 4.2: the first bone's inherit value, recorded while reading
           if (first >= 0) { this.vbase = r.$r - first; return; }
         }
       }
@@ -13556,7 +13644,7 @@ const SPF = (() => {
       const sk = this.sk, out = {}, num = (v, d) => typeof v === 'number' && Math.abs(v - d) > 1e-6, numb = (v, d) => typeof v === 'number' && Math.abs(v - d) > 1e-3; // Spine's export leaves out values this close to the default
       const b4 = this.o(this.m(sk[0x18])) || [0, 0, 0, 0];
       out.skeleton = { spine: this.ver, x: b4[0] || 0, y: b4[1] || 0, width: b4[2] || 0, height: b4[3] || 0, images: this.v(sk[0x03]) || null, audio: this.v(sk[0x22]) || null };
-      const bones = this.a(sk[0x04]).map(x => this.o(x));
+      const bones = this.a(sk[0x04]).map(x => this.m(x));
       this.bones = bones; this.bi = new Map(bones.map((b, i) => [b, i]));
       out.bones = bones.map(bn => {
         const d = { name: this.name(bn) }; const par = this.m(bn[0x03]); if (par) d.parent = this.name(par);
@@ -13607,6 +13695,16 @@ const SPF = (() => {
       }
       for (const x of this.a(sk[0x16])) {
         const c = this.m(x); if (!c) continue;
+        if (this.r.v42) { // 4.2: fixed fields (no property mapping); written as a 4.3 constraint that maps each property onto itself
+          const d = { type: 'transform', name: this.fname(c), source: this.name(this.m(c[0x03])), bones: this.a(c[0x13]).map(bb => this.name(this.m(bb))) };
+          for (const [tag, key] of [[0x0e, 'rotation'], [0x06, 'x'], [0x07, 'y'], [0x10, 'scaleX'], [0x11, 'scaleY'], [0x12, 'shearY']]) if (num(c[tag], 0)) d[key] = c[tag];
+          d.properties = {}; for (const p of ['rotate', 'x', 'y', 'scaleX', 'scaleY', 'shearY']) d.properties[p] = { to: { [p]: {} } };
+          const mx = typeof c[0x04] === 'number' ? c[0x04] : 1, ms = typeof c[0x0a] === 'number' ? c[0x0a] : 1;
+          if (num(c[0x08], 1)) d.mixRotate = c[0x08]; if (num(mx, 1)) d.mixX = mx; if (num(c[0x17], mx)) d.mixY = c[0x17];
+          if (num(ms, 1)) d.mixScaleX = ms; if (num(c[0x19], ms)) d.mixScaleY = c[0x19]; if (num(c[0x0c], 1)) d.mixShearY = c[0x0c];
+          if (c[0x14] === true) d.localSource = d.localTarget = true; if (c[0x15] === true) d.additive = true;
+          cons.push(d); continue;
+        }
         const d = { type: 'transform', name: this.fname(c), source: this.name(this.m(c[0x03])), bones: this.a(c[0x13]).map(bb => this.name(this.m(bb))) };
         if (num(c[0x06], 0)) d.x = c[0x06]; if (num(c[0x07], 0)) d.y = c[0x07];
         const props = {};
@@ -13673,12 +13771,12 @@ const SPF = (() => {
       } catch (e) { this.warn.push('Constraint order could not be read; constraints are applied by type.'); }
       out.constraints = cons;
       // events
-      out.events = {};
+      out.events = {}; this.evOrd = new Map();
       for (const x of this.a(sk[0x0a])) {
         const e = this.m(x); if (!e || typeof e !== 'object') continue;
         const d = {}; if (e[0x03]) d.int = e[0x03]; if (e[0x04]) d.float = e[0x04]; const st = this.v(e[0x05]); if (st) d.string = st;
         const au = this.v(e[0x06]); if (au) { d.audio = au; if (typeof e[0x08] === 'number' && e[0x08] !== 1) d.volume = e[0x08]; if (e[0x09]) d.balance = e[0x09]; }
-        out.events[this.evName(e)] = d;
+        out.events[this.evName(e)] = d; this.evOrd.set(this.evName(e), this.evOrd.size);
       }
       // animations
       out.animations = {};
@@ -13807,6 +13905,40 @@ const SPF = (() => {
       return list.map(e => e.o);
     }
     mark(tr, path) { if (this.locs) this.locs.push({ anim: this.curAnim, path, tr }); }
+    /* Spine 4.2 timelines the 4.3 converter does not have; true when handled */
+    anim42(tr, A, fr, owner, put, T, out) {
+      const hx = v => Math.max(0, Math.min(255, Math.round(v * 255))).toString(16).padStart(2, '0');
+      if (A === 4 || A === 20 || A === 21) { // rgba / rgba2 (7 values), rgb / rgb2 (6), alpha (1); "2" when the slot has a dark colour
+        const sl = this.m(tr.tail), sn = this.sn.get(sl) || '?', dark = !!(sl && sl[0x0c] === true);
+        let name, ks;
+        if (A === 21) { name = 'alpha'; ks = this.vkeys(fr, ['value'], [1], T, 1, true); }
+        else {
+          const nl = A === 4 ? 4 : 3, ch = dark ? (A === 4 ? 7 : 6) : nl;
+          const raw = this.vkeys(fr, ['a', 'b', 'c', 'd', 'e', 'f', 'g'].slice(0, A === 4 ? 7 : 6), [1, 1, 1, 1, 0, 0, 0], T, ch, true);
+          name = (A === 4 ? 'rgba' : 'rgb') + (dark ? '2' : '');
+          ks = raw.map((k, i) => { const v = fr[i].vals, o = {}; if (k.time != null) o.time = k.time;
+            const light = v.slice(0, nl).map(hx).join(''); if (dark) { o.light = light; o.dark = v.slice(nl, nl + 3).map(hx).join(''); } else o.color = light;
+            if (k.curve) o.curve = k.curve; return o; });
+        }
+        put('slots', sn, name, ks); this.mark(tr, ['slots', sn, name]); return true;
+      }
+      if (A >= 16 && A <= 19) { // scaleX, scaleY, shearX, shearY
+        const key = ['scalex', 'scaley', 'shearx', 'sheary'][A - 16], d = A < 18 ? 1 : 0;
+        put('bones', this.name(owner), key, this.vkeys(fr, ['value'], [d], T, 1, true, 0.005)); this.mark(tr, ['bones', this.name(owner), key]); return true;
+      }
+      if (A >= 9 && A <= 11) { // path constraint position, spacing, mix
+        const c = this.m(tr.tail), n = c ? this.fname(c) : '', key = ['position', 'spacing', 'mix'][A - 9];
+        const ks = A === 11 ? this.vkeys(fr, ['mixRotate', 'mixX', 'mixY'], [1, 1, 1], T, 3, 2) : this.vkeys(fr, ['value'], [0], T, 1, 2);
+        if (A === 11) for (const k of ks) if (k.mixY === undefined && k.mixX !== undefined) k.mixY = k.mixX; // mixY written when mixX is
+        ((out.path || (out.path = {}))[n] || (out.path[n] = {}))[key] = ks; this.mark(tr, ['path', n, key]); return true;
+      }
+      if (A >= 23 && A <= 28) { // physics inertia, strength, damping, mass, wind, gravity (29: mix, as 4.3)
+        const c = this.m(tr.tail), n = c ? this.fname(c) : '', key = ['inertia', 'strength', 'damping', 'mass', 'wind', 'gravity'][A - 23];
+        ((out.physics || (out.physics = {}))[n] || (out.physics[n] = {}))[key] = this.vkeys(fr, ['value'], [0], T, 1, true); this.mark(tr, ['physics', n, key]); return true;
+      }
+      if (A === 29) { const c = this.m(tr.tail), n = c ? this.fname(c) : ''; ((out.physics || (out.physics = {}))[n] || (out.physics[n] = {})).mix = this.vkeys(fr, ['value'], [1], T, 1, true); this.mark(tr, ['physics', n, 'mix']); return true; }
+      return false;
+    }
     anim(a) {      const fps = 30, T = f => Math.round(f / fps * 1e7) / 1e7, out = {};
       const put = (sec, n, key, val) => { const s = out[sec] || (out[sec] = {}); (s[n] || (s[n] = {}))[key] = val; };
       for (const t of this.a(a[0x02])) {
@@ -13826,6 +13958,8 @@ const SPF = (() => {
           } else if (A === 5) {
             const sl = this.m(tr.tail);
             this.mark(tr, ['slots', this.sn.get(sl) || '?', 'attachment']); put('slots', this.sn.get(sl) || '?', 'attachment', fr.map(f => { const k = {}; if (f.t) k.time = T(f.t); const at = this.m(f.v); if (at && typeof at === 'object' && (!this.noex.has(at) || this.keepNoExport)) k.name = this.name(at); return k; }));
+          } else if (this.r.v42 && this.anim42(tr, A, fr, owner, put, T, out)) {
+            // Spine 4.2 track types (colour with or without dark, scale / shear X / Y, path and physics constraint keys)
           } else if (A === 4) {
             const sl = this.m(tr.tail);
             const ks = this.vkeys(fr, ['r', 'g', 'b', 'a', 'dr', 'dg', 'db'], [1, 1, 1, 1, 0, 0, 0], T, 4, true).map((k, i) => {
@@ -13868,7 +14002,7 @@ const SPF = (() => {
                 if (this.v(ed[0x06])) { if (typeof ek[0x05] === 'number' && ek[0x05] !== (ed[0x08] ?? 1)) k.volume = ek[0x05]; if (typeof ek[0x06] === 'number' && ek[0x06] !== (ed[0x09] || 0)) k.balance = ek[0x06]; }
               }
               return k;
-            })).sort((x, y) => (x.time || 0) - (y.time || 0));
+            })).sort((x, y) => (x.time || 0) - (y.time || 0) || (this.r.v42 ? cmpBase(x.name, y.name) : 0)); // 4.2 export: keys at one time by event name (without its folder)
           } else if (A === 6) {
             const at = this.m(tr.tail), sl = at && this.m(at[0x00]);
             if (!at || !sl) continue;
@@ -13920,8 +14054,9 @@ const SPF = (() => {
   function read(fileBytes, opts) {
     const u8 = fileBytes instanceof Uint8Array ? fileBytes : new Uint8Array(fileBytes), b = opts && opts.inflated ? u8 : inflate(u8);
     const ver = version(b);
-    if (!/^4\.3\./.test(ver) && !(/^4\.2\./.test(ver) && opts && opts.try42)) throw new Error('This project is from Spine ' + (ver || 'an unknown version') + '. The built-in reader opens Spine 4.3 projects; ' + (ver.startsWith('4.2') ? '4.2 projects store their data differently and are not read yet.' : 'older versions are not read.') + ' Export JSON from Spine and import that instead.');
-    const r = new R(b); if (opts && opts.tape) r.tape = []; r.debug = !!(typeof window !== 'undefined' && window.SPF_DEBUG); if (typeof window !== 'undefined' && window.SPF_TRACE) { r.trace = []; window.SPF_TR = r; }
+    if (!/^4\.[23]\./.test(ver)) throw new Error('This project is from Spine ' + (ver || 'an unknown version') + '. The built-in reader opens Spine 4.2 and 4.3 projects; older versions are not read. Export JSON from Spine and import that instead.');
+    const r = new R(b); r.late = /^4\.3\.(2[5-9]|[3-9]\d)/.test(ver); // Spine 4.3.25 and later define bones where first used, like 4.2
+    if (/^4\.2\./.test(ver)) { r.S = (opts && opts.S42) || S42; r.v42 = true; r.vrefs = []; r.guessT = Object.assign({}, TRK42); r.REN = REN42; } if (opts && opts.tape) r.tape = []; r.debug = !!(typeof window !== 'undefined' && window.SPF_DEBUG); if (typeof window !== 'undefined' && window.SPF_TRACE) { r.trace = []; window.SPF_TR = r; }
     const at = r.find([0x0f, 0x01, 0x01, 0x0b, 0x01], 0);
     if (at < 0) throw new Error('Could not find the skeleton in this project (Spine ' + ver + ').');
     for (let i = 0; i < 7; i++) r.M.push(null);
@@ -13931,7 +14066,9 @@ const SPF = (() => {
     catch (e) { throw new Error('Could not read this project (' + (e.inner || e.message).slice(0, 160) + ').' + (r.debug ? ' far ' + H(r.far || 0) + ' ' + (r.farKey || '') : '')); }
     r.M[7] = sk;
     // the skeleton's own model id (header objects before it differ per project): bones point back to it
-    const b0 = (sk[0x04] && sk[0x04].$o || [])[0], sref = b0 && b0.$o && b0.$o[0x00];
+    const b0 = (sk[0x04] && sk[0x04].$o || [])[0];
+    let sref = b0 && b0.$o && b0.$o[0x00];
+    if ((r.v42 || r.late) && !(sref && typeof sref === 'object' && '$r' in sref)) { const o = r.M.find(x => x && typeof x === 'object' && (x.$c === 0x0c || x.$c === 0x0d) && x[0x00] && typeof x[0x00] === 'object' && '$r' in x[0x00]); sref = o && o[0x00]; } // 4.2: bones are defined where first used
     if (sref && typeof sref === 'object' && '$r' in sref && sref.$r !== 7) { const d = sref.$r - 7; if (d > 0) r.M.unshift(...new Array(d).fill(null)); else r.M.splice(0, -d); }
     const c = new Conv(r, sk, ver); c.keepNoExport = !!(opts && opts.keepNoExport);
     if (r.tape) { c.locs = []; c.animObj = {}; }
@@ -13942,7 +14079,7 @@ const SPF = (() => {
     if (r.tape) res.raw = { b, at, end, tape: r.tape, d: (sref && typeof sref === 'object' && '$r' in sref) ? sref.$r - 7 : 0, skelId: sref && sref.$r, vbase: c.vbase, odd: r.odd || 0, locs: c.locs, animObj: c.animObj, sk, r, c };
     return res;
   }
-  return { read, _R: R, _S: S };
+  return { read, _R: R, _S: S, _S42: S42, _TRK42: TRK42, _REN42: REN42 };
 })();
 if (typeof window !== 'undefined') window.SPF = SPF;
 
@@ -13980,11 +14117,11 @@ function spoMarkNoExport(j) {
 /* a .spine that cannot be opened: a dialog that stays until closed, saying why and what to do (not a passing toast) */
 function spoOpenFailed(name, e) {
   const msg = String((e && e.message) || e || ""), v = (msg.match(/Spine (\d+\.\d+)\.\d+/) || [])[1];
-  const old = v && v !== "4.3";
-  const why = old ? `<p><b>${esc(name)}</b> is a Spine ${esc(v)} project. AI_animation reads Spine 4.3 project files; ${esc(v)} projects store their data differently and are not read yet.</p>`
+  const old = v && v !== "4.3" && v !== "4.2";
+  const why = old ? `<p><b>${esc(name)}</b> is a Spine ${esc(v)} project. AI_animation reads Spine 4.2 and 4.3 project files; ${esc(v)} projects store their data differently and are not read yet.</p>`
     : `<p>AI_animation's reader could not read <b>${esc(name)}</b>. Some projects use parts of the format the reader does not know yet.</p><p class="muted">${esc(msg)}</p>`;
   openModal(`<div class="dlg-h"><h2>Could not open ${esc(name)}</h2><button class="ico" data-close aria-label="Close">✕</button></div><div class="dlg-b">${why}
-    <p><b>What to do:</b> open the project in Spine and use <b>Export → JSON</b> (with the images folder, or pack an atlas). Then import that export here: pick the export folder, or drop the .json / .skel together with the atlas and images.${old ? ` You can also save the project as Spine 4.3 and open the .spine again.` : ""}</p>
+    <p><b>What to do:</b> open the project in Spine and use <b>Export → JSON</b> (with the images folder, or pack an atlas). Then import that export here: pick the export folder, or drop the .json / .skel together with the atlas and images.${old ? ` You can also save the project as Spine 4.2 or 4.3 and open the .spine again.` : ""}</p>
     <div class="row" style="margin-top:10px"><button class="btn primary" data-close>OK</button></div></div>`);
 }
 /* website / any picked files: the .spine plus the PNGs picked with it */
@@ -16571,7 +16708,11 @@ const SPW = (() => {
   /* new content for an edit: bytes plus its own tape (definitions and references, by offset inside the bytes) */
   class Piece extends Out {
     constructor() { super(256); this.tape = []; }
-    def(t, old) { const e = { k: 'd', t, rel: this.n }; if (old !== undefined) e.old = old; this.tape.push(e); }
+    def(t, old, h) { const e = { k: 'd', t, rel: this.n }; if (old !== undefined) e.old = old; if (h) e.h = h; this.tape.push(e); return h; }
+    // a reference to an object this edit defines (h: the handle given to def), numbered when written
+    refL(t, h) { this.tape.push({ k: 'rl', t, h, rel: this.n, len: 1 }); this.varint(0); }
+    // a reference to an object of the source (kind: 'M' / 'V', id as stored) or to a new one ({ h })
+    refAny(t, x) { if (x && typeof x === 'object') this.refL(t, x.h); else this.ref(t, x); }
     // copy raw stream bytes [a, b) with their definitions and references (so ids defined inside stay known to the rest of the file)
     copyRaw(raw, a, b) {
       const base = { M: raw.d, V: raw.vbase }; let cur = a;
@@ -16594,7 +16735,7 @@ const SPW = (() => {
   // edits: [{ a, b, piece }] replace raw bytes [a, b) (a == b inserts); they must not overlap
   function serialize(raw, edits) {
     const b = raw.b, start = raw.at + 5, hdr = { M: raw.skelId + 1, V: raw.vbase }, base = { M: raw.d, V: raw.vbase };
-    const cnt = { M: hdr.M, V: hdr.V }, map = { M: new Map(), V: new Map() };
+    const cnt = { M: hdr.M, V: hdr.V }, map = { M: new Map(), V: new Map() }, local = new Map(); // local: ids of objects new pieces define (by handle)
     const tgt = (t, id) => { if (id < hdr[t]) return id; const v = map[t].get(id); if (v === undefined) throw new Error('A reference points to an object that is no longer written (' + t + id + ').'); return v; };
     const E = edits.slice().sort((x, y) => x.a - y.a || x.b - y.b);
     for (let i = 1; i < E.length; i++) if (E[i].a < E[i - 1].b) throw new Error('overlapping edits');
@@ -16609,7 +16750,8 @@ const SPW = (() => {
       if (pc) {
         for (const e of pc.tape) {
           o.bytes(pc.b.subarray(pcur, e.rel)); pcur = e.rel;
-          if (e.k === 'd') { cnt[e.t]++; if (e.old !== undefined) map[e.t].set(e.old, cnt[e.t] - 1); }
+          if (e.k === 'd') { cnt[e.t]++; if (e.old !== undefined) map[e.t].set(e.old, cnt[e.t] - 1); if (e.h) local.set(e.h, cnt[e.t] - 1); }
+          else if (e.k === 'rl') { if (!local.has(e.h)) throw new Error('A new object is referred to before it is written.'); o.varint(local.get(e.h) + 2); pcur = e.rel + e.len; }
           else { o.varint(tgt(e.t, e.id) + 2); pcur = e.rel + e.len; }
         }
         o.bytes(pc.b.subarray(pcur, pc.n));
@@ -16641,7 +16783,9 @@ const SPW = (() => {
   };
   const near = (a, b, t) => Math.abs(a - b) <= (t || 1e-6) * Math.max(1, Math.abs(b));
   /* the frames of one value track from JSON keys; orig: the track as read (flags of matching keys are kept) */
-  function trackFrames(tr, keys) {
+  // k42 (Spine 4.2): { tl, tr } the timeline and the track the keys belong to (a stored id or { h } of a new object); 4.2 keys
+  // refer to both and always carry their bezier handles before the curve byte
+  function trackFrames(tr, keys, k42) {
     const A = tr.A, fmt = tr.fmt; if (!fmt) throw new Error('track ' + A + ' has no format');
     const nv = fmt[0], nc = fmt[1];
     let vals;
@@ -16655,10 +16799,11 @@ const SPW = (() => {
       const t = Math.round((k.time || 0) * FPS * 1e5) / 1e5, u = k.curve === 'stepped' ? 2 : Array.isArray(k.curve) && i < keys.length - 1 ? 1 : 0;
       const old = (tr.fr || []).find(f => Math.abs(f.t - t) < 1e-3);
       pc.varint(133); pc.def('M'); pc.varint(1);
+      if (k42) { pc.refAny('M', k42.tl); pc.refAny('M', k42.tr); }
       pc.f32(t); const v = V[i]; if (v.length !== nv) throw new Error('values ' + v.length + ' vs ' + nv);
       for (let j = 0; j < nv; j++) pc.f32(v[j]);
-      pc.byte(u);
-      if (u === 1 || prevU === 1) {
+      if (!k42) pc.byte(u);
+      if (k42 || u === 1 || prevU === 1) {
         const pk = keys[i - 1], pcv = prevU === 1 ? pk.curve : null, cv = u === 1 ? k.curve : null;
         for (let c = 0; c < nc; c++) {
           const ci = q => q.length === 4 ? 0 : c * 4; // one shared curve or one per channel
@@ -16667,6 +16812,7 @@ const SPW = (() => {
           pc.f32(old && old.h ? old.h[c * 5 + 4] : 0);
         }
       }
+      if (k42) pc.byte(u);
       prevU = u;
     });
     return pc;
@@ -16716,6 +16862,7 @@ const SPW = (() => {
     return out;
   }
   const BONE_F = { x: 0x0a, y: 0x0b, rotation: 0x0c, scaleX: 0x0d, scaleY: 0x0e, shearX: 0x17, shearY: 0x19, length: 0x09 };
+  const BONE_P42 = { x: 0x04, y: 0x05, rotation: 0x06, scaleX: 0x07, scaleY: 0x08 };
   const BONE_D = { x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1, shearX: 0, shearY: 0, length: 0 };
   const label = p => p.filter(x => x !== 'default').join(' / ');
 
@@ -16726,7 +16873,8 @@ const SPW = (() => {
     if (!B0) return { ok: false, reasons: ['The state right after opening is not known (the project was reopened from the browser storage). Open the .spine again to save it as .spine.'] };
     // setup
     for (const sec of ['slots', 'skins', 'constraints', 'events']) if (!eq(B0[sec], cur[sec])) {
-      if (sec === 'skins') { const me = meshEdits(src, B0, cur, edits, changed); reasons.push(...me.reasons); for (const [k, v] of me.edited) meshEdited.set(k, v); continue; }
+      if (sec === 'skins') { const me = raw.r && raw.r.v42 ? { reasons: skinReasons(B0.skins || [], cur.skins || []), edited: new Map() } /* 4.2: meshes are not rewritten yet */ : meshEdits(src, B0, cur, edits, changed); reasons.push(...me.reasons); for (const [k, v] of me.edited) meshEdited.set(k, v); continue; }
+      if (raw.r && raw.r.v42 && (sec === 'constraints' || sec === 'slots')) { reasons.push(sec === 'slots' ? 'Slots were changed: slot edits are not written into Spine 4.2 projects yet.' : 'Constraints were changed: constraint edits are not written into Spine 4.2 projects yet.'); continue; }
       if (sec === 'constraints') { reasons.push(...conEdits(src, B0, cur, edits, changed, conEdited)); continue; }
       if (sec === 'slots') { reasons.push(...slotEdits(src, B0, cur, edits, changed, slotEdited)); continue; }
       reasons.push(sec === 'slots' ? 'Slots were changed (colour, dark colour, blend or setup attachment).' : sec === 'constraints' ? 'Constraints were changed.' : 'Events were changed.');
@@ -16743,6 +16891,8 @@ const SPW = (() => {
           const tag = BONE_F[k];
           if (tag === undefined || !fp || !fp[tag] || fp[tag][2] !== 'f') { reasons.push(`Bone "${b1.name}": ${k} cannot be written yet.`); continue; }
           const pc = new Piece(); pc.f32(b1[k] ?? BONE_D[k]); edits.push({ a: fp[tag][0], b: fp[tag][1], piece: pc }); changed.push(`bone ${b1.name} ${k}`);
+          const pt = raw.r && raw.r.v42 ? BONE_P42[k] : undefined; // 4.2: the pose the editor shows, kept equal to the setup value
+          if (pt !== undefined && fp[pt] && fp[pt][2] === 'f') { const pp = new Piece(); pp.f32(b1[k] ?? BONE_D[k]); edits.push({ a: fp[pt][0], b: fp[pt][1], piece: pp }); }
         }
       });
     }
@@ -16752,12 +16902,13 @@ const SPW = (() => {
     // animations
     const a0 = Object.keys(B0.animations || {}), a1 = Object.keys(cur.animations || {});
     const add = a1.filter(n => !(n in B0.animations)), del = a0.filter(n => !(n in cur.animations));
-    const newAn = new Set(); if (add.length) reasons.push(...newAnims(src, cur, add, edits, changed, newAn));
+    const newAn = new Set(); if (add.length && raw.r && raw.r.v42) reasons.push(`New or renamed animation${add.length > 1 ? 's' : ''} (${add.slice(0, 5).join(', ')}): new animations are not written into Spine 4.2 projects yet.`); else if (add.length) reasons.push(...newAnims(src, cur, add, edits, changed, newAn));
     if (del.length) reasons.push(`Deleted or renamed animation${del.length > 1 ? 's' : ''}: ${del.slice(0, 5).join(', ')}${del.length > 5 ? '…' : ''}.`);
     const locs = new Map(); for (const L of raw.locs || []) locs.set(L.anim + '\u0002' + L.path.join('\u0001'), L);
     const C = raw.c, rv = p => { let r = 0, sh = 0, x; do { x = raw.b[p++]; r += (x & 127) * 2 ** sh; sh += 7; } while (x & 128); return [r, p]; };
     // an array field [start, end): class varint, new marker, count varint
     const arr = fp => { let q = fp[0]; [, q] = rv(q); const [m, q2] = rv(q); if (m !== 1) return null; const [n, q3] = rv(q2); return { nA: q2, nB: q3, n, end: fp[1] }; };
+    const v42 = !!(raw.r && raw.r.v42), idOf = o => { const i = raw.r.M.indexOf(o); if (i < 0) throw new Error('an object of the project was not found'); return i; }; // 4.2: keys refer to their timeline and track
     const tmpl = boneTimelineTemplate(raw);
     for (const an of a1) {
       if (!(an in B0.animations)) continue;
@@ -16776,15 +16927,15 @@ const SPW = (() => {
           (delTr.get(t) || delTr.set(t, []).get(t)).push(L.tr); changed.push(`${where} (removed)`); continue;
         }
         if (!L) {
-          const A = path[0] === 'bones' ? CH2A[path[2]] : undefined;
+          const A = path[0] === 'bones' ? (v42 ? CH2A42 : CH2A)[path[2]] : undefined;
           if (A === undefined || !tmpl || !tlArr) { reasons.push(`${where}: a new timeline of a kind that cannot be written yet.`); continue; }
           const t = tls.find(t => C.name(C.m(t[0x01])) === path[1] && C.bi.has(C.m(t[0x01])));
-          try { const pc = trackPiece(A, y.keys); const k = t || 'bone:' + path[1]; (addTr.get(k) || addTr.set(k, []).get(k)).push(pc); changed.push(`${where} (new)`); }
+          try { if (!v42) trackPiece(A, y.keys); /* checks the keys */ const k = t || 'bone:' + path[1]; (addTr.get(k) || addTr.set(k, []).get(k)).push({ A, keys: y.keys }); changed.push(`${where} (new)`); }
           catch (e) { reasons.push(`${where}: ${e.message}`); }
           continue;
         }
         const tr = L.tr, pos = tr.$pos;
-        if ((tr.A === 5 || (tr.A === 4 && tr.fmt && tr.fmt[0] === 7)) && pos && path[0] === 'slots') { // slot attachment / colour keys
+        if (!v42 && (tr.A === 5 || (tr.A === 4 && tr.fmt && tr.fmt[0] === 7)) && pos && path[0] === 'slots') { // slot attachment / colour keys
           try { const sl = C.m(tr.tail); if (!sl) throw new Error('slot not found');
             if (tr.A === 4 && y.keys.some(k => k.dark)) throw new Error('two-colour (dark) keys cannot be written yet.');
             const pc = tr.A === 5 ? attFrames(raw, sl, path[1], y.keys) : rgbaFrames(y.keys);
@@ -16792,14 +16943,14 @@ const SPW = (() => {
           catch (e) { reasons.push(`${where}: ${e.message}`); }
           continue;
         }
-        if (tr.A === 6 && pos) { // mesh deform keys
+        if (!v42 && tr.A === 6 && pos) { // mesh deform keys
           try { const pc = deformFrames(raw, tr, y.keys); edits.push({ a: pos.nA, b: pos.nB, piece: countPiece(y.keys.length) }); edits.push({ a: pos.fs.length ? pos.fs[0] : pos.fe, b: pos.fe, piece: pc }); changed.push(`${an}: ${label(path)}`); }
           catch (e) { reasons.push(`${where}: ${e.message}`); }
           continue;
         }
         if (!(TT[tr.A] || tr.A === 7 || tr.A === 8) || !tr.fmt) { reasons.push(`${where}: this kind of key cannot be written yet.`); continue; }
         try {
-          const pc = trackFrames(tr, y.keys);
+          const pc = trackFrames(tr, y.keys, v42 ? { tl: idOf(tlOf(tr)), tr: idOf(tr) } : null);
           edits.push({ a: pos.nA, b: pos.nB, piece: countPiece(y.keys.length) });
           edits.push({ a: pos.fs.length ? pos.fs[0] : pos.fe, b: pos.fe, piece: pc });
           changed.push(`${an}: ${label(path)}`);
@@ -16807,20 +16958,23 @@ const SPW = (() => {
       }
       // removed / added tracks of existing timelines; a timeline left without tracks goes too
       let tlDelta = 0; const newTl = new Piece();
+      // Spine 4.2 projects end with settings that refer to values of the skeleton by number; a new or removed timeline / track renumbers
+      // those values, so for 4.2 only keys of existing timelines are written (checked with the Spine 4.2 CLI)
+      if (v42 && (delTr.size || addTr.size)) { reasons.push(`"${an}": adding or removing a whole timeline is not written into Spine 4.2 projects yet (changing, adding or removing keys of an existing timeline is). Export JSON instead.`); continue; }
       for (const t of new Set([...delTr.keys(), ...[...addTr.keys()].filter(k => typeof k !== 'string')])) {
         const ta = arr(t.$fp[0x02]); if (!ta) { reasons.push(`"${an}": a timeline's track list cannot be changed.`); continue; }
         const dels = delTr.get(t) || [], adds = addTr.get(t) || [], left = ta.n - dels.length + adds.length;
         if (left <= 0) { if (!t.$span) { reasons.push(`"${an}": a timeline cannot be removed.`); continue; } edits.push({ a: t.$span[0], b: t.$span[1], piece: null }); tlDelta--; continue; }
         for (const tr of dels) edits.push({ a: tr.$span[0], b: tr.$span[1], piece: null });
         edits.push({ a: ta.nA, b: ta.nB, piece: countPiece(left) });
-        if (adds.length) { const pc = new Piece(); adds.forEach(x => pc.append(x)); edits.push({ a: ta.end, b: ta.end, piece: pc }); }
+        if (adds.length) { const pc = new Piece(); adds.forEach(s => pc.append(trackPiece(s.A, s.keys, v42 ? { tl: idOf(t) } : null))); edits.push({ a: ta.end, b: ta.end, piece: pc }); }
       }
       // new timelines (bones with no keys in this animation yet)
       for (const [k, adds] of addTr) {
         if (typeof k !== 'string') continue;
         const bone = C.bones.find(b => C.name(b) === k.slice(5)), id = bone ? raw.r.M.indexOf(bone) : -1;
         if (id < 0) { reasons.push(`"${an}": bone ${k.slice(5)} not found in the project.`); continue; }
-        newTl.append(timelinePiece(tmpl, id, adds)); tlDelta++;
+        newTl.append(timelinePiece(tmpl, id, adds, v42 ? { anim: idOf(aObj) } : null)); tlDelta++;
       }
       if (tlArr && tlDelta) edits.push({ a: tlArr.nA, b: tlArr.nB, piece: countPiece(tlArr.n + tlDelta) });
       if (tlArr && newTl.n) edits.push({ a: tlArr.end, b: tlArr.end, piece: newTl });
@@ -17142,14 +17296,30 @@ const SPW = (() => {
   }
   const CH2A = { rotate: 0, translate: 1, scale: 2, shear: 3, translatex: 14, translatey: 15 };
   const FMT = { 0: [1, 1, ''], 1: [2, 2, ''], 2: [2, 2, ''], 3: [2, 2, ''], 14: [1, 1, ''], 15: [1, 1, ''] };
+  // Spine 4.2 also has scale / shear X and Y tracks (16-19)
+  const CH2A42 = Object.assign({}, CH2A, { scalex: 16, scaley: 17, shearx: 18, sheary: 19 }), FMT42 = Object.assign({}, FMT, { 16: [1, 1, ''], 17: [1, 1, ''], 18: [1, 1, ''], 19: [1, 1, ''] });
   /* a new track object: class 132, new, [A, 1 (its frames: a new object), key count], the frames */
-  function trackPiece(A, keys) {
-    const pc = new Piece(); pc.varint(132); pc.def('M'); pc.varint(1); pc.varint(A); pc.def('V'); pc.varint(1); pc.varint(keys.length);
-    return pc.append(trackFrames({ A, fmt: FMT[A], fr: [] }, keys));
+  // k42 (Spine 4.2): { tl } the timeline (stored id or { h }); the track refers to it before its type, and its keys to both
+  function trackPiece(A, keys, k42) {
+    const pc = new Piece(), h = k42 ? {} : undefined; pc.varint(132); pc.def('M', undefined, h); pc.varint(1);
+    if (k42) pc.refAny('M', k42.tl);
+    pc.varint(A); pc.def('V'); pc.varint(1); pc.varint(keys.length);
+    return pc.append(trackFrames({ A, fmt: (k42 ? FMT42 : FMT)[A], fr: [] }, keys, k42 ? { tl: k42.tl, tr: { h } } : null));
   }
   /* how this project writes a bone timeline (class 19): its field order, type enum (a reference) and flag */
   function boneTimelineTemplate(raw) {
     const C = raw.c, seen = new Map();
+    if (raw.r && raw.r.v42) { // 4.2: tracks (2), animation (0), bone (1), an empty type (6), flag (4)
+      for (const an in raw.animObj || {}) for (const x of C.a(raw.animObj[an][0x02])) {
+        const t = C.o(x); if (!t || x.$c !== 0x13 || !t.$fp || !C.bi.has(C.m(t[0x01])) || t[0x06] != null) continue;
+        const tags = Object.keys(t.$fp).map(Number).sort((a, b) => t.$fp[a][0] - t.$fp[b][0]);
+        if (!tags.every(g => [0, 1, 2, 4, 6].includes(g)) || ![0, 1, 2].every(g => tags.includes(g))) continue;
+        const k = JSON.stringify([tags, t[0x04]]); seen.set(k, (seen.get(k) || 0) + 1);
+      }
+      if (!seen.size) return null;
+      const [tags, flag] = JSON.parse([...seen].sort((a, b) => b[1] - a[1])[0][0]);
+      return { tags, flag, v42: true };
+    }
     for (const an in raw.animObj || {}) for (const x of C.a(raw.animObj[an][0x02])) {
       const t = C.o(x); if (!t || x.$c !== 0x13 || !t.$fp || !C.bi.has(C.m(t[0x01]))) continue;
       const e = t[0x07]; if (!e || typeof e !== 'object' || !('$r' in e)) continue;
@@ -17161,11 +17331,16 @@ const SPW = (() => {
     const [tags, enumId, flag] = JSON.parse([...seen].sort((a, b) => b[1] - a[1])[0][0]);
     return { tags, enumId, flag };
   }
-  function timelinePiece(T, boneId, tracks) {
-    const pc = new Piece(); pc.varint(0x13); pc.def('M'); pc.varint(1); pc.varint(T.tags.length);
+  // tracks: built pieces (4.3) or { A, keys } (4.2, built here: they refer to the new timeline); k42: { anim } the animation's id
+  function timelinePiece(T, boneId, tracks, k42) {
+    const h = k42 ? {} : undefined;
+    const pc = new Piece(); pc.varint(0x13); pc.def('M', undefined, h); pc.varint(1); pc.varint(T.tags.length);
+    tracks = tracks.map(s => s instanceof Piece ? s : trackPiece(s.A, s.keys, k42 ? { tl: { h } } : null));
     for (const tag of T.tags) {
       pc.varint(tag);
-      if (tag === 7) pc.ref('V', T.enumId);
+      if (k42 && tag === 0) pc.ref('M', k42.anim);
+      else if (k42 && tag === 6) pc.varint(0);
+      else if (tag === 7) pc.ref('V', T.enumId);
       else if (tag === 1) pc.ref('M', boneId);
       else if (tag === 4) pc.byte(T.flag ? 1 : 0);
       else if (tag === 2) { pc.varint(0x0f); pc.def('V'); pc.varint(1); pc.varint(tracks.length); tracks.forEach(t => pc.append(t)); }
@@ -17204,7 +17379,7 @@ const SPW = (() => {
     const src = typeof spsSource === 'function' ? spsSource() : null;
     if (!src) return { ok: false, reasons: ['This project was not opened from a .spine file (open it with Project > Open .spine…). Export JSON or Binary instead.'] };
     if (src.kind !== 'spine' || !src.bytes) return { ok: false, reasons: ['This project came from a JSON / binary export, not a .spine file. Export JSON or Binary instead.'] };
-    if (!/^4\.3\./.test(src.version || '')) return { ok: false, reasons: [`The project is from Spine ${src.version || '?'}; .spine is written for Spine 4.3 projects only.`] };
+    if (!/^4\.[23]\./.test(src.version || '')) return { ok: false, reasons: [`The project is from Spine ${src.version || '?'}; .spine is written for Spine 4.2 and 4.3 projects only.`] };
     let P; try { P = parsedOf(src); } catch (e) { return { ok: false, reasons: ['This project is stored in a form the .spine writer cannot reproduce yet (' + e.message + '). Export JSON instead.'] }; }
     if (!src.identical) return { ok: false, reasons: ['This project cannot be written back without loss (the reader does not cover all of it). Export JSON instead.'] };
     if ((P.warnings || []).some(w => /could not be read|not converted|Unknown timeline/.test(w))) return { ok: false, reasons: ['Parts of this project are not understood by the reader, so it is not written as .spine. Export JSON instead.'] };
@@ -18292,7 +18467,7 @@ if (typeof window !== "undefined" && typeof st !== "undefined" && typeof cv !== 
   let lastK = ""; setInterval(() => { const ms = selMesh(); if (!on()) WT.binding = false; const k = [JSON.stringify(st.sel), st.mode, st.meshMode, ms ? wtNb(ms.m) : -1, selVerts().join(","), undoS.length, WT.binding].join("|"); if (k !== lastK) { lastK = k; wtPanelRefresh(); } }, 300);
 })();
 
-</script><script>window.AIA_VERSION = {"version": "1.20.13", "built": "2026-11-20 14:32", "changelog": [{"version": "1.20.13", "date": "2026-11-20", "items": ["New animations with event keys save into .spine"]}, {"version": "1.20.12", "date": "2026-11-20", "items": ["New animations save slot attachment and colour keys, mesh deform keys and draw order keys into .spine", "Edited slot attachment and colour keys of existing animations save into .spine", "Scale keys within Spine's precision of 1 and colour values rounded like Spine (matches Spine's export more closely)"]}, {"version": "1.20.11", "date": "2026-11-20", "items": ["New animations with bone keys (rotate, translate, scale, shear) now save straight into .spine"]}, {"version": "1.20.10", "date": "2026-11-20", "items": ["Phones and tablets: long-press works as right-click; the tool palettes fold behind a Palettes button", "Mesh deform key edits (weighted or not) now save into .spine"]}, {"version": "1.20.9", "date": "2026-11-20", "items": ["HTML exports clip and blend like Spine; projects opened from .spine export their atlas correctly", "Clipping, bounding box and path shapes keep their deform keys (animated clipping)", "Two-colour tint and alpha-only keys are read from .spine (box.spine opens fully)", "Mesh tools: drag bones in the Weights list to reorder them, Alt+click an edge to select its loop, pen pressure for the weight brush"]}, {"version": "1.20.8", "date": "2026-11-20", "items": ["Slider constraints keep all their settings (time, mix, loop, additive) and run in the editor", "Constraint settings (IK, transform, physics, path, slider) and slot colour / blend mode now save into .spine", "Slot blend mode (Normal, Additive, Multiply, Screen) can be changed in Properties"]}, {"version": "1.20.7", "date": "2026-11-20", "items": ["Login is on for the website: Firebase connected (admin dashboard at admin.html)"]}, {"version": "1.20.6", "date": "2026-11-20", "items": ["Clipping masks images in the editor and Preview, like Spine", "Login and admin dashboard: users, active now, usage and speed (needs Firebase setup, see SETUP.md; off until then)"]}, {"version": "1.20.5", "date": "2026-11-20", "items": ["Skins view like Spine: skin folders, pins, several active skins shown together (also in Preview)", "Bounding boxes, clipping, points and linked meshes are imported, drawn and exported; bounding box edits save into .spine", "Several events on one frame, slot blend modes and draw order folder keys are kept", "Images are found in the project folder (no more grey placeholders for same-named files) and big projects open much faster on the PC"]}, {"version": "1.20.4", "date": "2026-11-20", "items": ["Open more Spine 4.3 projects: extra skins, skin placeholders, slider constraints, path and point attachments, path constraints", "Spine projects open with the right IK settings (mix, stretch, compress) and physics", "Event names keep their folder path"]}, {"version": "1.20.3", "date": "2026-11-19", "items": ["Import works on any PC; clear errors for missing images / unsupported versions", "Open Project on the website: pick the .spine file itself or the whole folder"]}, {"version": "1.20.2", "date": "2026-11-19", "items": ["Save mesh and weights edits to .spine (vertices, UVs, triangles, edges, weights, region to mesh)"]}, {"version": "1.20.1", "date": "2026-11-19", "items": ["Spine-style key buttons on transform rows"]}, {"version": "1.20.0", "date": "2026-11-19", "items": ["Animation views rebuilt to match Spine (Curves, Ghosting, Playback, Timeline, Audio)", "Spine-style transform handles: translate / scale arrows, rotate ring, shear lines, in World / Local / Parent; drag an axis to move or scale along it", "Bone properties like Spine (inherit, length, select, name, icon, colour; New, Parent, Split, Skin) and a breadcrumb of the selected bone"]}, {"version": "1.19.3", "date": "2026-11-19", "items": ["Tint black: the viewport draws the dark colour, and tint black keys (Color view, Dark tab in Animate) show in the dopesheet and go to JSON and binary"]}, {"version": "1.19.2", "date": "2026-11-19", "items": ["Mix preview blends slot colours, mesh deforms and constraint mixes too, like Spine"]}, {"version": "1.19.1", "date": "2026-11-19", "items": ["Audio tracks and mix times are saved with the project (.aia.json and autosave) and come back when it is opened", "JSON export writes the audio folder when events use sounds"]}, {"version": "1.19.0", "date": "2026-11-19", "items": ["Save saves .spine in the opened file's version (PC: <name>_ai.spine next to it; website: a download); edits .spine cannot hold yet are saved as JSON with a notice", "Main menu on the logo: New / Open / Recent / Save / Save As / Package Project, New Skeleton, Import Project / Data / PSD, Export, Texture Packer, Texture Unpacker, Settings", "Spine version of the opened file next to the logo", "Exports are named skeleton.json / .skel / .atlas / .png, like Spine", "The envelope opens What's new; the version text is information only"]}, {"version": "1.18.1", "date": "2026-11-19", "items": ["Graph colours match Spine"]}, {"version": "1.18.0", "date": "2026-11-19", "items": ["Curves, Ghosting, Playback, Timeline and Audio views (Alt+V, Alt+H, Alt+P, Alt+L, Alt+U)", "View shortcuts: a view behind another tab comes to the front; pressed again it closes"]}, {"version": "1.17.2", "date": "2026-11-19", "items": ["Cleaner look: one neutral dark theme with one accent blue, Spine-like tree (search in the toolbar, compact rows, visibility column, short attachment names, constraint folders), tidy panel headers and toolbars"]}, {"version": "1.17.1", "date": "2026-11-19", "items": ["Legs fixed: constraints run in the project's own order (as Spine does), and the two-bone IK matches Spine's runtime exactly", "Graph colours like Spine (rotate sky blue, X green, Y blue), square keys, frame dots, Spine's Graph toolbar with Shift, Offset, copy / paste, Swap and Average (all)"]}, {"version": "1.17.0", "date": "2026-11-19", "items": ["Views menu laid out like Spine's, with icons and Alt shortcuts; open views are greyed and checked", "New views: Color (slot, dark tint, bone, skin, attachment colours and colour keys), Skins, Outline, Metrics, Problems; Animations view with folders and export flags", "Mesh Tools and Weights views", "Save as .spine says which mesh or attachment edit it cannot write yet"]}, {"version": "1.16.1", "date": "2026-11-19", "items": ["Preview opens fitted to the whole animation"]}, {"version": "1.16.0", "date": "2026-11-19", "items": ["Save as .spine in the same Spine version (Project > Save as .spine, Ctrl+Shift+S, or Export > Spine)", "Export of a project opened from .spine keeps its own Spine version, bone order, mesh weights, curves and the parts the editor does not show", "Preview zoom and pan fixed (wheel, drag, + / -, fit)"]}, {"version": "1.15.1", "date": "2026-11-19", "items": ["Removed project-specific names"]}, {"version": "1.15.0", "date": "2026-11-19", "items": ["Version number in the top-right corner; click it to see what changed", "A dot on the version shows there is news you have not read yet"]}, {"version": "1.14.0", "date": "2026-11-19", "items": ["Auto-rig has a second rig template (Template B, controller biped) with leg and shoulder controllers", "Rig template choice in the auto-rig wizard: Auto, A or B (Auto shows what it picked)"]}, {"version": "1.13.0", "date": "2026-11-19", "items": ["Selected bones are drawn in cyan like Spine", "Graph: Repeat shows the curves before and after the animation; X / Y splits channels", "Skins can have a colour and live in folders (name with a slash)", "Bones and slots can be selected together with Ctrl+click", "Dopesheet toolbar stays in one row and never scrolls sideways"]}, {"version": "1.12.0", "date": "2026-11-19", "items": ["Export: Polygons packing for images used only by meshes", "Export: audio track for AVI, MOV and WEBM videos (file or event sounds)", "Export check box on attachments, constraints, animations, skins and events"]}, {"version": "1.11.1", "date": "2026-11-19", "items": ["Fixed the folder import that hung on some rigs (overlapping draw-order keys)", "A failed import now shows a message instead of hanging"]}, {"version": "1.11.0", "date": "2026-11-19", "items": ["Opening .spine files reads weighted mesh deform keys, clipping, events and draw-order folders", "Inherit keys, export flags and more constraint settings are read from .spine files"]}, {"version": "1.10.0", "date": "2026-11-18", "items": ["Open .spine project files directly, without Spine installed", "Find works across your Spine projects without Spine"]}, {"version": "1.9.0", "date": "2026-11-18", "items": ["Import uses the original images from the images folder (sharper than the packed atlas)", "Sharper viewport on high-resolution screens"]}, {"version": "1.8.0", "date": "2026-11-18", "items": ["New Export dialog like Spine 4.3: JSON, Binary, HTML, images, video and texture packer", "Save and load export settings, preview before exporting"]}, {"version": "1.7.0", "date": "2026-11-18", "items": ["Dopesheet like Spine 4.3: zoom, pan, rows and keys", "Dopesheet: X / Y, colour, inherit and sequence keys, row reorder and Sync"]}, {"version": "1.6.0", "date": "2026-11-18", "items": ["Bones in the viewport are drawn like Spine 4.3", "Skin bones and skin constraints like Spine 4.3"]}, {"version": "1.5.0", "date": "2026-11-18", "items": ["Number fields: drag left or right to change the value (no spinner arrows)"]}, {"version": "1.4.0", "date": "2026-11-18", "items": ["Select several bones, slots and images at once like Spine", "Dopesheet key editing: move, duplicate (Ctrl+Shift+drag), Alt and Ctrl+Alt drag", "Dopesheet toolbar in one row with Shift, Offset and Adjust", "Graph view: curve editor with Bezier handles, presets and handle modes", "Skins like Spine"]}, {"version": "1.3.1", "date": "2026-11-17", "items": ["Fixed the bone rotate, move and scale tools", "Big rigs play and edit faster"]}, {"version": "1.3.0", "date": "2026-11-17", "items": ["Compensate buttons like Spine (move a parent without moving its children or images)"]}, {"version": "1.2.1", "date": "2026-11-17", "items": ["Tool palette buttons respond at once again", "Fixed a slowdown after the hotkeys update"]}, {"version": "1.2.0", "date": "2026-11-17", "items": ["Spine hotkeys for tools, modes, frames, keys and playback", "Interface closer to Spine"]}, {"version": "1.1.0", "date": "2026-11-17", "items": ["Auto-rig places bones from a template learned from a sample rig"]}, {"version": "1.0.0", "date": "2026-11-17", "items": ["First web version of AI_animation, with an English interface", "Runs in the browser on PC and phone; work is saved in your browser"]}]};</script><script>
+</script><script>window.AIA_VERSION = {"version": "1.20.14", "built": "2026-11-20 14:59", "changelog": [{"version": "1.20.14", "date": "2026-11-20", "items": ["Open Spine 4.2 projects (.spine) and save key and bone edits back into them", "Spine 4.3.25 / 4.3.26 projects open and save too"]}, {"version": "1.20.13", "date": "2026-11-20", "items": ["New animations with event keys save into .spine"]}, {"version": "1.20.12", "date": "2026-11-20", "items": ["New animations save slot attachment and colour keys, mesh deform keys and draw order keys into .spine", "Edited slot attachment and colour keys of existing animations save into .spine", "Scale keys within Spine's precision of 1 and colour values rounded like Spine (matches Spine's export more closely)"]}, {"version": "1.20.11", "date": "2026-11-20", "items": ["New animations with bone keys (rotate, translate, scale, shear) now save straight into .spine"]}, {"version": "1.20.10", "date": "2026-11-20", "items": ["Phones and tablets: long-press works as right-click; the tool palettes fold behind a Palettes button", "Mesh deform key edits (weighted or not) now save into .spine"]}, {"version": "1.20.9", "date": "2026-11-20", "items": ["HTML exports clip and blend like Spine; projects opened from .spine export their atlas correctly", "Clipping, bounding box and path shapes keep their deform keys (animated clipping)", "Two-colour tint and alpha-only keys are read from .spine (box.spine opens fully)", "Mesh tools: drag bones in the Weights list to reorder them, Alt+click an edge to select its loop, pen pressure for the weight brush"]}, {"version": "1.20.8", "date": "2026-11-20", "items": ["Slider constraints keep all their settings (time, mix, loop, additive) and run in the editor", "Constraint settings (IK, transform, physics, path, slider) and slot colour / blend mode now save into .spine", "Slot blend mode (Normal, Additive, Multiply, Screen) can be changed in Properties"]}, {"version": "1.20.7", "date": "2026-11-20", "items": ["Login is on for the website: Firebase connected (admin dashboard at admin.html)"]}, {"version": "1.20.6", "date": "2026-11-20", "items": ["Clipping masks images in the editor and Preview, like Spine", "Login and admin dashboard: users, active now, usage and speed (needs Firebase setup, see SETUP.md; off until then)"]}, {"version": "1.20.5", "date": "2026-11-20", "items": ["Skins view like Spine: skin folders, pins, several active skins shown together (also in Preview)", "Bounding boxes, clipping, points and linked meshes are imported, drawn and exported; bounding box edits save into .spine", "Several events on one frame, slot blend modes and draw order folder keys are kept", "Images are found in the project folder (no more grey placeholders for same-named files) and big projects open much faster on the PC"]}, {"version": "1.20.4", "date": "2026-11-20", "items": ["Open more Spine 4.3 projects: extra skins, skin placeholders, slider constraints, path and point attachments, path constraints", "Spine projects open with the right IK settings (mix, stretch, compress) and physics", "Event names keep their folder path"]}, {"version": "1.20.3", "date": "2026-11-19", "items": ["Import works on any PC; clear errors for missing images / unsupported versions", "Open Project on the website: pick the .spine file itself or the whole folder"]}, {"version": "1.20.2", "date": "2026-11-19", "items": ["Save mesh and weights edits to .spine (vertices, UVs, triangles, edges, weights, region to mesh)"]}, {"version": "1.20.1", "date": "2026-11-19", "items": ["Spine-style key buttons on transform rows"]}, {"version": "1.20.0", "date": "2026-11-19", "items": ["Animation views rebuilt to match Spine (Curves, Ghosting, Playback, Timeline, Audio)", "Spine-style transform handles: translate / scale arrows, rotate ring, shear lines, in World / Local / Parent; drag an axis to move or scale along it", "Bone properties like Spine (inherit, length, select, name, icon, colour; New, Parent, Split, Skin) and a breadcrumb of the selected bone"]}, {"version": "1.19.3", "date": "2026-11-19", "items": ["Tint black: the viewport draws the dark colour, and tint black keys (Color view, Dark tab in Animate) show in the dopesheet and go to JSON and binary"]}, {"version": "1.19.2", "date": "2026-11-19", "items": ["Mix preview blends slot colours, mesh deforms and constraint mixes too, like Spine"]}, {"version": "1.19.1", "date": "2026-11-19", "items": ["Audio tracks and mix times are saved with the project (.aia.json and autosave) and come back when it is opened", "JSON export writes the audio folder when events use sounds"]}, {"version": "1.19.0", "date": "2026-11-19", "items": ["Save saves .spine in the opened file's version (PC: <name>_ai.spine next to it; website: a download); edits .spine cannot hold yet are saved as JSON with a notice", "Main menu on the logo: New / Open / Recent / Save / Save As / Package Project, New Skeleton, Import Project / Data / PSD, Export, Texture Packer, Texture Unpacker, Settings", "Spine version of the opened file next to the logo", "Exports are named skeleton.json / .skel / .atlas / .png, like Spine", "The envelope opens What's new; the version text is information only"]}, {"version": "1.18.1", "date": "2026-11-19", "items": ["Graph colours match Spine"]}, {"version": "1.18.0", "date": "2026-11-19", "items": ["Curves, Ghosting, Playback, Timeline and Audio views (Alt+V, Alt+H, Alt+P, Alt+L, Alt+U)", "View shortcuts: a view behind another tab comes to the front; pressed again it closes"]}, {"version": "1.17.2", "date": "2026-11-19", "items": ["Cleaner look: one neutral dark theme with one accent blue, Spine-like tree (search in the toolbar, compact rows, visibility column, short attachment names, constraint folders), tidy panel headers and toolbars"]}, {"version": "1.17.1", "date": "2026-11-19", "items": ["Legs fixed: constraints run in the project's own order (as Spine does), and the two-bone IK matches Spine's runtime exactly", "Graph colours like Spine (rotate sky blue, X green, Y blue), square keys, frame dots, Spine's Graph toolbar with Shift, Offset, copy / paste, Swap and Average (all)"]}, {"version": "1.17.0", "date": "2026-11-19", "items": ["Views menu laid out like Spine's, with icons and Alt shortcuts; open views are greyed and checked", "New views: Color (slot, dark tint, bone, skin, attachment colours and colour keys), Skins, Outline, Metrics, Problems; Animations view with folders and export flags", "Mesh Tools and Weights views", "Save as .spine says which mesh or attachment edit it cannot write yet"]}, {"version": "1.16.1", "date": "2026-11-19", "items": ["Preview opens fitted to the whole animation"]}, {"version": "1.16.0", "date": "2026-11-19", "items": ["Save as .spine in the same Spine version (Project > Save as .spine, Ctrl+Shift+S, or Export > Spine)", "Export of a project opened from .spine keeps its own Spine version, bone order, mesh weights, curves and the parts the editor does not show", "Preview zoom and pan fixed (wheel, drag, + / -, fit)"]}, {"version": "1.15.1", "date": "2026-11-19", "items": ["Removed project-specific names"]}, {"version": "1.15.0", "date": "2026-11-19", "items": ["Version number in the top-right corner; click it to see what changed", "A dot on the version shows there is news you have not read yet"]}, {"version": "1.14.0", "date": "2026-11-19", "items": ["Auto-rig has a second rig template (Template B, controller biped) with leg and shoulder controllers", "Rig template choice in the auto-rig wizard: Auto, A or B (Auto shows what it picked)"]}, {"version": "1.13.0", "date": "2026-11-19", "items": ["Selected bones are drawn in cyan like Spine", "Graph: Repeat shows the curves before and after the animation; X / Y splits channels", "Skins can have a colour and live in folders (name with a slash)", "Bones and slots can be selected together with Ctrl+click", "Dopesheet toolbar stays in one row and never scrolls sideways"]}, {"version": "1.12.0", "date": "2026-11-19", "items": ["Export: Polygons packing for images used only by meshes", "Export: audio track for AVI, MOV and WEBM videos (file or event sounds)", "Export check box on attachments, constraints, animations, skins and events"]}, {"version": "1.11.1", "date": "2026-11-19", "items": ["Fixed the folder import that hung on some rigs (overlapping draw-order keys)", "A failed import now shows a message instead of hanging"]}, {"version": "1.11.0", "date": "2026-11-19", "items": ["Opening .spine files reads weighted mesh deform keys, clipping, events and draw-order folders", "Inherit keys, export flags and more constraint settings are read from .spine files"]}, {"version": "1.10.0", "date": "2026-11-18", "items": ["Open .spine project files directly, without Spine installed", "Find works across your Spine projects without Spine"]}, {"version": "1.9.0", "date": "2026-11-18", "items": ["Import uses the original images from the images folder (sharper than the packed atlas)", "Sharper viewport on high-resolution screens"]}, {"version": "1.8.0", "date": "2026-11-18", "items": ["New Export dialog like Spine 4.3: JSON, Binary, HTML, images, video and texture packer", "Save and load export settings, preview before exporting"]}, {"version": "1.7.0", "date": "2026-11-18", "items": ["Dopesheet like Spine 4.3: zoom, pan, rows and keys", "Dopesheet: X / Y, colour, inherit and sequence keys, row reorder and Sync"]}, {"version": "1.6.0", "date": "2026-11-18", "items": ["Bones in the viewport are drawn like Spine 4.3", "Skin bones and skin constraints like Spine 4.3"]}, {"version": "1.5.0", "date": "2026-11-18", "items": ["Number fields: drag left or right to change the value (no spinner arrows)"]}, {"version": "1.4.0", "date": "2026-11-18", "items": ["Select several bones, slots and images at once like Spine", "Dopesheet key editing: move, duplicate (Ctrl+Shift+drag), Alt and Ctrl+Alt drag", "Dopesheet toolbar in one row with Shift, Offset and Adjust", "Graph view: curve editor with Bezier handles, presets and handle modes", "Skins like Spine"]}, {"version": "1.3.1", "date": "2026-11-17", "items": ["Fixed the bone rotate, move and scale tools", "Big rigs play and edit faster"]}, {"version": "1.3.0", "date": "2026-11-17", "items": ["Compensate buttons like Spine (move a parent without moving its children or images)"]}, {"version": "1.2.1", "date": "2026-11-17", "items": ["Tool palette buttons respond at once again", "Fixed a slowdown after the hotkeys update"]}, {"version": "1.2.0", "date": "2026-11-17", "items": ["Spine hotkeys for tools, modes, frames, keys and playback", "Interface closer to Spine"]}, {"version": "1.1.0", "date": "2026-11-17", "items": ["Auto-rig places bones from a template learned from a sample rig"]}, {"version": "1.0.0", "date": "2026-11-17", "items": ["First web version of AI_animation, with an English interface", "Runs in the browser on PC and phone; work is saved in your browser"]}]};</script><script>
 /* Version label (top-right of the header) and the "What's new" dialog.
    build.py puts window.AIA_VERSION = {version, built, changelog} in front of this file; CHANGELOG.json is the source.
    Unbuilt page (ai_animation.html from a server): falls back to fetching CHANGELOG.json. */
