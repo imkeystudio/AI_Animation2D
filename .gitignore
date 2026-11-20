@@ -1,4 +1,0 @@
-# the site holds only the built app; build it with build_site.py
-*.pyc
-__pycache__/
-.aia-site
