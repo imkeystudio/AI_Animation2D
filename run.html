@@ -16868,7 +16868,7 @@ const SPW = (() => {
 
   /* plan the edits: { ok, reasons[], edits[], summary } */
   function plan(src, cur) {
-    const reasons = [], edits = [], changed = [], editedKeys = new Set(), meshEdited = new Map(), conEdited = new Map(), slotEdited = new Map(), newSkinSet = new Set(); NEW_SLOTS = new Set(); NEW_SKIN_SRC = new Map();
+    const reasons = [], edits = [], changed = [], editedKeys = new Set(), meshEdited = new Map(), conEdited = new Map(), slotEdited = new Map(), newSkinSet = new Set(); NEW_SLOTS = new Set(); NEW_SKIN_SRC = new Map(); NEW_ATTS = new Map(); ATT_ADD = { pc: new Piece(), n: 0 }; NEW_SLOT_IDS = new Map();
     const P = src.parsed, raw = P.raw, B0 = src.base;
     if (!B0) return { ok: false, reasons: ['The state right after opening is not known (the project was reopened from the browser storage). Open the .spine again to save it as .spine.'] };
     // setup
@@ -16943,6 +16943,11 @@ const SPW = (() => {
           catch (e) { reasons.push(`${where}: ${e.message}`); }
           continue;
         }
+        if (!v42 && tr.A === 13 && pos && path[0] === 'drawOrder') { // draw order keys (also re-encoded when slots were inserted)
+          try { const pc = drawOrderFrames(raw, y.keys); edits.push({ a: pos.nA, b: pos.nB, piece: countPiece(y.keys.length) }); edits.push({ a: pos.fs.length ? pos.fs[0] : pos.fe, b: pos.fe, piece: pc }); changed.push(`${an}: draw order`); }
+          catch (e) { reasons.push(`${where}: ${e.message}`); }
+          continue;
+        }
         if (!v42 && tr.A === 6 && pos) { // mesh deform keys
           try { const pc = deformFrames(raw, tr, y.keys); edits.push({ a: pos.nA, b: pos.nB, piece: countPiece(y.keys.length) }); edits.push({ a: pos.fs.length ? pos.fs[0] : pos.fe, b: pos.fe, piece: pc }); changed.push(`${an}: ${label(path)}`); }
           catch (e) { reasons.push(`${where}: ${e.message}`); }
@@ -16979,7 +16984,9 @@ const SPW = (() => {
       if (tlArr && tlDelta) edits.push({ a: tlArr.nA, b: tlArr.nB, piece: countPiece(tlArr.n + tlDelta) });
       if (tlArr && newTl.n) edits.push({ a: tlArr.end, b: tlArr.end, piece: newTl });
     }
-    return { ok: !reasons.length, reasons: [...new Set(reasons)], edits, changed, editedKeys, meshEdited, conEdited, slotEdited, newAn, newSkins: newSkinSet, newSkinSrc: NEW_SKIN_SRC };
+    if (ATT_ADD.n) { const rv2 = p => { let r = 0, sh = 0, x; do { x = raw.b[p++]; r += (x & 127) * 2 ** sh; sh += 7; } while (x & 128); return [r, p]; }, f6 = raw.sk.$fp[0x06]; let q = f6[0]; [, q] = rv2(q); const [, q2] = rv2(q); const [nn, q3] = rv2(q2);
+      edits.push({ a: q2, b: q3, piece: countPiece(nn + ATT_ADD.n) }); edits.push({ a: f6[1], b: f6[1], piece: ATT_ADD.pc }); }
+    return { ok: !reasons.length, reasons: [...new Set(reasons)], edits, changed, editedKeys, meshEdited, conEdited, slotEdited, newAn, newSkins: newSkinSet, newSkinSrc: NEW_SKIN_SRC, newAtts: NEW_ATTS };
   }
   /* ---------- mesh and weights edits ----------
      An edited mesh attachment (default skin) is rewritten in place: UVs (float[] 0x11), triangles (short[] 0x2f), hull (zigzag, x2),
@@ -16991,17 +16998,29 @@ const SPW = (() => {
     const reasons = [], edited = new Map(), raw = src.parsed.raw, C = raw.c, R = raw.r;
     if (window.SPW_MESH_WRITE === false) return { reasons: skinReasons(B0.skins || [], cur.skins || []), edited }; // mesh / weights writing (verified with Spine on every 4.3 project file); false switches it off
     const s0 = B0.skins || [], s1 = cur.skins || [], by = a => new Map(a.map(k => [k.name, k])), m0 = by(s0), m1 = by(s1);
-    const other = [], meshes = [], convs = [], shapes = [], added = [];
+    const other = [], meshes = [], convs = [], shapes = [], added = [], newRegs = [];
     for (const n of new Set([...m0.keys(), ...m1.keys()])) { const k0 = m0.get(n), k1 = m1.get(n); if (!k0 && k1 && !(raw.r && raw.r.v42)) { added.push(n); continue; } if (!k0 || !k1) { other.push(n); continue; } if (eq(k0, k1)) continue;
       const A0 = k0.attachments || {}, A1 = k1.attachments || {};
       for (const sl of new Set([...Object.keys(A0), ...Object.keys(A1)])) for (const an of new Set([...Object.keys(A0[sl] || {}), ...Object.keys(A1[sl] || {})])) {
         const x = (A0[sl] || {})[an], y = (A1[sl] || {})[an]; if (eq(x, y)) continue;
         if (n === 'default' && !x && NEW_SLOTS.has(sl)) continue; // written with the new slot
+        if (n === 'default' && !x && y && (!y.type || y.type === 'region') && !y.sequence) { newRegs.push({ sl, an, y }); continue; } // a new region (a new image)
         if (n === 'default' && x && y && x.type === 'mesh' && y.type === 'mesh' && eq(Object.assign({}, x, { uvs: 0, triangles: 0, vertices: 0, hull: 0, edges: 0 }), Object.assign({}, y, { uvs: 0, triangles: 0, vertices: 0, hull: 0, edges: 0 }))) meshes.push({ sl, an, x, y });
         else if (n === 'default' && x && y && (!x.type || x.type === 'region') && y.type === 'mesh') convs.push({ sl, an, x, y }); // region -> mesh
         else if (n === 'default' && x && y && x.type === y.type && (x.type === 'boundingbox' || x.type === 'clipping') && x.vertexCount === y.vertexCount && eq(Object.assign({}, x, { vertices: 0 }), Object.assign({}, y, { vertices: 0 }))) shapes.push({ sl, an, x, y }); // bounding box / clipping vertices
         else other.push(n); } }
     if (other.length) return { reasons: skinReasons(s0, s1).filter(r => !/^Mesh "/.test(r) || !meshes.length), edited };
+    if (newRegs.length) { // appended to the skeleton's attachment list; the slot is referred to (slots are stored before)
+      const C2 = raw.c, rv = p => { let r = 0, sh = 0, x; do { x = raw.b[p++]; r += (x & 127) * 2 ** sh; sh += 7; } while (x & 128); return [r, p]; };
+      const f6 = raw.sk.$fp && raw.sk.$fp[0x06]; let al = null; if (f6) { let q = f6[0]; [, q] = rv(q); const [m, q2] = rv(q); if (m === 1) { const [nn, q3] = rv(q2); al = { nA: q2, nB: q3, n: nn, end: f6[1] }; } }
+      const slotsRaw = C2.a(raw.sk[0x0d]).map(x => C2.m(x)).filter(Boolean);
+      if (!al) return { reasons: newRegs.map(r => `New attachment "${r.sl} / ${r.an}": this project's attachment list cannot be extended yet.`), edited };
+      const add = new Piece(); let nAdd = 0;
+      for (const r of newRegs) { const so = slotsRaw.find(q => (C2.sn.get(q) || C2.name(q)) === r.sl); if (!so) { reasons.push(`New attachment "${r.sl} / ${r.an}": slot not found.`); continue; }
+        try { const sp = new Piece(); sp.ref('M', raw.r.M.indexOf(so)); add.append(regionPiece(raw, r.y, r.an, sp, NEWID++)); nAdd++; NEW_ATTS.set(r.sl + '\u0000' + r.an, r.y); changed.push(`New attachment "${r.sl} / ${r.an}" (image ${r.y.path || r.an})`); }
+        catch (e) { reasons.push(`New attachment "${r.sl} / ${r.an}": ${e.message}`); } }
+      if (nAdd && !reasons.length) { ATT_ADD.pc.append(add); ATT_ADD.n += nAdd; }
+    }
     const newSkins = new Set(); if (added.length) { const r = newSkinEdits(raw, B0, cur, added, edits, changed, newSkins); if (r.length) return { reasons: r, edited }; }
     // raw attachment objects by slot / name (default skin)
     const rawAtt = new Map(); for (const x of C.a(raw.sk[0x06])) { const a = C.m(x); if (!a || typeof a !== 'object') continue; const sl = C.m(a[0x00]), k = (C.sn.get(sl) || C.name(sl)) + '\u0000' + C.name(a); (rawAtt.get(k) || rawAtt.set(k, []).get(k)).push(a); }
@@ -17167,6 +17186,17 @@ const SPW = (() => {
           if (cv) { pc.f32(cv[o(cv)] * FPS); pc.f32(cv[o(cv) + 1]); } else { pc.f32(UNSET); pc.f32(UNSET); } pc.f32(0); } }
       prevU = u; });
     return pc; }
+  let NEW_SLOT_IDS = new Map(); // new slot name -> { id, early: defined in the attachment list (before the animations) }
+  function drawOrderFrames(raw, keys) {
+    const C = raw.c, slotsRaw = C.a(raw.sk[0x0d]).map(x => C.m(x)).filter(Boolean), pc = new Piece();
+    for (const k of keys) { fHead(pc, k.time, 0); const offs = k.offsets || []; if (!offs.length) { pc.varint(0); continue; }
+      pc.def('V'); pc.varint(1); pc.varint(offs.length);
+      for (const o of offs) { pc.varint(0x27); pc.def('M'); pc.varint(1); pc.varint(2); pc.varint(0);
+        const sl = slotsRaw.find(q => (C.sn.get(q) || C.name(q)) === o.slot), nw = NEW_SLOT_IDS.get(o.slot);
+        if (sl) pc.ref('M', raw.r.M.indexOf(sl)); else if (nw && nw.early) pc.ref('M', nw.id); else throw new Error(`draw order: slot ${o.slot} ${nw ? 'is new and has no attachments (it is stored after the animations)' : 'not found'}.`);
+        pc.varint(1); pc.zz(o.offset || 0); } }
+    return pc;
+  }
   function animTimelines(raw, T, A, at) { // at: where the new animation is defined (objects it refers to must be defined before)
     const C = raw.c, byBone = new Map(), tracksOf = bn => byBone.get(bn) || byBone.set(bn, []).get(bn);
     const slotsRaw = C.a(raw.sk[0x0d]).map(x => C.m(x)).filter(Boolean), slotOf = n => slotsRaw.find(s => (C.sn.get(s) || C.name(s)) === n);
@@ -17217,10 +17247,7 @@ const SPW = (() => {
     if (A.drawOrder && A.drawOrder.length) {
       let en = null; for (const an in raw.animObj || {}) for (const x of C.a(raw.animObj[an][0x02])) { const t = C.o(x); if (en == null && t && t[0x01] == null && C.a(t[0x02]).some(q => (C.o(q) || {}).A === 13)) { const e = t[0x07]; if (e && typeof e === 'object' && '$r' in e) en = e.$r; } }
       if (en == null) throw new Error('draw order keys: this project has none to model them on yet.');
-      const pc = trackHead(13, A.drawOrder.length);
-      for (const k of A.drawOrder) { head(pc, k.time, 0); const offs = k.offsets || []; if (!offs.length) { pc.varint(0); continue; }
-        pc.def('V'); pc.varint(1); pc.varint(offs.length);
-        for (const o of offs) { const sl = slotOf(o.slot); if (!sl) throw new Error(`draw order: slot ${o.slot} not found.`); pc.varint(0x27); pc.def('M'); pc.varint(1); pc.varint(2); pc.varint(0); pc.ref('M', raw.r.M.indexOf(sl)); pc.varint(1); pc.zz(o.offset || 0); } }
+      const pc = trackHead(13, A.drawOrder.length); pc.append(drawOrderFrames(raw, A.drawOrder));
       const tl = new Piece(); tl.varint(0x13); tl.def('M'); tl.varint(1); tl.varint(T.tags.length);
       for (const tag of T.tags) { tl.varint(tag); if (tag === 7) tl.ref('V', en); else if (tag === 1) tl.varint(0); else if (tag === 4) tl.byte(T.flag ? 1 : 0); else if (tag === 2) { tl.varint(0x0f); tl.def('V'); tl.varint(1); tl.varint(1); tl.append(pc); } }
       tls.push(tl);
@@ -17240,10 +17267,11 @@ const SPW = (() => {
   const BLENDS = ['normal', 'additive', 'multiply', 'screen'];
   function slotEdits(src, B0, cur, edits, changed, slotEdited) {
     const raw = src.parsed.raw, C = raw.c, s0 = B0.slots || [], out = []; let s1 = cur.slots || [];
-    if (s1.length > s0.length && s0.every((x, i) => x.name === s1[i].name) && !(raw.r && raw.r.v42)) { // new slots at the end of the draw order
-      const r = newSlotEdits(raw, B0, cur, s1.slice(s0.length), edits, changed, slotEdited); if (r.length) return r;
-      s1 = s1.slice(0, s0.length); }
-    if (s0.length !== s1.length || s0.some((x, i) => x.name !== s1[i].name)) return ['Slots were added, removed, renamed or reordered (new slots can be written only on top of the draw order).'];
+    const oldNames = new Set(s0.map(x => x.name)), kept = s1.filter(x => oldNames.has(x.name));
+    if (s1.length > s0.length && kept.length === s0.length && s0.every((x, i) => x.name === kept[i].name) && !(raw.r && raw.r.v42)) { // new slots, anywhere in the draw order
+      const r = newSlotEdits(raw, B0, cur, s1.filter(x => !oldNames.has(x.name)), edits, changed, slotEdited, s1.map(x => x.name)); if (r.length) return r;
+      s1 = kept; }
+    if (s0.length !== s1.length || s0.some((x, i) => x.name !== s1[i].name)) return ['Slots were removed, renamed or reordered.'];
     const rawSlots = C.a(raw.sk[0x0d]).map(x => C.m(x));
     const shared = q => { const d = raw.tape.find(e => e.k === 'd' && e.p === q); if (!d) return false; const id = d.i + (d.t === 'V' ? raw.vbase : raw.d); return raw.tape.some(e => e.k === 'r' && e.t === d.t && e.id === id); };
     s1.forEach((x1, i) => { const x0 = s0[i]; if (eq(x0, x1)) return; const rs = rawSlots[i], fp = rs && rs.$fp, w = `Slot "${x1.name}"`;
@@ -17278,11 +17306,31 @@ const SPW = (() => {
         changed.push(`${w}: ${k}`); (conEdited.get(x1.name) || conEdited.set(x1.name, {}).get(x1.name))[k] = x1[k] ?? def[1]; } });
     return out;
   }
-  let NEW_SLOTS = new Set(), NEW_SKIN_SRC = new Map();
+  let NEW_SLOTS = new Set(), NEW_SKIN_SRC = new Map(), NEW_ATTS = new Map(), ATT_ADD = null; // ATT_ADD: attachments appended to the skeleton's list (one edit for all)
+  /* a new region attachment (a new image) in the default skin, written like the project's own regions: a class 0x2b object with name,
+     path (when it differs from the name), placement, size and colour; slotPc: the slot field's value (a reference or the slot's definition) */
+  function regionPiece(raw, y, key, slotPc, id) {
+    const C = raw.c, tpl = C.a(raw.sk[0x06]).map(x => C.m(x)).find(a => a && typeof a === 'object' && a.$c === 0x2b && a.$fp && !a[0x20] && a.$fp[0x01] && a.$fp[0x0b] && a.$fp[0x0c]);
+    if (!tpl) throw new Error('this project has no region attachment to model it on yet.');
+    const tags = Object.keys(tpl.$fp).map(Number).sort((a, b) => tpl.$fp[a][0] - tpl.$fp[b][0]);
+    const str = (pc, t) => { const ch = [...t].map(c => c.charCodeAt(0)); if (!ch.length || ch.some(c => c < 0x20 || c > 0x7e)) throw new Error('its name or image path has characters that cannot be written yet.'); ch[ch.length - 1] |= 0x80; pc.def('V'); pc.varint(1); pc.bytes(new Uint8Array(ch)); };
+    const F = { 0x06: ['x', 0], 0x07: ['y', 0], 0x08: ['scaleX', 1], 0x09: ['scaleY', 1], 0x0a: ['rotation', 0], 0x0b: ['width', 32], 0x0c: ['height', 32] };
+    const pc = new Piece(); pc.varint(0x2b); pc.def('M', id); pc.varint(1); pc.varint(tags.length);
+    for (const tag of tags) { pc.varint(tag); const f = tpl.$fp[tag];
+      if (tag === 0x01) str(pc, y.name || key);
+      else if (tag === 0x0d) { const p = y.path && y.path !== (y.name || key) ? y.path : null; if (p) str(pc, p); else pc.varint(0); }
+      else if (F[tag] && f[2] === 'f') pc.f32(y[F[tag][0]] ?? F[tag][1]);
+      else if (tag === 0x0e && f[2] === 'o') { const h = (y.color || 'ffffffff').padEnd(8, 'f'); pc.varint(0x1e); pc.def('V'); pc.varint(1); pc.bytes(new Uint8Array([0, 2, 4, 6].map(j => parseInt(h.slice(j, j + 2), 16)))); }
+      else if (tag === 0x00) pc.append(slotPc);
+      else if (tag === 0x20 || tag === 0x04) pc.varint(0);
+      else if (tag === 0x05 && f[2] === 'b') pc.byte(y.export === false ? 0 : 1);
+      else { const cp = new Piece().copyRaw(raw, f[0], f[1]); for (const e of cp.tape) if (e.k === 'd') delete e.old; pc.append(cp); } }
+    return pc;
+  }
   /* new slots (on top of the draw order): settings copied from the last slot, name / bone / colour / blend / setup attachment set; their
      attachments must be copies of existing ones (same image and settings, any slot). The first attachment defines the slot in its slot
      field, like Spine stores it; the skeleton's slot list then refers to it. */
-  function newSlotEdits(raw, B0, cur, add, edits, changed, slotEdited) {
+  function newSlotEdits(raw, B0, cur, add, edits, changed, slotEdited, order) {
     const C = raw.c, out = [], rv = p => { let r = 0, sh = 0, x; do { x = raw.b[p++]; r += (x & 127) * 2 ** sh; sh += 7; } while (x & 128); return [r, p]; };
     const arrAt = fp => { if (!fp) return null; let q = fp[0]; [, q] = rv(q); const [m, q2] = rv(q); if (m !== 1) return null; const [n, q3] = rv(q2); return { nA: q2, nB: q3, n, end: fp[1] }; };
     const slotList = raw.sk.$fp && arrAt(raw.sk.$fp[0x0d]), attList = raw.sk.$fp && arrAt(raw.sk.$fp[0x06]);
@@ -17295,16 +17343,36 @@ const SPW = (() => {
     const findRaw = (key, y) => { for (const sl of Object.keys(defA.attachments || {})) { const x = defA.attachments[sl][key]; if (!x || !eq(x, y)) continue; const a = rawAtts.find(a => (C.sn.get(C.m(a[0x00])) || '') === sl && C.name(a) === key); if (a) return a; } return null; };
     const col = (pc, hex) => { const h = (hex || 'ffffffff').padEnd(8, 'f'); pc.varint(0x1e); pc.def('V'); pc.varint(1); pc.bytes(new Uint8Array([0, 2, 4, 6].map(j => parseInt(h.slice(j, j + 2), 16)))); };
     const strBytes = (pc, t) => { const ch = [...t].map(c => c.charCodeAt(0)); if (!ch.length || ch.some(c => c < 0x20 || c > 0x7e)) throw new Error('its name has characters that cannot be written yet.'); ch[ch.length - 1] |= 0x80; pc.def('V'); pc.varint(1); pc.bytes(new Uint8Array(ch)); };
-    const listAdds = new Piece(), attAdds = new Piece(); let nS = 0, nA = 0;
+    const attAdds = new Piece(), newEl = new Map(); let nS = 0, nA = 0;
+    const newNames = new Set(add.map(a => a.name)), oldN0 = order.filter(n => !newNames.has(n)), onTop0 = order.slice(0, oldN0.length).every((n, i) => n === oldN0[i]);
+    // in the middle of the draw order: Spine keeps the draw order in the slot folders too, so the slot is defined in its folder's children,
+    // right after the slot below it (or before the slot above it), and everything else refers to it
+    const elems = arr => { const out2 = []; let q = arr.nB; for (let i = 0; i < arr.n; i++) { const a = q; let c, m; [c, q] = rv(q); [m, q] = rv(q); if (m === 1) { const o = raw.tape.find(e => e.k === 'd' && e.p === a); const obj = o ? (o.t === 'V' ? raw.r.V : raw.r.M)[o.i] : null; if (!obj || !obj.$span) return null; q = obj.$span[1]; } out2.push([a, q]); } return q === arr.end ? out2 : null; };
+    const folderIns = new Map(); // folder -> { arr, inserts: [[pos, piece]] }
+    if (!onTop0 && !window.SPW_MIDSLOT) return add.map(S => `New slot "${S.name}": a new slot in the middle of the draw order cannot be written into .spine yet (put it on top, or export JSON).`); // the folder insert below is not accepted by Spine yet
+    const placeInFolder = S => { const i = order.indexOf(S.name), below = order.slice(0, i).reverse().find(n => !newNames.has(n)), above = order.slice(i + 1).find(n => !newNames.has(n));
+      const ref = slotsRaw.find(q => (C.sn.get(q) || C.name(q)) === (below || above)); const F = ref && C.m(ref[0x10]); if (!F || F.$c !== 0x6c || !F.$fp || !F.$fp[0x05]) throw new Error('its place in the slot folders cannot be found.');
+      const arr = arrAt(F.$fp[0x05]); const els = arr && elems(arr); if (!els) throw new Error('its slot folder is stored in a form that cannot be extended yet.');
+      const kids = C.a(F[0x05]).map(x => C.m(x)), k = kids.indexOf(ref); if (k < 0) throw new Error('its place in the slot folders cannot be found.');
+      const pos = below ? els[k][1] : els[k][0]; if (pos >= attList.end) throw new Error('its slot folder is stored after the attachments.');
+      return { F, arr, pos }; };
     for (const S of add) {
       const w = `New slot "${S.name}"`;
       try {
         const bo = C.bones.find(b => C.name(b) === S.bone); if (!bo) throw new Error(`its bone ${S.bone} is not in the project file.`);
         if (S.name.includes('/')) throw new Error('slots in folders cannot be written yet.');
         const atts = curA[S.name] || {}, items = [];
-        const srcOf = {}; for (const key of Object.keys(atts)) { const a = findRaw(key, atts[key]); if (a) srcOf[key] = C.sn.get(C.m(a[0x00])); if (!a || !a.$span || !a.$fp || !a.$fp[0x00] || raw.b[a.$span[0]] !== a.$c) throw new Error(`${key} is a new attachment (only copies of existing attachments can be written with a new slot yet).`); items.push([key, a]); }
+        const srcOf = {}; for (const key of Object.keys(atts)) { const a = findRaw(key, atts[key]), y = atts[key];
+          if (!a && (!y.type || y.type === 'region') && !y.sequence) { items.push([key, { $c: 0x2b, $region: y }]); continue; } // a new image
+          if (a) srcOf[key] = C.sn.get(C.m(a[0x00])); if (!a || !a.$span || !a.$fp || !a.$fp[0x00] || raw.b[a.$span[0]] !== a.$c) throw new Error(`${key} is a new ${y.type || 'region'} (new images can be written as regions only yet).`); items.push([key, a]); }
         const slotId = NEWID++, attIds = items.map(() => NEWID++), setupIdx = S.attachment ? items.findIndex(([k]) => k === S.attachment) : -1;
         if (S.attachment && setupIdx < 0) throw new Error('its setup attachment is not one of its attachments.');
+        const place = onTop0 ? null : placeInFolder(S);
+        // in a folder: the attachment pieces refer to the slot; the setup attachment is defined in the slot's attachment field (before anything refers to it)
+        const attPcs = place ? items.map(([key, a], i) => { const sp = new Piece(); sp.ref('M', slotId);
+          if (a.$region) { NEW_ATTS.set(S.name + '\u0000' + key, a.$region); return regionPiece(raw, a.$region, key, sp, attIds[i]); }
+          const f = a.$fp[0x00], pc = strip(new Piece().copyRaw(raw, a.$span[0], f[0])); const d0 = pc.tape.find(e => e.k === 'd'); if (!d0) throw new Error('attachment form'); d0.old = attIds[i];
+          pc.append(sp); pc.append(strip(new Piece().copyRaw(raw, f[1], a.$span[1]))); return pc; }) : null;
         const body = new Piece(); body.varint(tags.length);
         for (const tag of tags) { body.varint(tag); const f = tpl.$fp[tag];
           if (tag === 0x01) strBytes(body, S.name);
@@ -17313,20 +17381,41 @@ const SPW = (() => {
           else if (tag === 0x0b && f[2] === 'o') col(body, S.dark ? S.dark + 'ff' : '000000ff');
           else if (tag === 0x0c && f[2] === 'b') body.byte(S.dark ? 1 : 0);
           else if (tag === 0x07 && f[2] === 'e') { body.def('V'); body.varint(1); body.varint(Math.max(1, BLENDS.indexOf(S.blend || 'normal') + 1)); }
-          else if (tag === 0x09) { if (setupIdx < 0) body.varint(0); else { body.varint(items[setupIdx][1].$c); body.ref('M', attIds[setupIdx]); } }
+          else if (tag === 0x09) { if (setupIdx < 0) body.varint(0); else if (attPcs) body.append(attPcs[setupIdx]); else { body.varint(items[setupIdx][1].$c); body.ref('M', attIds[setupIdx]); } }
+          else if (tag === 0x10 && place && f[2] === 'o') { body.varint(0x6c); body.ref('M', raw.r.M.indexOf(place.F)); }
           else body.append(strip(new Piece().copyRaw(raw, f[0], f[1]))); }
         const slotDef = new Piece(); slotDef.def('M', slotId); slotDef.varint(1); slotDef.append(body); // typed object (no class) as stored in an attachment's slot field
-        if (items.length) {
-          items.forEach(([key, a], i) => { const f = a.$fp[0x00], pc = strip(new Piece().copyRaw(raw, a.$span[0], f[0])); const d0 = pc.tape.find(e => e.k === 'd'); if (!d0) throw new Error('attachment form'); d0.old = attIds[i];
+        if (place) { // defined in its folder; attachments and the slot list refer to it
+          const el = new Piece(); el.varint(0x0d); el.append(slotDef); const fi = folderIns.get(place.F) || folderIns.set(place.F, { arr: place.arr, inserts: [] }).get(place.F); fi.inserts.push([place.pos, el]);
+          items.forEach(([key, a], i) => { if (i === setupIdx) { attAdds.varint(a.$c); attAdds.ref('M', attIds[i]); } else attAdds.append(attPcs[i]); nA++; });
+          const el2 = new Piece(); el2.varint(0x0d); el2.ref('M', slotId); newEl.set(S.name, el2);
+        } else if (items.length) {
+          items.forEach(([key, a], i) => {
+            if (a.$region) { const sp = new Piece(); if (i === 0) sp.append(slotDef); else sp.ref('M', slotId); attAdds.append(regionPiece(raw, a.$region, key, sp, attIds[i])); NEW_ATTS.set(S.name + '\u0000' + key, a.$region); nA++; return; }
+            const f = a.$fp[0x00], pc = strip(new Piece().copyRaw(raw, a.$span[0], f[0])); const d0 = pc.tape.find(e => e.k === 'd'); if (!d0) throw new Error('attachment form'); d0.old = attIds[i];
             if (i === 0) pc.append(slotDef); else pc.ref('M', slotId); pc.append(strip(new Piece().copyRaw(raw, f[1], a.$span[1]))); attAdds.append(pc); nA++; });
-          listAdds.varint(0x0d); listAdds.ref('M', slotId);
-        } else { listAdds.varint(0x0d); listAdds.append(slotDef); }
-        nS++; changed.push(`${w}${items.length ? ` (${items.length} attachment${items.length > 1 ? 's' : ''})` : ''}`); Object.assign(slotEdited.get(S.name) || slotEdited.set(S.name, {}).get(S.name), { $new: true, $src: srcOf }); NEW_SLOTS.add(S.name);
+          const el = new Piece(); el.varint(0x0d); el.ref('M', slotId); newEl.set(S.name, el);
+        } else { const el = new Piece(); el.varint(0x0d); el.append(slotDef); newEl.set(S.name, el); }
+        NEW_SLOT_IDS.set(S.name, { id: slotId, early: !!place || items.length > 0 }); nS++; changed.push(`${w}${items.length ? ` (${items.length} attachment${items.length > 1 ? 's' : ''})` : ''}`); Object.assign(slotEdited.get(S.name) || slotEdited.set(S.name, {}).get(S.name), { $new: true, $src: srcOf }); NEW_SLOTS.add(S.name);
       } catch (e) { out.push(`${w}: ${e.message}`); }
     }
     if (out.length) return out;
-    if (nA) { edits.push({ a: attList.nA, b: attList.nB, piece: countPiece(attList.n + nA) }); edits.push({ a: attList.end, b: attList.end, piece: attAdds }); }
-    if (nS) { edits.push({ a: slotList.nA, b: slotList.nB, piece: countPiece(slotList.n + nS) }); edits.push({ a: slotList.end, b: slotList.end, piece: listAdds }); }
+    if (nA) { ATT_ADD.pc.append(attAdds); ATT_ADD.n += nA; }
+    for (const { arr, inserts } of folderIns.values()) { edits.push({ a: arr.nA, b: arr.nB, piece: countPiece(arr.n + inserts.length) }); const byPos = new Map(); for (const [pos, pc] of inserts) (byPos.get(pos) || byPos.set(pos, new Piece()).get(pos)).append(pc); for (const [pos, pc] of byPos) edits.push({ a: pos, b: pos, piece: pc }); }
+    if (nS) {
+      // the slot list is the setup draw order: when every new slot is on top they are appended, otherwise the list is written again in the
+      // new order (each old entry keeps its bytes, and any object it defines)
+      edits.push({ a: slotList.nA, b: slotList.nB, piece: countPiece(slotList.n + nS) });
+      const oldN = order.filter(n => !newEl.has(n)), onTop = order.slice(0, oldN.length).every((n, i) => n === oldN[i]);
+      if (onTop || window.SPW_SLOTLIST_APPEND) { const pc = new Piece(); (onTop ? order.slice(oldN.length) : order.filter(n => newEl.has(n))).forEach(n => pc.append(newEl.get(n))); edits.push({ a: slotList.end, b: slotList.end, piece: pc }); }
+      else {
+        const els = []; let q = slotList.nB;
+        for (const x of C.a(raw.sk[0x0d])) { const a = q; let c, m; [c, q] = rv(q); [m, q] = rv(q); if (m === 1) { const o = C.m(x); if (!o || !o.$span) return ['New slots: the slot list is stored in a form that cannot be reordered yet.']; q = o.$span[1]; } els.push([a, q]); }
+        if (q !== slotList.end || els.length !== oldN.length) return ['New slots: the slot list is stored in a form that cannot be reordered yet.'];
+        const pc = new Piece(); let oi = 0; for (const n of order) { if (newEl.has(n)) pc.append(newEl.get(n)); else { const [a, b] = els[oi++]; pc.append(new Piece().copyRaw(raw, a, b)); } }
+        edits.push({ a: slotList.nB, b: slotList.end, piece: pc });
+      }
+    }
     return out;
   }
   /* new skins whose attachments are copies of existing ones (a duplicated skin, parts swapped with other skins' parts). Stored like Spine:
@@ -17357,7 +17446,6 @@ const SPW = (() => {
         if (!a.$span || !a.$fp || !a.$fp[0x20] || !a.$fp[0x20][2] || raw.b[a.$span[0]] !== a.$c) { bad = `${sl}/${key} is stored in a form that cannot be copied yet.`; break; }
         items.push(a); ((NEW_SKIN_SRC.get(name) || NEW_SKIN_SRC.set(name, {}).get(name))[sl] || (NEW_SKIN_SRC.get(name)[sl] = {}))[key] = C.attKey(a)[0]; }
       if (bad) { out.push(`${w}: ${bad}`); continue; }
-      if (!K.attachments || !items.length) { out.push(`${w}: an empty skin cannot be written yet.`); continue; }
       // a skin of the same folder as the model (its folder and settings are copied)
       const tplSkin = skinsRaw.find(k => C.fpath(C.m(k[0x05])) === folderOf(name)); if (!tplSkin) { out.push(`${w}: no skin in folder "${folderOf(name)}" to model it on yet.`); continue; }
       const tags = Object.keys(tplSkin.$fp).map(Number).sort((a, b) => tplSkin.$fp[a][0] - tplSkin.$fp[b][0]);
@@ -17370,13 +17458,16 @@ const SPW = (() => {
           items.forEach((a, i) => { if (i === 0) { sp.varint(a.$c); sp.ref('M', attIds[0]); } else { const r = new Piece(); r.ref('M', skinId); sp.append(attCopy(a, attIds[i], r)); } }); }
         else sp.append(strip(new Piece().copyRaw(raw, f[0], f[1]))); }
       if (bad) { out.push(`${w}: ${bad}`); continue; }
-      listAdds.append(attCopy(items[0], attIds[0], sp)); nA++;
-      for (let i = 1; i < items.length; i++) { listAdds.varint(items[i].$c); listAdds.ref('M', attIds[i]); nA++; }
-      skinAdds.varint(0x22); skinAdds.ref('M', skinId); nS++;
+      if (items.length) {
+        listAdds.append(attCopy(items[0], attIds[0], sp)); nA++;
+        for (let i = 1; i < items.length; i++) { listAdds.varint(items[i].$c); listAdds.ref('M', attIds[i]); nA++; }
+        skinAdds.varint(0x22); skinAdds.ref('M', skinId);
+      } else { skinAdds.varint(0x22); skinAdds.append(sp); } // an empty skin: defined in the skin list
+      nS++;
       newSkins.add(name); changed.push(`${w} (${items.length} attachments)`);
     }
     if (out.length) return out;
-    if (nA) { edits.push({ a: attList.nA, b: attList.nB, piece: countPiece(attList.n + nA) }); edits.push({ a: attList.end, b: attList.end, piece: listAdds }); }
+    if (nA) { ATT_ADD.pc.append(listAdds); ATT_ADD.n += nA; }
     if (nS) { edits.push({ a: skinList.nA, b: skinList.nB, piece: countPiece(skinList.n + nS) }); edits.push({ a: skinList.end, b: skinList.end, piece: skinAdds }); }
     return out;
   }
@@ -17517,7 +17608,10 @@ const SPW = (() => {
       if (k === 'skins' && pl.slotEdited && [...pl.slotEdited.values()].some(e => e.$new) && !(pl.newSkins && pl.newSkins.size) && !ME.size) { // new slots' attachments as made in the app, the rest as before
         const nn = new Set([...pl.slotEdited].filter(([, e]) => e.$new).map(([n]) => n)), by = a => new Map((a || []).map(x => [x.name, x])), S0 = by(j0.skins), S1 = by(j1.skins), SC = by(pl.cur.skins);
         for (const [n, k0] of S0) { const k1 = S1.get(n); if (!k1) { bad.push('skin ' + n + ' missing'); continue; } const A1 = Object.assign({}, k1.attachments), A0 = Object.assign({}, k0.attachments);
-          for (const s of nn) { if (n === 'default') { const src = pl.slotEdited.get(s).$src || {}, want = {}; for (const key in src) want[key] = ((S0.get('default') || {}).attachments || {})[src[key]][key]; if (!eq(A1[s] || {}, want)) bad.push('new slot ' + s + ' attachments'); } delete A1[s]; delete A0[s]; } // copies read back like their sources
+          for (const s of nn) { if (n === 'default') { const src = pl.slotEdited.get(s).$src || {}, want = {}; for (const key in src) want[key] = ((S0.get('default') || {}).attachments || {})[src[key]][key]; const got = Object.assign({}, A1[s] || {}); for (const key of Object.keys(got)) if (pl.newAtts && pl.newAtts.has(s + '\u0000' + key)) { const w0 = pl.newAtts.get(s + '\u0000' + key), g0 = got[key]; if (['x', 'y', 'width', 'height', 'rotation'].some(f => Math.abs((w0[f] ?? 0) - (g0[f] ?? 0)) > 1e-3) || (w0.path || null) !== (g0.path || null)) bad.push('new slot ' + s + ' region ' + key); delete got[key]; } if (!eq(got, want)) bad.push('new slot ' + s + ' attachments'); } delete A1[s]; delete A0[s]; } // copies read back like their sources
+          if (n === 'default' && pl.newAtts) for (const [k2, w0] of pl.newAtts) { const [s2, key] = k2.split('\u0000'); if (nn.has(s2)) continue; const g0 = (A1[s2] || {})[key];
+            if (!g0 || ['x', 'y', 'width', 'height', 'rotation'].some(f => Math.abs((w0[f] ?? 0) - (g0[f] ?? 0)) > 1e-3) || (w0.path || null) !== (g0.path || null)) bad.push('new attachment ' + s2 + '/' + key);
+            if (A1[s2]) { A1[s2] = Object.assign({}, A1[s2]); delete A1[s2][key]; } }
           if (!eq(A0, A1)) bad.push('skin ' + n); }
         continue; }
       if (k === 'skins' && pl.newSkins && pl.newSkins.size) { // new skins read back as made in the app; the others as before
@@ -17525,6 +17619,17 @@ const SPW = (() => {
         const wantNew = n => { const src = (pl.newSkinSrc && pl.newSkinSrc.get(n)) || {}, o = {}; for (const sl in src) for (const key in src[sl]) { const k0 = S0.get(src[sl][key]); ((o[sl] = o[sl] || {}))[key] = (((k0 || {}).attachments || {})[sl] || {})[key]; } return { attachments: o }; }; // copies read back like their sources
         for (const [n, k1] of S1) { const want = pl.newSkins.has(n) ? wantNew(n) : S0.get(n); if (!want) { bad.push('skin ' + n + ' unexpected'); continue; } const W = JSON.parse(JSON.stringify(want.attachments || {})), G = JSON.parse(JSON.stringify(k1.attachments || {})); if (pl.newSkins.has(n)) for (const sl in G) for (const key in G[sl]) { if (G[sl][key] && G[sl][key].skin) delete G[sl][key].skin; if (W[sl] && W[sl][key] && W[sl][key].skin) delete W[sl][key].skin; } if (!eq(W, G)) bad.push('skin ' + n + ' attachments'); }
         for (const n of [...S0.keys(), ...pl.newSkins]) if (!S1.has(n)) bad.push('skin ' + n + ' missing');
+        continue; }
+      if (k === 'skins' && pl.newAtts && pl.newAtts.size && !(pl.newSkins && pl.newSkins.size)) { // new regions read back as made (numbers to float precision); the rest as before
+        const by = a => new Map((a || []).map(x => [x.name, x])), S0 = by(j0.skins), S1 = by(j1.skins), nslot = new Set([...(pl.slotEdited || new Map())].filter(([, e]) => e.$new).map(([n]) => n));
+        const near2 = (a, b) => { const ks = new Set([...Object.keys(a || {}), ...Object.keys(b || {})]); for (const kk of ks) { const x = (a || {})[kk], y = (b || {})[kk]; if (typeof x === 'number' || typeof y === 'number') { if (Math.abs((x ?? 0) - (y ?? 0)) > 1e-3 * Math.max(1, Math.abs(x ?? 0))) return false; } else if (!eq(x, y)) return false; } return true; };
+        for (const [n, k0] of S0) { const k1 = S1.get(n); if (!k1) { bad.push('skin ' + n + ' missing'); continue; }
+          const A0 = k0.attachments || {}, A1 = k1.attachments || {};
+          for (const sl of new Set([...Object.keys(A0), ...Object.keys(A1)])) for (const an of new Set([...Object.keys(A0[sl] || {}), ...Object.keys(A1[sl] || {})])) {
+            const got = (A1[sl] || {})[an], nw = n === 'default' ? pl.newAtts.get(sl + '\u0000' + an) : null, mw = n === 'default' ? ME.get(sl + '\u0000' + an) : null;
+            if (nw) { const w2 = Object.assign({}, nw); delete w2.type; const g2 = Object.assign({}, got || {}); delete g2.type; if (!near2(w2, g2)) bad.push('new attachment ' + sl + '/' + an); continue; }
+            if (mw || nslot.has(sl)) continue; // checked by the mesh / new slot checks
+            if (!eq((A0[sl] || {})[an], got)) bad.push('attachment ' + sl + '/' + an); } }
         continue; }
       if (k === 'skins' && ME.size) {
         const by = a => new Map((a || []).map(x => [x.name, x])), S0 = by(j0.skins), S1 = by(j1.skins);
@@ -17537,8 +17642,9 @@ const SPW = (() => {
             if (!eq((A0[sl] || {})[an], got)) bad.push('attachment ' + sl + '/' + an); } }
         continue; }
       if (k === 'slots' && pl.slotEdited && pl.slotEdited.size) {
-        const nNew = [...pl.slotEdited.values()].filter(e => e.$new).length, a0 = j0.slots || [], a1all = j1.slots || [], a1 = a1all.slice(0, a1all.length - nNew); if (a0.length !== a1.length) { bad.push('slot count'); continue; }
-        for (const s of a1all.slice(a1.length)) { const want = (pl.cur.slots || []).find(x => x.name === s.name); if (!want || !eq(Object.assign({}, want), Object.assign({}, s))) bad.push('new slot ' + s.name); }
+        const nw = new Set([...pl.slotEdited].filter(([, e]) => e.$new).map(([n]) => n)), a0 = j0.slots || [], a1all = j1.slots || [], a1 = a1all.filter(x => !nw.has(x.name)); if (a0.length !== a1.length) { bad.push('slot count'); continue; }
+        if (!window.SPW_SLOTLIST_APPEND && a1all.map(x => x.name).join('\u0001') !== (pl.cur.slots || []).map(x => x.name).join('\u0001')) bad.push('slot order');
+        for (const s of a1all.filter(x => nw.has(x.name))) { const want = (pl.cur.slots || []).find(x => x.name === s.name); if (!want || !eq(Object.assign({}, want), Object.assign({}, s))) bad.push('new slot ' + s.name); }
         a0.forEach((x0, i) => { const x1 = a1[i], ed = pl.slotEdited.get(x0.name) || {};
           for (const kk of new Set([...Object.keys(x0), ...Object.keys(x1), ...Object.keys(ed)])) { const want = kk in ed ? (kk === 'blend' && ed[kk] === 'normal' ? null : (kk === 'color' && /^ffffffff$/i.test(ed[kk] || '') ? null : ed[kk])) : x0[kk];
             if (!eq(want ?? null, x1[kk] ?? null)) bad.push(`slot ${x0.name} ${kk}`); } });
@@ -18587,7 +18693,7 @@ if (typeof window !== "undefined" && typeof st !== "undefined" && typeof cv !== 
   let lastK = ""; setInterval(() => { const ms = selMesh(); if (!on()) WT.binding = false; const k = [JSON.stringify(st.sel), st.mode, st.meshMode, ms ? wtNb(ms.m) : -1, selVerts().join(","), undoS.length, WT.binding].join("|"); if (k !== lastK) { lastK = k; wtPanelRefresh(); } }, 300);
 })();
 
-</script><script>window.AIA_VERSION = {"version": "1.20.16", "built": "2026-11-20 15:09", "changelog": [{"version": "1.20.16", "date": "2026-11-20", "items": ["New slots on top of the draw order (empty, or with copies of existing attachments) save into .spine"]}, {"version": "1.20.15", "date": "2026-11-20", "items": ["New skins made from existing attachments (a duplicated skin, or parts taken from other skins) save into .spine"]}, {"version": "1.20.14", "date": "2026-11-20", "items": ["Open Spine 4.2 projects (.spine) and save key and bone edits back into them", "Spine 4.3.25 / 4.3.26 projects open and save too"]}, {"version": "1.20.13", "date": "2026-11-20", "items": ["New animations with event keys save into .spine"]}, {"version": "1.20.12", "date": "2026-11-20", "items": ["New animations save slot attachment and colour keys, mesh deform keys and draw order keys into .spine", "Edited slot attachment and colour keys of existing animations save into .spine", "Scale keys within Spine's precision of 1 and colour values rounded like Spine (matches Spine's export more closely)"]}, {"version": "1.20.11", "date": "2026-11-20", "items": ["New animations with bone keys (rotate, translate, scale, shear) now save straight into .spine"]}, {"version": "1.20.10", "date": "2026-11-20", "items": ["Phones and tablets: long-press works as right-click; the tool palettes fold behind a Palettes button", "Mesh deform key edits (weighted or not) now save into .spine"]}, {"version": "1.20.9", "date": "2026-11-20", "items": ["HTML exports clip and blend like Spine; projects opened from .spine export their atlas correctly", "Clipping, bounding box and path shapes keep their deform keys (animated clipping)", "Two-colour tint and alpha-only keys are read from .spine (box.spine opens fully)", "Mesh tools: drag bones in the Weights list to reorder them, Alt+click an edge to select its loop, pen pressure for the weight brush"]}, {"version": "1.20.8", "date": "2026-11-20", "items": ["Slider constraints keep all their settings (time, mix, loop, additive) and run in the editor", "Constraint settings (IK, transform, physics, path, slider) and slot colour / blend mode now save into .spine", "Slot blend mode (Normal, Additive, Multiply, Screen) can be changed in Properties"]}, {"version": "1.20.7", "date": "2026-11-20", "items": ["Login is on for the website: Firebase connected (admin dashboard at admin.html)"]}, {"version": "1.20.6", "date": "2026-11-20", "items": ["Clipping masks images in the editor and Preview, like Spine", "Login and admin dashboard: users, active now, usage and speed (needs Firebase setup, see SETUP.md; off until then)"]}, {"version": "1.20.5", "date": "2026-11-20", "items": ["Skins view like Spine: skin folders, pins, several active skins shown together (also in Preview)", "Bounding boxes, clipping, points and linked meshes are imported, drawn and exported; bounding box edits save into .spine", "Several events on one frame, slot blend modes and draw order folder keys are kept", "Images are found in the project folder (no more grey placeholders for same-named files) and big projects open much faster on the PC"]}, {"version": "1.20.4", "date": "2026-11-20", "items": ["Open more Spine 4.3 projects: extra skins, skin placeholders, slider constraints, path and point attachments, path constraints", "Spine projects open with the right IK settings (mix, stretch, compress) and physics", "Event names keep their folder path"]}, {"version": "1.20.3", "date": "2026-11-19", "items": ["Import works on any PC; clear errors for missing images / unsupported versions", "Open Project on the website: pick the .spine file itself or the whole folder"]}, {"version": "1.20.2", "date": "2026-11-19", "items": ["Save mesh and weights edits to .spine (vertices, UVs, triangles, edges, weights, region to mesh)"]}, {"version": "1.20.1", "date": "2026-11-19", "items": ["Spine-style key buttons on transform rows"]}, {"version": "1.20.0", "date": "2026-11-19", "items": ["Animation views rebuilt to match Spine (Curves, Ghosting, Playback, Timeline, Audio)", "Spine-style transform handles: translate / scale arrows, rotate ring, shear lines, in World / Local / Parent; drag an axis to move or scale along it", "Bone properties like Spine (inherit, length, select, name, icon, colour; New, Parent, Split, Skin) and a breadcrumb of the selected bone"]}, {"version": "1.19.3", "date": "2026-11-19", "items": ["Tint black: the viewport draws the dark colour, and tint black keys (Color view, Dark tab in Animate) show in the dopesheet and go to JSON and binary"]}, {"version": "1.19.2", "date": "2026-11-19", "items": ["Mix preview blends slot colours, mesh deforms and constraint mixes too, like Spine"]}, {"version": "1.19.1", "date": "2026-11-19", "items": ["Audio tracks and mix times are saved with the project (.aia.json and autosave) and come back when it is opened", "JSON export writes the audio folder when events use sounds"]}, {"version": "1.19.0", "date": "2026-11-19", "items": ["Save saves .spine in the opened file's version (PC: <name>_ai.spine next to it; website: a download); edits .spine cannot hold yet are saved as JSON with a notice", "Main menu on the logo: New / Open / Recent / Save / Save As / Package Project, New Skeleton, Import Project / Data / PSD, Export, Texture Packer, Texture Unpacker, Settings", "Spine version of the opened file next to the logo", "Exports are named skeleton.json / .skel / .atlas / .png, like Spine", "The envelope opens What's new; the version text is information only"]}, {"version": "1.18.1", "date": "2026-11-19", "items": ["Graph colours match Spine"]}, {"version": "1.18.0", "date": "2026-11-19", "items": ["Curves, Ghosting, Playback, Timeline and Audio views (Alt+V, Alt+H, Alt+P, Alt+L, Alt+U)", "View shortcuts: a view behind another tab comes to the front; pressed again it closes"]}, {"version": "1.17.2", "date": "2026-11-19", "items": ["Cleaner look: one neutral dark theme with one accent blue, Spine-like tree (search in the toolbar, compact rows, visibility column, short attachment names, constraint folders), tidy panel headers and toolbars"]}, {"version": "1.17.1", "date": "2026-11-19", "items": ["Legs fixed: constraints run in the project's own order (as Spine does), and the two-bone IK matches Spine's runtime exactly", "Graph colours like Spine (rotate sky blue, X green, Y blue), square keys, frame dots, Spine's Graph toolbar with Shift, Offset, copy / paste, Swap and Average (all)"]}, {"version": "1.17.0", "date": "2026-11-19", "items": ["Views menu laid out like Spine's, with icons and Alt shortcuts; open views are greyed and checked", "New views: Color (slot, dark tint, bone, skin, attachment colours and colour keys), Skins, Outline, Metrics, Problems; Animations view with folders and export flags", "Mesh Tools and Weights views", "Save as .spine says which mesh or attachment edit it cannot write yet"]}, {"version": "1.16.1", "date": "2026-11-19", "items": ["Preview opens fitted to the whole animation"]}, {"version": "1.16.0", "date": "2026-11-19", "items": ["Save as .spine in the same Spine version (Project > Save as .spine, Ctrl+Shift+S, or Export > Spine)", "Export of a project opened from .spine keeps its own Spine version, bone order, mesh weights, curves and the parts the editor does not show", "Preview zoom and pan fixed (wheel, drag, + / -, fit)"]}, {"version": "1.15.1", "date": "2026-11-19", "items": ["Removed project-specific names"]}, {"version": "1.15.0", "date": "2026-11-19", "items": ["Version number in the top-right corner; click it to see what changed", "A dot on the version shows there is news you have not read yet"]}, {"version": "1.14.0", "date": "2026-11-19", "items": ["Auto-rig has a second rig template (Template B, controller biped) with leg and shoulder controllers", "Rig template choice in the auto-rig wizard: Auto, A or B (Auto shows what it picked)"]}, {"version": "1.13.0", "date": "2026-11-19", "items": ["Selected bones are drawn in cyan like Spine", "Graph: Repeat shows the curves before and after the animation; X / Y splits channels", "Skins can have a colour and live in folders (name with a slash)", "Bones and slots can be selected together with Ctrl+click", "Dopesheet toolbar stays in one row and never scrolls sideways"]}, {"version": "1.12.0", "date": "2026-11-19", "items": ["Export: Polygons packing for images used only by meshes", "Export: audio track for AVI, MOV and WEBM videos (file or event sounds)", "Export check box on attachments, constraints, animations, skins and events"]}, {"version": "1.11.1", "date": "2026-11-19", "items": ["Fixed the folder import that hung on some rigs (overlapping draw-order keys)", "A failed import now shows a message instead of hanging"]}, {"version": "1.11.0", "date": "2026-11-19", "items": ["Opening .spine files reads weighted mesh deform keys, clipping, events and draw-order folders", "Inherit keys, export flags and more constraint settings are read from .spine files"]}, {"version": "1.10.0", "date": "2026-11-18", "items": ["Open .spine project files directly, without Spine installed", "Find works across your Spine projects without Spine"]}, {"version": "1.9.0", "date": "2026-11-18", "items": ["Import uses the original images from the images folder (sharper than the packed atlas)", "Sharper viewport on high-resolution screens"]}, {"version": "1.8.0", "date": "2026-11-18", "items": ["New Export dialog like Spine 4.3: JSON, Binary, HTML, images, video and texture packer", "Save and load export settings, preview before exporting"]}, {"version": "1.7.0", "date": "2026-11-18", "items": ["Dopesheet like Spine 4.3: zoom, pan, rows and keys", "Dopesheet: X / Y, colour, inherit and sequence keys, row reorder and Sync"]}, {"version": "1.6.0", "date": "2026-11-18", "items": ["Bones in the viewport are drawn like Spine 4.3", "Skin bones and skin constraints like Spine 4.3"]}, {"version": "1.5.0", "date": "2026-11-18", "items": ["Number fields: drag left or right to change the value (no spinner arrows)"]}, {"version": "1.4.0", "date": "2026-11-18", "items": ["Select several bones, slots and images at once like Spine", "Dopesheet key editing: move, duplicate (Ctrl+Shift+drag), Alt and Ctrl+Alt drag", "Dopesheet toolbar in one row with Shift, Offset and Adjust", "Graph view: curve editor with Bezier handles, presets and handle modes", "Skins like Spine"]}, {"version": "1.3.1", "date": "2026-11-17", "items": ["Fixed the bone rotate, move and scale tools", "Big rigs play and edit faster"]}, {"version": "1.3.0", "date": "2026-11-17", "items": ["Compensate buttons like Spine (move a parent without moving its children or images)"]}, {"version": "1.2.1", "date": "2026-11-17", "items": ["Tool palette buttons respond at once again", "Fixed a slowdown after the hotkeys update"]}, {"version": "1.2.0", "date": "2026-11-17", "items": ["Spine hotkeys for tools, modes, frames, keys and playback", "Interface closer to Spine"]}, {"version": "1.1.0", "date": "2026-11-17", "items": ["Auto-rig places bones from a template learned from a sample rig"]}, {"version": "1.0.0", "date": "2026-11-17", "items": ["First web version of AI_animation, with an English interface", "Runs in the browser on PC and phone; work is saved in your browser"]}]};</script><script>
+</script><script>window.AIA_VERSION = {"version": "1.20.17", "built": "2026-11-20 15:26", "changelog": [{"version": "1.20.17", "date": "2026-11-20", "items": ["New attachments with a new image (regions) save into .spine, in existing or new slots (the image file goes into the project's images folder)", "Empty new skins save into .spine", "Edited draw order keys save into .spine"]}, {"version": "1.20.16", "date": "2026-11-20", "items": ["New slots on top of the draw order (empty, or with copies of existing attachments) save into .spine"]}, {"version": "1.20.15", "date": "2026-11-20", "items": ["New skins made from existing attachments (a duplicated skin, or parts taken from other skins) save into .spine"]}, {"version": "1.20.14", "date": "2026-11-20", "items": ["Open Spine 4.2 projects (.spine) and save key and bone edits back into them", "Spine 4.3.25 / 4.3.26 projects open and save too"]}, {"version": "1.20.13", "date": "2026-11-20", "items": ["New animations with event keys save into .spine"]}, {"version": "1.20.12", "date": "2026-11-20", "items": ["New animations save slot attachment and colour keys, mesh deform keys and draw order keys into .spine", "Edited slot attachment and colour keys of existing animations save into .spine", "Scale keys within Spine's precision of 1 and colour values rounded like Spine (matches Spine's export more closely)"]}, {"version": "1.20.11", "date": "2026-11-20", "items": ["New animations with bone keys (rotate, translate, scale, shear) now save straight into .spine"]}, {"version": "1.20.10", "date": "2026-11-20", "items": ["Phones and tablets: long-press works as right-click; the tool palettes fold behind a Palettes button", "Mesh deform key edits (weighted or not) now save into .spine"]}, {"version": "1.20.9", "date": "2026-11-20", "items": ["HTML exports clip and blend like Spine; projects opened from .spine export their atlas correctly", "Clipping, bounding box and path shapes keep their deform keys (animated clipping)", "Two-colour tint and alpha-only keys are read from .spine (box.spine opens fully)", "Mesh tools: drag bones in the Weights list to reorder them, Alt+click an edge to select its loop, pen pressure for the weight brush"]}, {"version": "1.20.8", "date": "2026-11-20", "items": ["Slider constraints keep all their settings (time, mix, loop, additive) and run in the editor", "Constraint settings (IK, transform, physics, path, slider) and slot colour / blend mode now save into .spine", "Slot blend mode (Normal, Additive, Multiply, Screen) can be changed in Properties"]}, {"version": "1.20.7", "date": "2026-11-20", "items": ["Login is on for the website: Firebase connected (admin dashboard at admin.html)"]}, {"version": "1.20.6", "date": "2026-11-20", "items": ["Clipping masks images in the editor and Preview, like Spine", "Login and admin dashboard: users, active now, usage and speed (needs Firebase setup, see SETUP.md; off until then)"]}, {"version": "1.20.5", "date": "2026-11-20", "items": ["Skins view like Spine: skin folders, pins, several active skins shown together (also in Preview)", "Bounding boxes, clipping, points and linked meshes are imported, drawn and exported; bounding box edits save into .spine", "Several events on one frame, slot blend modes and draw order folder keys are kept", "Images are found in the project folder (no more grey placeholders for same-named files) and big projects open much faster on the PC"]}, {"version": "1.20.4", "date": "2026-11-20", "items": ["Open more Spine 4.3 projects: extra skins, skin placeholders, slider constraints, path and point attachments, path constraints", "Spine projects open with the right IK settings (mix, stretch, compress) and physics", "Event names keep their folder path"]}, {"version": "1.20.3", "date": "2026-11-19", "items": ["Import works on any PC; clear errors for missing images / unsupported versions", "Open Project on the website: pick the .spine file itself or the whole folder"]}, {"version": "1.20.2", "date": "2026-11-19", "items": ["Save mesh and weights edits to .spine (vertices, UVs, triangles, edges, weights, region to mesh)"]}, {"version": "1.20.1", "date": "2026-11-19", "items": ["Spine-style key buttons on transform rows"]}, {"version": "1.20.0", "date": "2026-11-19", "items": ["Animation views rebuilt to match Spine (Curves, Ghosting, Playback, Timeline, Audio)", "Spine-style transform handles: translate / scale arrows, rotate ring, shear lines, in World / Local / Parent; drag an axis to move or scale along it", "Bone properties like Spine (inherit, length, select, name, icon, colour; New, Parent, Split, Skin) and a breadcrumb of the selected bone"]}, {"version": "1.19.3", "date": "2026-11-19", "items": ["Tint black: the viewport draws the dark colour, and tint black keys (Color view, Dark tab in Animate) show in the dopesheet and go to JSON and binary"]}, {"version": "1.19.2", "date": "2026-11-19", "items": ["Mix preview blends slot colours, mesh deforms and constraint mixes too, like Spine"]}, {"version": "1.19.1", "date": "2026-11-19", "items": ["Audio tracks and mix times are saved with the project (.aia.json and autosave) and come back when it is opened", "JSON export writes the audio folder when events use sounds"]}, {"version": "1.19.0", "date": "2026-11-19", "items": ["Save saves .spine in the opened file's version (PC: <name>_ai.spine next to it; website: a download); edits .spine cannot hold yet are saved as JSON with a notice", "Main menu on the logo: New / Open / Recent / Save / Save As / Package Project, New Skeleton, Import Project / Data / PSD, Export, Texture Packer, Texture Unpacker, Settings", "Spine version of the opened file next to the logo", "Exports are named skeleton.json / .skel / .atlas / .png, like Spine", "The envelope opens What's new; the version text is information only"]}, {"version": "1.18.1", "date": "2026-11-19", "items": ["Graph colours match Spine"]}, {"version": "1.18.0", "date": "2026-11-19", "items": ["Curves, Ghosting, Playback, Timeline and Audio views (Alt+V, Alt+H, Alt+P, Alt+L, Alt+U)", "View shortcuts: a view behind another tab comes to the front; pressed again it closes"]}, {"version": "1.17.2", "date": "2026-11-19", "items": ["Cleaner look: one neutral dark theme with one accent blue, Spine-like tree (search in the toolbar, compact rows, visibility column, short attachment names, constraint folders), tidy panel headers and toolbars"]}, {"version": "1.17.1", "date": "2026-11-19", "items": ["Legs fixed: constraints run in the project's own order (as Spine does), and the two-bone IK matches Spine's runtime exactly", "Graph colours like Spine (rotate sky blue, X green, Y blue), square keys, frame dots, Spine's Graph toolbar with Shift, Offset, copy / paste, Swap and Average (all)"]}, {"version": "1.17.0", "date": "2026-11-19", "items": ["Views menu laid out like Spine's, with icons and Alt shortcuts; open views are greyed and checked", "New views: Color (slot, dark tint, bone, skin, attachment colours and colour keys), Skins, Outline, Metrics, Problems; Animations view with folders and export flags", "Mesh Tools and Weights views", "Save as .spine says which mesh or attachment edit it cannot write yet"]}, {"version": "1.16.1", "date": "2026-11-19", "items": ["Preview opens fitted to the whole animation"]}, {"version": "1.16.0", "date": "2026-11-19", "items": ["Save as .spine in the same Spine version (Project > Save as .spine, Ctrl+Shift+S, or Export > Spine)", "Export of a project opened from .spine keeps its own Spine version, bone order, mesh weights, curves and the parts the editor does not show", "Preview zoom and pan fixed (wheel, drag, + / -, fit)"]}, {"version": "1.15.1", "date": "2026-11-19", "items": ["Removed project-specific names"]}, {"version": "1.15.0", "date": "2026-11-19", "items": ["Version number in the top-right corner; click it to see what changed", "A dot on the version shows there is news you have not read yet"]}, {"version": "1.14.0", "date": "2026-11-19", "items": ["Auto-rig has a second rig template (Template B, controller biped) with leg and shoulder controllers", "Rig template choice in the auto-rig wizard: Auto, A or B (Auto shows what it picked)"]}, {"version": "1.13.0", "date": "2026-11-19", "items": ["Selected bones are drawn in cyan like Spine", "Graph: Repeat shows the curves before and after the animation; X / Y splits channels", "Skins can have a colour and live in folders (name with a slash)", "Bones and slots can be selected together with Ctrl+click", "Dopesheet toolbar stays in one row and never scrolls sideways"]}, {"version": "1.12.0", "date": "2026-11-19", "items": ["Export: Polygons packing for images used only by meshes", "Export: audio track for AVI, MOV and WEBM videos (file or event sounds)", "Export check box on attachments, constraints, animations, skins and events"]}, {"version": "1.11.1", "date": "2026-11-19", "items": ["Fixed the folder import that hung on some rigs (overlapping draw-order keys)", "A failed import now shows a message instead of hanging"]}, {"version": "1.11.0", "date": "2026-11-19", "items": ["Opening .spine files reads weighted mesh deform keys, clipping, events and draw-order folders", "Inherit keys, export flags and more constraint settings are read from .spine files"]}, {"version": "1.10.0", "date": "2026-11-18", "items": ["Open .spine project files directly, without Spine installed", "Find works across your Spine projects without Spine"]}, {"version": "1.9.0", "date": "2026-11-18", "items": ["Import uses the original images from the images folder (sharper than the packed atlas)", "Sharper viewport on high-resolution screens"]}, {"version": "1.8.0", "date": "2026-11-18", "items": ["New Export dialog like Spine 4.3: JSON, Binary, HTML, images, video and texture packer", "Save and load export settings, preview before exporting"]}, {"version": "1.7.0", "date": "2026-11-18", "items": ["Dopesheet like Spine 4.3: zoom, pan, rows and keys", "Dopesheet: X / Y, colour, inherit and sequence keys, row reorder and Sync"]}, {"version": "1.6.0", "date": "2026-11-18", "items": ["Bones in the viewport are drawn like Spine 4.3", "Skin bones and skin constraints like Spine 4.3"]}, {"version": "1.5.0", "date": "2026-11-18", "items": ["Number fields: drag left or right to change the value (no spinner arrows)"]}, {"version": "1.4.0", "date": "2026-11-18", "items": ["Select several bones, slots and images at once like Spine", "Dopesheet key editing: move, duplicate (Ctrl+Shift+drag), Alt and Ctrl+Alt drag", "Dopesheet toolbar in one row with Shift, Offset and Adjust", "Graph view: curve editor with Bezier handles, presets and handle modes", "Skins like Spine"]}, {"version": "1.3.1", "date": "2026-11-17", "items": ["Fixed the bone rotate, move and scale tools", "Big rigs play and edit faster"]}, {"version": "1.3.0", "date": "2026-11-17", "items": ["Compensate buttons like Spine (move a parent without moving its children or images)"]}, {"version": "1.2.1", "date": "2026-11-17", "items": ["Tool palette buttons respond at once again", "Fixed a slowdown after the hotkeys update"]}, {"version": "1.2.0", "date": "2026-11-17", "items": ["Spine hotkeys for tools, modes, frames, keys and playback", "Interface closer to Spine"]}, {"version": "1.1.0", "date": "2026-11-17", "items": ["Auto-rig places bones from a template learned from a sample rig"]}, {"version": "1.0.0", "date": "2026-11-17", "items": ["First web version of AI_animation, with an English interface", "Runs in the browser on PC and phone; work is saved in your browser"]}]};</script><script>
 /* Version label (top-right of the header) and the "What's new" dialog.
    build.py puts window.AIA_VERSION = {version, built, changelog} in front of this file; CHANGELOG.json is the source.
    Unbuilt page (ai_animation.html from a server): falls back to fetching CHANGELOG.json. */
