@@ -3607,11 +3607,23 @@ const toWorld = (sx, sy) => [(sx - ox()) / st.view.z, -(sy - oy()) / st.view.z];
 
 function drawAttachments(Wm, alpha, timeAnim) {
   const order = timeAnim ? drawOrderAt(doc, timeAnim.anim, timeAnim.t).map(slotById) : curOrder();
+  let clipEnd = null; // a clipping attachment masks the slots after it, up to and including its end slot (like Spine)
+  const endClip = () => { if (clipEnd) { ctx.restore(); clipEnd = null; } };
   for (const s of order) {
     const name = timeAnim ? slotAttachmentAt(s, timeAnim.anim, timeAnim.t) : curAttName(s);
     const att = attFor(doc, s.id, name, st.skinId);
     const w = Wm[s.bone];
-    if (!att || !w || isShape(att)) continue;
+    if (att && w && att.type === "clipping" && !clipEnd && (att.pos || att.vw)) {
+      const wv = pathWorld(att, s.bone, Wm);
+      if (wv.length >= 6) {
+        ctx.save(); ctx.setTransform(dpr * st.view.z, 0, 0, -dpr * st.view.z, dpr * ox(), dpr * oy()); ctx.beginPath();
+        if (att.inverse) { const B = 1e7; ctx.rect(-B, -B, 2 * B, 2 * B); }
+        for (let i = 0; i < wv.length; i += 2) i ? ctx.lineTo(wv[i], wv[i + 1]) : ctx.moveTo(wv[i], wv[i + 1]); ctx.closePath();
+        ctx.clip(att.inverse ? "evenodd" : "nonzero"); clipEnd = att.end || "\u0000";
+      }
+      continue;
+    }
+    if (!att || !w || isShape(att)) { if (clipEnd && s.name === clipEnd) endClip(); continue; }
     ctx.globalCompositeOperation = SLOT_BLEND[s.blend] || "source-over"; // slot blend mode (Spine: additive, multiply, screen)
     const im = images.get(att.image);
     const z = st.view.z;
@@ -3620,6 +3632,7 @@ function drawAttachments(Wm, alpha, timeAnim) {
       const def = timeAnim ? deformAt(timeAnim.anim, att, timeAnim.t) : curDeform(att);
       ctx.globalAlpha = alpha * (isNaN(sa) ? 1 : sa);
       drawMesh(att, meshWorld(att, s.bone, Wm, def), im);
+      if (clipEnd && s.name === clipEnd) endClip();
       continue;
     }
     ctx.setTransform(dpr * z, 0, 0, -dpr * z, dpr * ox(), dpr * oy());
@@ -3630,7 +3643,9 @@ function drawAttachments(Wm, alpha, timeAnim) {
     ctx.globalAlpha = alpha * (isNaN(a) ? 1 : a);
     if (im && im.img) ctx.drawImage(im.img, -att.width / 2, -att.height / 2, att.width, att.height);
     else { ctx.fillStyle = "rgba(138,147,161,.3)"; ctx.fillRect(-att.width / 2, -att.height / 2, att.width, att.height); }
+    if (clipEnd && s.name === clipEnd) endClip();
   }
+  endClip();
   ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over";
 }
 const SLOT_BLEND = { additive: "lighter", multiply: "multiply", screen: "screen" };
@@ -6536,13 +6551,45 @@ function openAutoRig() {
 
 /* ---------- runtime preview (official Spine 4.3 web runtime) ---------- */
 let previewStop = null;
+/* the canvas runtime draws without clipping or blend modes: draw like Spine does (clip from a clipping slot to its end slot; slot blend modes) */
+function patchSpineCanvas(sp) {
+  const P = sp && sp.SkeletonRenderer && sp.SkeletonRenderer.prototype; if (!P || P._aiaClip) return sp; P._aiaClip = true;
+  const BL = { 1: "lighter", 2: "multiply", 3: "screen" }; // BlendMode: Normal, Additive, Multiply, Screen
+  P.drawTriangles = function (skeleton) {
+    const ctx = this.ctx, color = this.tempColor, skc = skeleton.color, DO = skeleton.drawOrder, order = DO.appliedPose || DO;
+    let clipEnd = null; const poly = [];
+    const endClip = () => { if (clipEnd) { ctx.restore(); clipEnd = null; } };
+    for (let i = 0, n = order.length; i < n; i++) {
+      const slot = order[i], pose = slot.appliedPose || slot.pose || slot, att = pose.attachment;
+      let vertices, triangles, texture;
+      if (att instanceof sp.ClippingAttachment) {
+        if (!clipEnd) { const m = att.worldVerticesLength; poly.length = m; att.computeWorldVertices(skeleton, slot, 0, m, poly, 0, 2);
+          ctx.save(); ctx.beginPath(); if (att.inverse) { const B = 1e7; ctx.rect(-B, -B, 2 * B, 2 * B); }
+          for (let k = 0; k < m; k += 2) k ? ctx.lineTo(poly[k], poly[k + 1]) : ctx.moveTo(poly[k], poly[k + 1]); ctx.closePath(); ctx.clip(att.inverse ? "evenodd" : "nonzero");
+          clipEnd = att.endSlot || "all"; }
+        continue;
+      }
+      if (att instanceof sp.RegionAttachment) { const sq = att.sequence, si = sq.resolveIndex(pose); vertices = this.computeRegionVertices(slot, att, att.getOffsets(pose), sq.getUVs(si), false); triangles = sp.SkeletonRenderer.QUAD_TRIANGLES; texture = sq.regions[si] && sq.regions[si].texture && sq.regions[si].texture.getImage(); }
+      else if (att instanceof sp.MeshAttachment) { const sq = att.sequence, si = sq.resolveIndex(pose); vertices = this.computeMeshVertices(slot, att, sq.getUVs(si), false); triangles = att.triangles; texture = sq.regions[si] && sq.regions[si].texture && sq.regions[si].texture.getImage(); }
+      if (texture && triangles) {
+        const sc = pose.color, ac = att.color; color.set(skc.r * sc.r * ac.r, skc.g * sc.g * ac.g, skc.b * sc.b * ac.b, skc.a * sc.a * ac.a);
+        ctx.globalAlpha = color.a; ctx.globalCompositeOperation = BL[slot.data.blendMode] || "source-over";
+        for (let j = 0; j < triangles.length; j += 3) { const t1 = triangles[j] * 8, t2 = triangles[j + 1] * 8, t3 = triangles[j + 2] * 8;
+          this.drawTriangle(texture, vertices[t1], vertices[t1 + 1], vertices[t1 + 6], vertices[t1 + 7], vertices[t2], vertices[t2 + 1], vertices[t2 + 6], vertices[t2 + 7], vertices[t3], vertices[t3 + 1], vertices[t3 + 6], vertices[t3 + 7]); }
+      }
+      if (clipEnd && clipEnd !== "all" && slot.data === clipEnd) endClip();
+    }
+    endClip(); ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over";
+  };
+  return sp;
+}
 function loadSpineRuntime() {
-  if (window.spine && window.spine.SkeletonRenderer) return Promise.resolve(window.spine);
+  if (window.spine && window.spine.SkeletonRenderer) return Promise.resolve(patchSpineCanvas(window.spine));
   return new Promise((res, rej) => {
     const s = document.createElement("script");
     const cdn = "https://cdn.jsdelivr.net/npm/@esotericsoftware/spine-canvas@4.3.13/dist/iife/spine-canvas.js";
     s.src = location.protocol === "file:" ? cdn : "vendor/spine-canvas/spine-canvas.js"; /* local copy first (offline), CDN as fallback */
-    s.onload = () => window.spine ? res(window.spine) : rej(new Error("runtime missing"));
+    s.onload = () => window.spine ? res(patchSpineCanvas(window.spine)) : rej(new Error("runtime missing"));
     s.onerror = () => { if (s.src === cdn) return rej(new Error("Could not load the Spine runtime")); s.remove(); const c = document.createElement("script"); c.src = cdn; c.onload = s.onload; c.onerror = () => rej(new Error("Could not load the Spine runtime")); document.head.appendChild(c); };
     document.head.appendChild(s);
   });
@@ -17964,7 +18011,7 @@ if (typeof window !== "undefined" && typeof st !== "undefined" && typeof cv !== 
   let lastK = ""; setInterval(() => { const ms = selMesh(); if (!on()) WT.binding = false; const k = [JSON.stringify(st.sel), st.mode, st.meshMode, ms ? wtNb(ms.m) : -1, selVerts().join(","), undoS.length, WT.binding].join("|"); if (k !== lastK) { lastK = k; wtPanelRefresh(); } }, 300);
 })();
 
-</script><script>window.AIA_VERSION = {"version": "1.20.5", "built": "2026-11-20 12:23", "changelog": [{"version": "1.20.5", "date": "2026-11-20", "items": ["Skins view like Spine: skin folders, pins, several active skins shown together (also in Preview)", "Bounding boxes, clipping, points and linked meshes are imported, drawn and exported; bounding box edits save into .spine", "Several events on one frame, slot blend modes and draw order folder keys are kept", "Images are found in the project folder (no more grey placeholders for same-named files) and big projects open much faster on the PC"]}, {"version": "1.20.4", "date": "2026-11-20", "items": ["Open more Spine 4.3 projects: extra skins, skin placeholders, slider constraints, path and point attachments, path constraints", "Spine projects open with the right IK settings (mix, stretch, compress) and physics", "Event names keep their folder path"]}, {"version": "1.20.3", "date": "2026-11-19", "items": ["Import works on any PC; clear errors for missing images / unsupported versions", "Open Project on the website: pick the .spine file itself or the whole folder"]}, {"version": "1.20.2", "date": "2026-11-19", "items": ["Save mesh and weights edits to .spine (vertices, UVs, triangles, edges, weights, region to mesh)"]}, {"version": "1.20.1", "date": "2026-11-19", "items": ["Spine-style key buttons on transform rows"]}, {"version": "1.20.0", "date": "2026-11-19", "items": ["Animation views rebuilt to match Spine (Curves, Ghosting, Playback, Timeline, Audio)", "Spine-style transform handles: translate / scale arrows, rotate ring, shear lines, in World / Local / Parent; drag an axis to move or scale along it", "Bone properties like Spine (inherit, length, select, name, icon, colour; New, Parent, Split, Skin) and a breadcrumb of the selected bone"]}, {"version": "1.19.3", "date": "2026-11-19", "items": ["Tint black: the viewport draws the dark colour, and tint black keys (Color view, Dark tab in Animate) show in the dopesheet and go to JSON and binary"]}, {"version": "1.19.2", "date": "2026-11-19", "items": ["Mix preview blends slot colours, mesh deforms and constraint mixes too, like Spine"]}, {"version": "1.19.1", "date": "2026-11-19", "items": ["Audio tracks and mix times are saved with the project (.aia.json and autosave) and come back when it is opened", "JSON export writes the audio folder when events use sounds"]}, {"version": "1.19.0", "date": "2026-11-19", "items": ["Save saves .spine in the opened file's version (PC: <name>_ai.spine next to it; website: a download); edits .spine cannot hold yet are saved as JSON with a notice", "Main menu on the logo: New / Open / Recent / Save / Save As / Package Project, New Skeleton, Import Project / Data / PSD, Export, Texture Packer, Texture Unpacker, Settings", "Spine version of the opened file next to the logo", "Exports are named skeleton.json / .skel / .atlas / .png, like Spine", "The envelope opens What's new; the version text is information only"]}, {"version": "1.18.1", "date": "2026-11-19", "items": ["Graph colours match Spine"]}, {"version": "1.18.0", "date": "2026-11-19", "items": ["Curves, Ghosting, Playback, Timeline and Audio views (Alt+V, Alt+H, Alt+P, Alt+L, Alt+U)", "View shortcuts: a view behind another tab comes to the front; pressed again it closes"]}, {"version": "1.17.2", "date": "2026-11-19", "items": ["Cleaner look: one neutral dark theme with one accent blue, Spine-like tree (search in the toolbar, compact rows, visibility column, short attachment names, constraint folders), tidy panel headers and toolbars"]}, {"version": "1.17.1", "date": "2026-11-19", "items": ["Legs fixed: constraints run in the project's own order (as Spine does), and the two-bone IK matches Spine's runtime exactly", "Graph colours like Spine (rotate sky blue, X green, Y blue), square keys, frame dots, Spine's Graph toolbar with Shift, Offset, copy / paste, Swap and Average (all)"]}, {"version": "1.17.0", "date": "2026-11-19", "items": ["Views menu laid out like Spine's, with icons and Alt shortcuts; open views are greyed and checked", "New views: Color (slot, dark tint, bone, skin, attachment colours and colour keys), Skins, Outline, Metrics, Problems; Animations view with folders and export flags", "Mesh Tools and Weights views", "Save as .spine says which mesh or attachment edit it cannot write yet"]}, {"version": "1.16.1", "date": "2026-11-19", "items": ["Preview opens fitted to the whole animation"]}, {"version": "1.16.0", "date": "2026-11-19", "items": ["Save as .spine in the same Spine version (Project > Save as .spine, Ctrl+Shift+S, or Export > Spine)", "Export of a project opened from .spine keeps its own Spine version, bone order, mesh weights, curves and the parts the editor does not show", "Preview zoom and pan fixed (wheel, drag, + / -, fit)"]}, {"version": "1.15.1", "date": "2026-11-19", "items": ["Removed project-specific names"]}, {"version": "1.15.0", "date": "2026-11-19", "items": ["Version number in the top-right corner; click it to see what changed", "A dot on the version shows there is news you have not read yet"]}, {"version": "1.14.0", "date": "2026-11-19", "items": ["Auto-rig has a second rig template (Template B, controller biped) with leg and shoulder controllers", "Rig template choice in the auto-rig wizard: Auto, A or B (Auto shows what it picked)"]}, {"version": "1.13.0", "date": "2026-11-19", "items": ["Selected bones are drawn in cyan like Spine", "Graph: Repeat shows the curves before and after the animation; X / Y splits channels", "Skins can have a colour and live in folders (name with a slash)", "Bones and slots can be selected together with Ctrl+click", "Dopesheet toolbar stays in one row and never scrolls sideways"]}, {"version": "1.12.0", "date": "2026-11-19", "items": ["Export: Polygons packing for images used only by meshes", "Export: audio track for AVI, MOV and WEBM videos (file or event sounds)", "Export check box on attachments, constraints, animations, skins and events"]}, {"version": "1.11.1", "date": "2026-11-19", "items": ["Fixed the folder import that hung on some rigs (overlapping draw-order keys)", "A failed import now shows a message instead of hanging"]}, {"version": "1.11.0", "date": "2026-11-19", "items": ["Opening .spine files reads weighted mesh deform keys, clipping, events and draw-order folders", "Inherit keys, export flags and more constraint settings are read from .spine files"]}, {"version": "1.10.0", "date": "2026-11-18", "items": ["Open .spine project files directly, without Spine installed", "Find works across your Spine projects without Spine"]}, {"version": "1.9.0", "date": "2026-11-18", "items": ["Import uses the original images from the images folder (sharper than the packed atlas)", "Sharper viewport on high-resolution screens"]}, {"version": "1.8.0", "date": "2026-11-18", "items": ["New Export dialog like Spine 4.3: JSON, Binary, HTML, images, video and texture packer", "Save and load export settings, preview before exporting"]}, {"version": "1.7.0", "date": "2026-11-18", "items": ["Dopesheet like Spine 4.3: zoom, pan, rows and keys", "Dopesheet: X / Y, colour, inherit and sequence keys, row reorder and Sync"]}, {"version": "1.6.0", "date": "2026-11-18", "items": ["Bones in the viewport are drawn like Spine 4.3", "Skin bones and skin constraints like Spine 4.3"]}, {"version": "1.5.0", "date": "2026-11-18", "items": ["Number fields: drag left or right to change the value (no spinner arrows)"]}, {"version": "1.4.0", "date": "2026-11-18", "items": ["Select several bones, slots and images at once like Spine", "Dopesheet key editing: move, duplicate (Ctrl+Shift+drag), Alt and Ctrl+Alt drag", "Dopesheet toolbar in one row with Shift, Offset and Adjust", "Graph view: curve editor with Bezier handles, presets and handle modes", "Skins like Spine"]}, {"version": "1.3.1", "date": "2026-11-17", "items": ["Fixed the bone rotate, move and scale tools", "Big rigs play and edit faster"]}, {"version": "1.3.0", "date": "2026-11-17", "items": ["Compensate buttons like Spine (move a parent without moving its children or images)"]}, {"version": "1.2.1", "date": "2026-11-17", "items": ["Tool palette buttons respond at once again", "Fixed a slowdown after the hotkeys update"]}, {"version": "1.2.0", "date": "2026-11-17", "items": ["Spine hotkeys for tools, modes, frames, keys and playback", "Interface closer to Spine"]}, {"version": "1.1.0", "date": "2026-11-17", "items": ["Auto-rig places bones from a template learned from a sample rig"]}, {"version": "1.0.0", "date": "2026-11-17", "items": ["First web version of AI_animation, with an English interface", "Runs in the browser on PC and phone; work is saved in your browser"]}]};</script><script>
+</script><script>window.AIA_VERSION = {"version": "1.20.6", "built": "2026-11-20 12:34", "changelog": [{"version": "1.20.6", "date": "2026-11-20", "items": ["Clipping masks images in the editor and Preview, like Spine", "Login and admin dashboard: users, active now, usage and speed (needs Firebase setup, see SETUP.md; off until then)"]}, {"version": "1.20.5", "date": "2026-11-20", "items": ["Skins view like Spine: skin folders, pins, several active skins shown together (also in Preview)", "Bounding boxes, clipping, points and linked meshes are imported, drawn and exported; bounding box edits save into .spine", "Several events on one frame, slot blend modes and draw order folder keys are kept", "Images are found in the project folder (no more grey placeholders for same-named files) and big projects open much faster on the PC"]}, {"version": "1.20.4", "date": "2026-11-20", "items": ["Open more Spine 4.3 projects: extra skins, skin placeholders, slider constraints, path and point attachments, path constraints", "Spine projects open with the right IK settings (mix, stretch, compress) and physics", "Event names keep their folder path"]}, {"version": "1.20.3", "date": "2026-11-19", "items": ["Import works on any PC; clear errors for missing images / unsupported versions", "Open Project on the website: pick the .spine file itself or the whole folder"]}, {"version": "1.20.2", "date": "2026-11-19", "items": ["Save mesh and weights edits to .spine (vertices, UVs, triangles, edges, weights, region to mesh)"]}, {"version": "1.20.1", "date": "2026-11-19", "items": ["Spine-style key buttons on transform rows"]}, {"version": "1.20.0", "date": "2026-11-19", "items": ["Animation views rebuilt to match Spine (Curves, Ghosting, Playback, Timeline, Audio)", "Spine-style transform handles: translate / scale arrows, rotate ring, shear lines, in World / Local / Parent; drag an axis to move or scale along it", "Bone properties like Spine (inherit, length, select, name, icon, colour; New, Parent, Split, Skin) and a breadcrumb of the selected bone"]}, {"version": "1.19.3", "date": "2026-11-19", "items": ["Tint black: the viewport draws the dark colour, and tint black keys (Color view, Dark tab in Animate) show in the dopesheet and go to JSON and binary"]}, {"version": "1.19.2", "date": "2026-11-19", "items": ["Mix preview blends slot colours, mesh deforms and constraint mixes too, like Spine"]}, {"version": "1.19.1", "date": "2026-11-19", "items": ["Audio tracks and mix times are saved with the project (.aia.json and autosave) and come back when it is opened", "JSON export writes the audio folder when events use sounds"]}, {"version": "1.19.0", "date": "2026-11-19", "items": ["Save saves .spine in the opened file's version (PC: <name>_ai.spine next to it; website: a download); edits .spine cannot hold yet are saved as JSON with a notice", "Main menu on the logo: New / Open / Recent / Save / Save As / Package Project, New Skeleton, Import Project / Data / PSD, Export, Texture Packer, Texture Unpacker, Settings", "Spine version of the opened file next to the logo", "Exports are named skeleton.json / .skel / .atlas / .png, like Spine", "The envelope opens What's new; the version text is information only"]}, {"version": "1.18.1", "date": "2026-11-19", "items": ["Graph colours match Spine"]}, {"version": "1.18.0", "date": "2026-11-19", "items": ["Curves, Ghosting, Playback, Timeline and Audio views (Alt+V, Alt+H, Alt+P, Alt+L, Alt+U)", "View shortcuts: a view behind another tab comes to the front; pressed again it closes"]}, {"version": "1.17.2", "date": "2026-11-19", "items": ["Cleaner look: one neutral dark theme with one accent blue, Spine-like tree (search in the toolbar, compact rows, visibility column, short attachment names, constraint folders), tidy panel headers and toolbars"]}, {"version": "1.17.1", "date": "2026-11-19", "items": ["Legs fixed: constraints run in the project's own order (as Spine does), and the two-bone IK matches Spine's runtime exactly", "Graph colours like Spine (rotate sky blue, X green, Y blue), square keys, frame dots, Spine's Graph toolbar with Shift, Offset, copy / paste, Swap and Average (all)"]}, {"version": "1.17.0", "date": "2026-11-19", "items": ["Views menu laid out like Spine's, with icons and Alt shortcuts; open views are greyed and checked", "New views: Color (slot, dark tint, bone, skin, attachment colours and colour keys), Skins, Outline, Metrics, Problems; Animations view with folders and export flags", "Mesh Tools and Weights views", "Save as .spine says which mesh or attachment edit it cannot write yet"]}, {"version": "1.16.1", "date": "2026-11-19", "items": ["Preview opens fitted to the whole animation"]}, {"version": "1.16.0", "date": "2026-11-19", "items": ["Save as .spine in the same Spine version (Project > Save as .spine, Ctrl+Shift+S, or Export > Spine)", "Export of a project opened from .spine keeps its own Spine version, bone order, mesh weights, curves and the parts the editor does not show", "Preview zoom and pan fixed (wheel, drag, + / -, fit)"]}, {"version": "1.15.1", "date": "2026-11-19", "items": ["Removed project-specific names"]}, {"version": "1.15.0", "date": "2026-11-19", "items": ["Version number in the top-right corner; click it to see what changed", "A dot on the version shows there is news you have not read yet"]}, {"version": "1.14.0", "date": "2026-11-19", "items": ["Auto-rig has a second rig template (Template B, controller biped) with leg and shoulder controllers", "Rig template choice in the auto-rig wizard: Auto, A or B (Auto shows what it picked)"]}, {"version": "1.13.0", "date": "2026-11-19", "items": ["Selected bones are drawn in cyan like Spine", "Graph: Repeat shows the curves before and after the animation; X / Y splits channels", "Skins can have a colour and live in folders (name with a slash)", "Bones and slots can be selected together with Ctrl+click", "Dopesheet toolbar stays in one row and never scrolls sideways"]}, {"version": "1.12.0", "date": "2026-11-19", "items": ["Export: Polygons packing for images used only by meshes", "Export: audio track for AVI, MOV and WEBM videos (file or event sounds)", "Export check box on attachments, constraints, animations, skins and events"]}, {"version": "1.11.1", "date": "2026-11-19", "items": ["Fixed the folder import that hung on some rigs (overlapping draw-order keys)", "A failed import now shows a message instead of hanging"]}, {"version": "1.11.0", "date": "2026-11-19", "items": ["Opening .spine files reads weighted mesh deform keys, clipping, events and draw-order folders", "Inherit keys, export flags and more constraint settings are read from .spine files"]}, {"version": "1.10.0", "date": "2026-11-18", "items": ["Open .spine project files directly, without Spine installed", "Find works across your Spine projects without Spine"]}, {"version": "1.9.0", "date": "2026-11-18", "items": ["Import uses the original images from the images folder (sharper than the packed atlas)", "Sharper viewport on high-resolution screens"]}, {"version": "1.8.0", "date": "2026-11-18", "items": ["New Export dialog like Spine 4.3: JSON, Binary, HTML, images, video and texture packer", "Save and load export settings, preview before exporting"]}, {"version": "1.7.0", "date": "2026-11-18", "items": ["Dopesheet like Spine 4.3: zoom, pan, rows and keys", "Dopesheet: X / Y, colour, inherit and sequence keys, row reorder and Sync"]}, {"version": "1.6.0", "date": "2026-11-18", "items": ["Bones in the viewport are drawn like Spine 4.3", "Skin bones and skin constraints like Spine 4.3"]}, {"version": "1.5.0", "date": "2026-11-18", "items": ["Number fields: drag left or right to change the value (no spinner arrows)"]}, {"version": "1.4.0", "date": "2026-11-18", "items": ["Select several bones, slots and images at once like Spine", "Dopesheet key editing: move, duplicate (Ctrl+Shift+drag), Alt and Ctrl+Alt drag", "Dopesheet toolbar in one row with Shift, Offset and Adjust", "Graph view: curve editor with Bezier handles, presets and handle modes", "Skins like Spine"]}, {"version": "1.3.1", "date": "2026-11-17", "items": ["Fixed the bone rotate, move and scale tools", "Big rigs play and edit faster"]}, {"version": "1.3.0", "date": "2026-11-17", "items": ["Compensate buttons like Spine (move a parent without moving its children or images)"]}, {"version": "1.2.1", "date": "2026-11-17", "items": ["Tool palette buttons respond at once again", "Fixed a slowdown after the hotkeys update"]}, {"version": "1.2.0", "date": "2026-11-17", "items": ["Spine hotkeys for tools, modes, frames, keys and playback", "Interface closer to Spine"]}, {"version": "1.1.0", "date": "2026-11-17", "items": ["Auto-rig places bones from a template learned from a sample rig"]}, {"version": "1.0.0", "date": "2026-11-17", "items": ["First web version of AI_animation, with an English interface", "Runs in the browser on PC and phone; work is saved in your browser"]}]};</script><script>
 /* Version label (top-right of the header) and the "What's new" dialog.
    build.py puts window.AIA_VERSION = {version, built, changelog} in front of this file; CHANGELOG.json is the source.
    Unbuilt page (ai_animation.html from a server): falls back to fetching CHANGELOG.json. */
@@ -20116,6 +20163,131 @@ body.sk #verBtn { color: #aaa; } body.sk #verBtn:hover { color: #e8e8e8; backgro
     let first = true; const pu = pushUndo; for (const id of ids) { const bb = boneById(id); if (!bb) continue; if (!first) pushUndo = () => {}; try { keyTool(bb, btn.dataset.kt); } finally { pushUndo = pu; } first = false; }
     sync($("#skPal"));
   }, true);
+})();
+
+</script><script src="firebase_config.js"></script><script>
+/* AI_animation: optional login and usage data (Firebase). Off unless firebase_config.js sets window.AIA_FIREBASE.
+   - Login screen before the editor: Google, or email + password (create account, forgot password). A short privacy note.
+   - Stored (Firestore): users/{uid} (name, email, first / last seen, country from the browser's language, device, sessions, total time),
+     sessions/{id} (start, duration, version, load time, fps), events/{id} (import, export, save .spine, errors; with timings).
+   - Presence (Realtime Database): status/{uid} online / offline (onDisconnect), for "active now" on admin.html.
+   Security rules (firestore.rules, database.rules.json): a user writes only their own data; only admins read it all. */
+(function () {
+  const CFG = window.AIA_FIREBASE;
+  const AUTH = window.AIA_AUTH = { enabled: !!(CFG && CFG.apiKey), user: null, track: () => {}, signOut: () => {} };
+  if (!AUTH.enabled) return;
+  const SDK = "https://cdn.jsdelivr.net/npm/firebase@10.12.2/";
+  const VER = (window.AIA_VERSION || {}).version || "?";
+  const T0 = performance.now();
+  const load = src => new Promise((res, rej) => { const s = document.createElement("script"); s.src = src; s.onload = res; s.onerror = () => rej(new Error("Could not load " + src)); document.head.appendChild(s); });
+
+  /* ---------- login screen ---------- */
+  const css = `#aiaLogin{position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;background:#14171c;font:14px system-ui,Segoe UI,sans-serif;color:#e6e8eb}
+    #aiaLogin .card{width:min(360px,calc(100vw - 32px));background:#1e2228;border:1px solid #2c323a;border-radius:10px;padding:24px;box-shadow:0 10px 40px rgba(0,0,0,.4)}
+    #aiaLogin h1{font-size:20px;margin:0 0 4px;font-weight:600}#aiaLogin .sub{color:#8a93a1;margin:0 0 18px;font-size:13px}
+    #aiaLogin button{width:100%;height:38px;border-radius:6px;border:1px solid #2f3640;background:#272c34;color:#e6e8eb;font:inherit;cursor:pointer;margin-top:8px}
+    #aiaLogin button.pri{background:#2f7de1;border-color:#2f7de1;color:#fff}#aiaLogin button:hover{filter:brightness(1.1)}
+    #aiaLogin input{width:100%;box-sizing:border-box;height:36px;border-radius:6px;border:1px solid #2f3640;background:#14171c;color:#e6e8eb;padding:0 10px;font:inherit;margin-top:8px}
+    #aiaLogin .or{display:flex;align-items:center;gap:8px;color:#6b7380;font-size:12px;margin:14px 0 4px}#aiaLogin .or:before,#aiaLogin .or:after{content:"";flex:1;height:1px;background:#2c323a}
+    #aiaLogin .row{display:flex;gap:8px}#aiaLogin .link{background:none;border:0;color:#6aa9ff;width:auto;height:auto;padding:0;margin-top:10px;font-size:13px}
+    #aiaLogin .err{color:#ff8b7a;font-size:13px;min-height:18px;margin-top:8px}#aiaLogin .ok{color:#7fd48a}
+    #aiaLogin .note{color:#6b7380;font-size:12px;margin-top:14px;line-height:1.4}
+    #aiaAcct{position:fixed;top:6px;right:96px;z-index:9000;width:26px;height:26px;border-radius:50%;border:1px solid #3a414b;background:#2f7de1;color:#fff;font:600 12px system-ui;cursor:pointer;display:none}
+    #aiaAcctMenu{position:fixed;top:36px;right:60px;z-index:9001;background:#1e2228;border:1px solid #2c323a;border-radius:8px;padding:6px;min-width:220px;font:13px system-ui;color:#e6e8eb;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+    #aiaAcctMenu div{padding:6px 8px;color:#8a93a1}#aiaAcctMenu a{display:block;padding:6px 8px;border-radius:5px;color:#e6e8eb;text-decoration:none;cursor:pointer}#aiaAcctMenu a:hover{background:#2a3038}`;
+  const st = document.createElement("style"); st.textContent = css; document.head.appendChild(st);
+  const ov = document.createElement("div"); ov.id = "aiaLogin";
+  ov.innerHTML = `<div class="card"><h1>AI Animation</h1><p class="sub">Sign in to continue</p>
+    <button class="pri" id="alGoogle">Continue with Google</button>
+    <div class="or">or with email</div>
+    <input id="alEmail" type="email" placeholder="Email" autocomplete="email"><input id="alPass" type="password" placeholder="Password" autocomplete="current-password">
+    <div class="row"><button id="alIn">Sign in</button><button id="alUp">Create account</button></div>
+    <button class="link" id="alForgot">Forgot password?</button><div class="err" id="alErr"></div>
+    <p class="note">We store your name, email and how you use the app (sessions, imports, exports, errors, speed) to improve AI Animation. Your projects stay in your browser.</p></div>`;
+  const mount = () => document.body.appendChild(ov);
+  if (document.body) mount(); else document.addEventListener("DOMContentLoaded", mount);
+  const $id = id => document.getElementById(id), msg = (t, ok) => { const e = $id("alErr"); if (e) { e.textContent = t || ""; e.className = "err" + (ok ? " ok" : ""); } };
+  const nice = e => { const c = (e && e.code) || ""; return c.includes("wrong-password") || c.includes("invalid-credential") ? "Wrong email or password." : c.includes("user-not-found") ? "No account with that email." : c.includes("email-already") ? "An account with that email exists: sign in instead." : c.includes("weak-password") ? "Use at least 6 characters." : c.includes("invalid-email") ? "That email does not look right." : c.includes("popup") ? "The Google window was closed." : (e && e.message) || String(e); };
+
+  (async () => {
+    try { for (const m of ["firebase-app-compat.js", "firebase-auth-compat.js", "firebase-firestore-compat.js", "firebase-database-compat.js"]) await load(SDK + m); }
+    catch (e) { msg("Could not load the login service. Check the connection and reload."); return; }
+    const fb = window.firebase; fb.initializeApp(CFG);
+    const auth = fb.auth(), db = fb.firestore(), rtdb = CFG.databaseURL ? fb.database() : null, FV = fb.firestore.FieldValue;
+    if (window.AIA_FIREBASE_EMULATOR) { auth.useEmulator(window.AIA_FIREBASE_EMULATOR.auth); db.useEmulator(...window.AIA_FIREBASE_EMULATOR.firestore); if (rtdb) rtdb.useEmulator(...window.AIA_FIREBASE_EMULATOR.database); }
+    $id("alGoogle").onclick = () => auth.signInWithPopup(new fb.auth.GoogleAuthProvider()).catch(e => msg(nice(e)));
+    const ep = () => [$id("alEmail").value.trim(), $id("alPass").value];
+    $id("alIn").onclick = () => { const [e, p] = ep(); if (!e || !p) return msg("Enter your email and password."); auth.signInWithEmailAndPassword(e, p).catch(x => msg(nice(x))); };
+    $id("alUp").onclick = () => { const [e, p] = ep(); if (!e || !p) return msg("Enter an email and a password."); auth.createUserWithEmailAndPassword(e, p).catch(x => msg(nice(x))); };
+    $id("alPass").onkeydown = e => { if (e.key === "Enter") $id("alIn").click(); };
+    $id("alForgot").onclick = () => { const [e] = ep(); if (!e) return msg("Enter your email first."); auth.sendPasswordResetEmail(e).then(() => msg("Reset link sent to " + e + ".", true)).catch(x => msg(nice(x))); };
+    AUTH.signOut = () => auth.signOut();
+
+    let session = null, beat = null;
+    auth.onAuthStateChanged(async u => {
+      AUTH.user = u;
+      if (!u) { ov.style.display = "flex"; const b = $id("aiaAcct"); if (b) b.style.display = "none"; if (beat) clearInterval(beat); return; }
+      ov.style.display = "none";
+      try { await startSession(u); } catch (e) { console.warn("usage data", e); }
+      account(u);
+    });
+
+    /* ---------- usage data ---------- */
+    const device = () => { const ua = navigator.userAgent; const br = /Edg\//.test(ua) ? "Edge" : /OPR\//.test(ua) ? "Opera" : /Chrome\//.test(ua) ? "Chrome" : /Firefox\//.test(ua) ? "Firefox" : /Safari\//.test(ua) ? "Safari" : "Other";
+      const os = /Windows/.test(ua) ? "Windows" : /Android/.test(ua) ? "Android" : /iPhone|iPad/.test(ua) ? "iOS" : /Mac OS/.test(ua) ? "macOS" : /Linux/.test(ua) ? "Linux" : "Other";
+      return { browser: br, os, mobile: /Mobi|Android|iPhone/.test(ua), screen: screen.width + "x" + screen.height }; };
+    const country = () => { const l = navigator.language || ""; const m = l.match(/[-_]([A-Za-z]{2})$/); return m ? m[1].toUpperCase() : ""; };
+    const nav = performance.getEntriesByType && performance.getEntriesByType("navigation")[0], loadMs = Math.round(nav && nav.loadEventEnd > 0 ? nav.loadEventEnd : T0);
+    let fpsN = 0, fpsSum = 0, frames = 0, fpsT = performance.now(), nEv = 0, startMs = Date.now(); const errSeen = new Set();
+    const tick = () => { frames++; const now = performance.now(); if (now - fpsT >= 5000) { if (document.visibilityState === "visible") { fpsSum += frames * 1000 / (now - fpsT); fpsN++; } frames = 0; fpsT = now; } requestAnimationFrame(tick); };
+    requestAnimationFrame(tick);
+    async function startSession(u) {
+      const uref = db.collection("users").doc(u.uid), snap = await uref.get(), dv = device();
+      const base = { uid: u.uid, name: u.displayName || "", email: u.email || "", lastSeen: FV.serverTimestamp(), country: country(), locale: navigator.language || "", device: dv, version: VER, sessions: FV.increment(1) };
+      if (!snap.exists) base.firstSeen = FV.serverTimestamp();
+      await uref.set(base, { merge: true });
+      session = db.collection("sessions").doc(); startMs = Date.now();
+      await session.set({ uid: u.uid, email: u.email || "", start: FV.serverTimestamp(), version: VER, loadMs, device: dv, durationS: 0 });
+      const save = final => { if (!session) return; const d = Math.round((Date.now() - startMs) / 1000), fps = fpsN ? Math.round(fpsSum / fpsN * 10) / 10 : null;
+        session.update({ durationS: d, fpsAvg: fps, end: FV.serverTimestamp(), ended: !!final }).catch(() => {});
+        uref.update({ lastSeen: FV.serverTimestamp(), totalTimeS: FV.increment(final ? d % 60 : 60) }).catch(() => {}); };
+      if (beat) clearInterval(beat); beat = setInterval(() => save(false), 60000);
+      addEventListener("pagehide", () => save(true));
+      // presence: online while connected, offline when the tab closes or the connection drops
+      if (rtdb) { const ref = rtdb.ref("status/" + u.uid); rtdb.ref(".info/connected").on("value", s => { if (!s.val()) return;
+        ref.onDisconnect().set({ state: "offline", last: fb.database.ServerValue.TIMESTAMP, name: u.displayName || "", email: u.email || "" }).then(() => ref.set({ state: "online", last: fb.database.ServerValue.TIMESTAMP, name: u.displayName || "", email: u.email || "", version: VER })); }); }
+    }
+    AUTH.track = (type, data) => {
+      if (!AUTH.user || !session || nEv >= 300) return; nEv++;
+      const d = Object.assign({ uid: AUTH.user.uid, sid: session.id, type, version: VER, t: FV.serverTimestamp() }, data || {});
+      if (d.msg) d.msg = String(d.msg).slice(0, 300);
+      db.collection("events").add(d).catch(() => {});
+    };
+    for (const e of pendingEv.splice(0)) AUTH.track(e[0], e[1]);
+    addEventListener("error", e => { const m = (e && e.message) || "error"; if (errSeen.has(m)) return; errSeen.add(m); AUTH.track("error", { msg: m, src: ((e && e.filename) || "").split("/").pop() + ":" + ((e && e.lineno) || 0) }); });
+    addEventListener("unhandledrejection", e => { const m = String((e && e.reason && (e.reason.message || e.reason)) || "rejection"); if (errSeen.has(m)) return; errSeen.add(m); AUTH.track("error", { msg: m }); });
+
+    /* ---------- account button (top bar): email, admin dashboard for admins, sign out ---------- */
+    function account(u) {
+      let b = $id("aiaAcct"); if (!b) { b = document.createElement("button"); b.id = "aiaAcct"; const top = document.getElementById("skTop"), vb = top && [...top.querySelectorAll("button")].find(x => /Views/.test(x.textContent)); if (vb) { vb.before(b); Object.assign(b.style, { position: "static", marginRight: "10px", flex: "0 0 auto" }); } else document.body.appendChild(b); } // in the top bar, left of Views
+      b.style.display = "block"; b.textContent = ((u.displayName || u.email || "?")[0] || "?").toUpperCase(); b.title = u.email || "";
+      b.onclick = async () => { let m = $id("aiaAcctMenu"); if (m) { m.remove(); return; }
+        let admin = false; try { admin = (await db.collection("admins").doc((u.email || "").toLowerCase()).get()).exists; } catch (e) {}
+        m = document.createElement("div"); m.id = "aiaAcctMenu"; { const r = b.getBoundingClientRect(); m.style.top = (r.bottom + 6) + "px"; m.style.right = Math.max(8, innerWidth - r.right) + "px"; } m.innerHTML = `<div>${(u.displayName ? u.displayName + "<br>" : "") + (u.email || "")}</div>${admin ? `<a href="admin.html" target="_blank">Admin dashboard</a>` : ""}<a id="aiaOut">Sign out</a>`;
+        document.body.appendChild(m); $id("aiaOut").onclick = () => { m.remove(); auth.signOut(); };
+        setTimeout(() => addEventListener("pointerdown", function off(e) { if (!m.contains(e.target) && e.target !== b) { m.remove(); removeEventListener("pointerdown", off); } }), 0); };
+    }
+  })();
+
+  /* ---------- key events from the app (import, export, save .spine), with timings ---------- */
+  const pendingEv = [];
+  const ev = (type, data) => { if (AUTH.user) AUTH.track(type, data); else if (pendingEv.length < 20) pendingEv.push([type, data]); };
+  const wrapAsync = (name, type, info) => { const f = window[name]; if (typeof f !== "function") return; window[name] = async function (...a) { const t = performance.now(); try { const r = await f.apply(this, a); ev(type, Object.assign({ ms: Math.round(performance.now() - t) }, info ? info(a) : {})); return r; } catch (e) { ev("error", { msg: type + ": " + (e && e.message || e) }); throw e; } }; };
+  addEventListener("load", () => {
+    wrapAsync("finishSpineImport", "import", a => ({ name: String(a[2] || "").slice(0, 80), bones: (typeof doc !== "undefined" && doc && doc.bones || []).length }));
+    wrapAsync("exRun", "export", a => ({ format: String(a[0] || "") }));
+    if (window.SPW && typeof SPW.write === "function") { const w = SPW.write; SPW.write = function (...a) { const t = performance.now(), r = w.apply(this, a); ev("save_spine", { ms: Math.round(performance.now() - t) }); return r; }; }
+  });
 })();
 
 </script>
